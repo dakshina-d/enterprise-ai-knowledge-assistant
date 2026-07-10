@@ -141,7 +141,7 @@ class EvidenceItem(ContractModel):
     version: Annotated[str, Field(min_length=1, max_length=100)]
     content_hash: Annotated[str, Field(pattern=r"^[a-fA-F0-9]{64}$")]
     text: Annotated[str, Field(min_length=1, max_length=32_000)]
-    score: Annotated[float, Field(ge=0.0, le=1.0)]
+    score: Annotated[float, Field(ge=-1.0, le=1.0)]
 
     @field_validator("text")
     @classmethod

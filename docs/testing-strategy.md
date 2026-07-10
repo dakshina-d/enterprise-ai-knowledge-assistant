@@ -1,6 +1,6 @@
 # Proposed Testing Strategy
 
-Status: **Partially implemented.** Health, contracts, authentication/RBAC, rate limiting, deterministic sample-data, and offline ingestion tests run now. Ingestion coverage includes safe YAML/path rejection, hash and metadata agreement, normalization idempotency, Unicode/Markdown preservation, source lines, hard chunk limits, overlap, stable IDs, concurrency determinism, artifact drift, transactional failure, and real-corpus invariants. Graph, retrieval/tool execution, streaming, and end-to-end assistant tests remain planned.
+Status: **Partially implemented.** Existing foundations plus offline dense-retrieval tests run now. Dense coverage uses fake embeddings/Pinecone for configuration, input modes, vector validation, all 83 records, flat metadata, mandatory build/RBAC filters, idempotent batching, retry/cancellation, malformed output, negative cosine scores, and unauthorized-result dropping. Live Pinecone remains explicit and opt-in. Sparse/hybrid retrieval, graph/tools, streaming, and end-to-end assistant tests remain planned.
 
 ## Test layers
 

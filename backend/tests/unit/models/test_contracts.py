@@ -183,6 +183,19 @@ def test_document_metadata_and_evidence_preserve_attribution() -> None:
 
 def test_retrieval_rejects_invalid_scores_dates_and_document_types() -> None:
     metadata = _document_metadata()
+    evidence_values = {
+        "document_id": metadata.document_id,
+        "chunk_id": uuid4(),
+        "title": metadata.title,
+        "source": metadata.source,
+        "version": metadata.version,
+        "content_hash": metadata.content_hash,
+        "text": "Cosine evidence",
+    }
+    assert EvidenceItem(**evidence_values, score=-0.25).score == -0.25
+    for non_finite in (float("nan"), float("inf"), float("-inf")):
+        with pytest.raises(ValidationError):
+            EvidenceItem(**evidence_values, score=non_finite)
     with pytest.raises(ValidationError):
         IndexedChunk(
             chunk_id=uuid4(),

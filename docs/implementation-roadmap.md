@@ -2,7 +2,7 @@
 
 Status: **Partially implemented.** Each phase is a small, independently understandable proposed commit. Remaining runtime phases may be split further during implementation. Every phase must keep Ruff, MyPy, Pytest, documentation, and secret scanning green.
 
-Progress: phases 1–6 are complete. Phase 6 delivered deterministic offline parsing, normalization, section-aware chunking, provenance/authority metadata, stable identifiers, transactional artifacts, drift validation, and automated tests. Indexing, retrieval, tools, and AI execution remain planned.
+Progress: phases 1–7 are complete. Phase 7 delivered Pinecone Inference dense embeddings, explicit serverless bootstrap, deterministic indexing, build-isolated metadata, secure async dense queries, and baseline evaluation. Sparse/hybrid retrieval, tools, and AI execution remain planned.
 
 | # | Proposed commit message | Scope | Dependencies | Acceptance criteria and tests | Traceability addressed | Primary risks |
 |---:|---|---|---|---|---|---|

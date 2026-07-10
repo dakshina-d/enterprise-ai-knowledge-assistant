@@ -1,6 +1,6 @@
 # Proposed Architecture
 
-Status: **Partially implemented.** Repository/configuration/logging foundations, shared contracts, FastAPI health endpoints, PoC authentication, deterministic RBAC/tool/retrieval policies, process-local per-user/login token buckets, and a disabled Streamlit placeholder currently run. Graph, retrieval, tool, memory, LLM, SSE, and UI integrations remain planned.
+Status: **Partially implemented.** Foundations, contracts, health, PoC authentication, RBAC/rate limiting, offline ingestion, and optional async Pinecone dense indexing/retrieval now run. Sparse/hybrid retrieval, graph, tool, memory, LLM, SSE, and UI integrations remain planned. Pinecone is explicit CLI functionality and is not initialized during API startup.
 
 ## Architectural principles
 

@@ -9,6 +9,7 @@ __pycache__/
 htmlcov/
 dist/
 build/
+data/evaluation/results/
 
 # Environments and secrets
 .venv/

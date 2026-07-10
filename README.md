@@ -4,15 +4,17 @@ An enterprise-grade technical-assessment foundation for a future conversational 
 
 ## Current status
 
-Implemented: modular repository scaffolding, reusable validated domain/API contracts, proof-of-concept authentication, deterministic RBAC and rate limiting, health endpoints, a deterministic 51-document synthetic corpus, and an offline Markdown ingestion/chunking pipeline.
+Implemented: modular repository scaffolding, reusable validated domain/API contracts, proof-of-concept authentication, deterministic RBAC and rate limiting, health endpoints, a deterministic 51-document synthetic corpus, offline ingestion, and optional Pinecone dense indexing/retrieval with offline-tested security filters.
 
-Planned—not implemented: LangGraph agents, LLM calls, Pinecone retrieval, MCP/Python tool execution, conversational memory, streaming, guardrails, and business workflows.
+Planned—not implemented: sparse/hybrid retrieval, reranking, LangGraph agents, LLM answer generation, MCP/Python tool execution, conversational memory, streaming, guardrails, and business workflows.
 
 The repository includes a deterministic 51-document synthetic corpus for the fictional Lanka Horizon Commercial Bank. All people, incidents, systems, dates, metrics, and identifiers are synthetic and do not describe any real financial institution.
 
 ## Proposed architecture
 
 The planned system separates the Streamlit experience, FastAPI orchestration API, ingestion pipeline, and constrained MCP server. Future backend modules reserve boundaries for agents, graph orchestration, hybrid retrieval, tools, memory, security, observability, models, and services. See [docs/architecture.md](docs/architecture.md).
+
+Pinecone is disabled by default and never runs during API startup. After configuring `.env`, use the explicit `enterprise_ai.retrieval.cli` bootstrap, index, check, query, and evaluation commands documented in [dense retrieval design](docs/dense-retrieval-design.md).
 
 ## Prerequisites
 

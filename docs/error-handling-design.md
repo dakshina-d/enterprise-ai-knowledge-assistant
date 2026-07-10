@@ -1,6 +1,6 @@
 # Proposed Error-handling Design
 
-Status: **Designed, not implemented.** Errors use stable machine codes, safe public messages, correlated structured logs, and LangSmith span status. Retry decisions are deterministic and bounded by the request deadline.
+Status: **Partially implemented.** Dense retrieval has typed configuration, validation, authentication, authorization, timeout, transient, permanent-dependency, and integrity failures. Only transient/rate-limit/server failures receive bounded backoff; cancellation propagates. The broader graph/LLM fallback design remains planned.
 
 ## Taxonomy and default policy
 

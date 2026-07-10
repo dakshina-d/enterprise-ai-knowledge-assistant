@@ -1,6 +1,6 @@
 # Initial Security Design
 
-The PoC authentication, deterministic RBAC/rate limiting, and offline ingestion safety boundary are implemented. LLM, retrieval execution, and tool execution remain unimplemented.
+The PoC authentication, deterministic RBAC/rate limiting, offline ingestion, and dense-retrieval security boundary are implemented. Pinecone queries always constrain current build fingerprint, server-derived access levels, and principal role membership; returned metadata is revalidated and unauthorized matches are dropped. LLM and tool execution remain unimplemented.
 
 | Threat | Intended controls |
 |---|---|

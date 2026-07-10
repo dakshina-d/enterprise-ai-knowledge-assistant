@@ -14,6 +14,7 @@ dependencies = [
   "fastapi>=0.115,<1.0",
   "PyJWT>=2.10,<3.0",
   "pydantic-settings>=2.7,<3.0",
+  "pinecone>=9.0,<10.0",
   "PyYAML>=6.0,<7.0",
   "streamlit>=1.41,<2.0",
   "uvicorn[standard]>=0.34,<1.0",
@@ -46,7 +47,11 @@ select = ["E", "F", "I", "B", "UP", "ANN", "ASYNC", "S", "RUF"]
 
 [tool.ruff.lint.per-file-ignores]
 "backend/tests/**/*.py" = ["S101", "S105", "S106"]
+"backend/tests/unit/retrieval/**/*.py" = ["ANN401", "S101", "S105", "S106"]
 "ingestion/tests/**/*.py" = ["S101", "S105", "S106"]
+"backend/src/enterprise_ai/retrieval/dense_retriever.py" = ["ANN401"]
+"backend/src/enterprise_ai/retrieval/embeddings.py" = ["ANN401"]
+"backend/src/enterprise_ai/retrieval/pinecone_client.py" = ["ANN401"]
 "scripts/generate_sample_documents.py" = ["E501"]
 "scripts/validate_sample_documents.py" = ["E501"]
 
@@ -60,3 +65,4 @@ files = ["backend/src", "frontend", "ingestion/src", "scripts"]
 addopts = "-q --strict-config --strict-markers"
 testpaths = ["backend/tests", "mcp_server/tests", "ingestion/tests", "tests"]
 pythonpath = ["backend/src", "ingestion/src"]
+markers = ["pinecone_live: explicitly enabled Pinecone integration tests"]

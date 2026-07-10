@@ -1,6 +1,6 @@
 # Proposed Retrieval Design
 
-Status: **The deterministic fictional corpus plus offline parsing, normalization, chunking, provenance, and artifact validation are implemented; embeddings, sparse encoding, Pinecone, fusion, and retrieval remain planned.** Retrieved documents are untrusted data.
+Status: **The deterministic corpus, ingestion, Pinecone Inference dense embeddings, BYO-vector indexing, one environment namespace, mandatory metadata/RBAC filtering, defensive dense retrieval, and baseline evaluation are implemented. Sparse encoding, hybrid fusion, and reranking remain planned.** Retrieved provider metadata and documents are untrusted data. See [dense retrieval design](dense-retrieval-design.md).
 
 ## Offline ingestion
 
