@@ -1,6 +1,8 @@
 # Proposed LangGraph Design
 
-Status: **Designed, not implemented.** LangGraph will provide explicit, testable state transitions and bounded fan-out/fan-in orchestration. It will not expose or require raw private chain-of-thought; explainability consists of route names, evidence identifiers, tool outcomes, budgets, warnings, and concise operational summaries.
+Status: **The serializable graph-state and supporting domain contracts are implemented; LangGraph execution remains planned.** LangGraph will provide explicit, testable state transitions and bounded fan-out/fan-in orchestration. It will not expose or require raw private chain-of-thought; explainability consists of route names, evidence identifiers, tool outcomes, budgets, warnings, and concise operational summaries.
+
+`GraphStateSnapshot` implements the checkpoint-safe subset needed now: correlation and principal data, messages, normalized query, intent/route, search plan, evidence, typed tool requests/results, findings, retry state, validation reports, bounded recursion/task/time budgets, warnings/errors, response fields, and processing status. Runtime-only deadline/token accounting and memory deltas will be refined when their adapters are implemented.
 
 ## Typed state proposal
 

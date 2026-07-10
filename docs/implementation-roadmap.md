@@ -2,6 +2,8 @@
 
 Status: **Designed.** Each phase is a small, independently understandable proposed commit. Runtime phases remain planned and may be split further during implementation. Every phase must keep Ruff, MyPy, Pytest, documentation, and secret scanning green.
 
+Progress: phases 1 and 2 are complete. Phase 2 delivered provider-neutral immutable Pydantic contracts and validation tests only; it did not implement any runtime capability from later phases.
+
 | # | Proposed commit message | Scope | Dependencies | Acceptance criteria and tests | Traceability addressed | Primary risks |
 |---:|---|---|---|---|---|---|
 | 1 | `docs: finalize architecture and implementation roadmap` | Design contracts, diagrams, ADRs, traceability. | Scaffold | Documents agree; Mermaid/manual review; existing gates pass. | All requirements at design level | Inconsistent terminology or false completion claims. |

@@ -1,6 +1,6 @@
 # Proposed Event-stream Design
 
-Status: **Designed, not implemented.** The PoC will use authenticated Server-Sent Events (SSE) for one-way FastAPI-to-Streamlit delivery. SSE fits token and activity updates, supports event IDs and reconnection, works over ordinary HTTP, and is simpler than WebSockets when the client sends commands through normal POST requests.
+Status: **The versioned public event envelope and allowlisted payload model are implemented; SSE transport remains planned.** The PoC will use authenticated Server-Sent Events (SSE) for one-way FastAPI-to-Streamlit delivery. SSE fits token and activity updates, supports event IDs and reconnection, works over ordinary HTTP, and is simpler than WebSockets when the client sends commands through normal POST requests.
 
 ## Versioned public envelope
 
@@ -22,6 +22,8 @@ Status: **Designed, not implemented.** The PoC will use authenticated Server-Sen
 ```
 
 `event_id` is also sent as the SSE `id`; `event_type` is the SSE `event`; JSON is the `data`. Sequence numbers are monotonic per request. Unknown minor-version fields must be ignored; breaking envelope changes require a new major version. Heartbeat comments contain no data. Reconnect uses `Last-Event-ID`; the PoC may offer only an in-memory replay buffer and must document loss after restart.
+
+The implemented contract uses `research.batch_completed` consistently (not `research.batch.completed`) and a typed `PublicAgentEventPayload` allowlist instead of an unrestricted mapping.
 
 ## Event catalogue
 

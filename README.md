@@ -4,7 +4,7 @@ An enterprise-grade technical-assessment foundation for a future conversational 
 
 ## Current status
 
-Implemented: modular repository scaffolding, a FastAPI application factory, live/readiness health endpoints, JSON logging foundations, environment-based settings, a Streamlit placeholder, tests, and quality tooling.
+Implemented: modular repository scaffolding, reusable validated domain/API contracts, a FastAPI application factory, live/readiness health endpoints, JSON logging foundations, environment-based settings, a Streamlit placeholder, tests, and quality tooling.
 
 Planned—not implemented: LangGraph agents, LLM calls, Pinecone retrieval, MCP tools, authentication/RBAC, rate limiting, conversational memory, guardrails, and business workflows.
 

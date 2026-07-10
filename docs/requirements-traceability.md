@@ -6,6 +6,7 @@ Statuses are intentionally strict: **Implemented** means executable and verified
 |---|---|---|---|---|---|
 | Repository scaffolding | Must | Modular monorepo; [ADR 0001](adr/0001-project-structure.md) | Tree and packaging review | Implemented | Current directory walkthrough |
 | Architecture and implementation roadmap | Must | [Architecture](architecture.md), [roadmap](implementation-roadmap.md), ADRs | Cross-document terminology/link and Mermaid review | Designed | Document walkthrough only |
+| Shared domain and API contracts | Must | `enterprise_ai.models`; [API contracts](api-contracts.md), [graph design](graph-design.md), [event design](event-stream-design.md) | Model validation, serialization, strict typing, and boundary unit tests | Implemented | Current schema/test walkthrough; no runtime feature claimed |
 | Health endpoints | Must | Backend API; [API contracts](api-contracts.md) | Automated `live` and `ready` tests plus startup smoke test | Implemented | Current endpoint responses |
 | Logging foundations | Must | Backend core; [architecture](architecture.md), [error handling](error-handling-design.md) | Ruff/MyPy and JSON formatter test/inspection | Implemented | Current JSON formatter; request events pending |
 | Streamlit chat | Must | Frontend; [API contracts](api-contracts.md), [roadmap](implementation-roadmap.md) | UI and end-to-end chat tests | Planned | Disabled placeholder only |

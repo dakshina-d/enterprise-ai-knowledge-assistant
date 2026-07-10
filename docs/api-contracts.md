@@ -1,6 +1,8 @@
 # Proposed API Contracts
 
-Status: **Designed, not implemented**, except the two health endpoints. JSON APIs use `/api/v1`, UTC timestamps, opaque identifiers, and a consistent error body. Authentication is a secure HTTP-only session cookie for the PoC (bearer tokens are a production alternative). Role values are `viewer`, `analyst`, and `administrator`.
+Status: **Shared request, response, identity, chat, feedback, event, and error schemas are implemented; runtime endpoints remain planned**, except the two health endpoints. JSON APIs use `/api/v1`, UTC timestamps, UUID identifiers, and a consistent error body. Authentication is a secure HTTP-only session cookie for the PoC (bearer tokens are a production alternative). Role values are `viewer`, `analyst`, and `administrator`.
+
+The implemented Pydantic contracts live under `enterprise_ai.models`. They are immutable, reject unknown fields, require timezone-aware datetimes, and bound public text/payload sizes. The optional `/api/v1/meta/contracts` endpoint was not added because it would create a runtime surface without providing more authority than versioned code and documentation.
 
 ## Common contracts
 
