@@ -1,0 +1,1 @@
+"""Reserved domain-model boundary."""
