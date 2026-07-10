@@ -6,7 +6,7 @@ An enterprise-grade technical-assessment foundation for a future conversational 
 
 Implemented: modular repository scaffolding, reusable validated domain/API contracts, proof-of-concept authentication, deterministic RBAC and rate limiting, health endpoints, a deterministic 51-document synthetic corpus, offline ingestion, and optional Pinecone dense indexing/retrieval with offline-tested security filters.
 
-Planned—not implemented: sparse/hybrid retrieval, reranking, LangGraph agents, LLM answer generation, MCP/Python tool execution, conversational memory, streaming, guardrails, and business workflows.
+Implemented retrieval now includes local BM25 sparse search and transparent weighted dense–sparse hybrid fusion. Planned—not implemented: reranking, LangGraph agents, LLM answer generation, MCP/Python tool execution, conversational memory, streaming, guardrails, and business workflows.
 
 The repository includes a deterministic 51-document synthetic corpus for the fictional Lanka Horizon Commercial Bank. All people, incidents, systems, dates, metrics, and identifiers are synthetic and do not describe any real financial institution.
 

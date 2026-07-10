@@ -11,7 +11,6 @@ from typing import Any
 from uuid import NAMESPACE_URL, uuid5
 
 from enterprise_ai.models.identity import AuthenticatedPrincipal, UserIdentity, UserRole
-from enterprise_ai.retrieval.dense_retriever import DenseRetrievalService
 from enterprise_ai.security.authorization import AuthorizationService
 
 
@@ -32,7 +31,7 @@ def assessment_principal(role: UserRole) -> AuthenticatedPrincipal:
 
 
 async def evaluate_dense_retrieval(
-    service: DenseRetrievalService,
+    service: Any,
     *,
     questions_path: Path,
     output_path: Path | None = None,

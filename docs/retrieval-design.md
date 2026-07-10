@@ -1,6 +1,6 @@
 # Proposed Retrieval Design
 
-Status: **The deterministic corpus, ingestion, Pinecone Inference dense embeddings, BYO-vector indexing, one environment namespace, mandatory metadata/RBAC filtering, defensive dense retrieval, and baseline evaluation are implemented. Sparse encoding, hybrid fusion, and reranking remain planned.** Retrieved provider metadata and documents are untrusted data. See [dense retrieval design](dense-retrieval-design.md).
+Status: **Ingestion, Pinecone dense retrieval, deterministic local BM25 sparse retrieval, mandatory RBAC filtering, and transparent weighted hybrid fusion are implemented. Reranking remains planned.** Retrieved provider metadata, local sparse artifacts, and documents are untrusted data. See [dense retrieval design](dense-retrieval-design.md) and [sparse/hybrid design](sparse-and-hybrid-retrieval-design.md).
 
 ## Offline ingestion
 

@@ -37,9 +37,26 @@ class RetrievalSettings(BaseSettings):
     pinecone_index_ready_timeout_seconds: float = Field(default=180.0, gt=0, le=1800)
     ingestion_manifest_path: Path = Path("data/processed/ingestion_manifest.json")
     ingestion_chunks_path: Path = Path("data/processed/chunks.jsonl")
+    bm25_k1: float = Field(default=1.5, gt=0, le=10)
+    bm25_b: float = Field(default=0.75, ge=0, le=1)
+    bm25_max_query_tokens: int = Field(default=128, ge=1, le=1000)
+    bm25_max_vocabulary_size: int = Field(default=100_000, ge=1)
+    bm25_max_indexed_chunks: int = Field(default=10_000, ge=1)
+    bm25_max_terms_per_chunk: int = Field(default=10_000, ge=1)
+    bm25_index_path: Path = Path("data/processed/bm25_index.json")
+    bm25_manifest_path: Path = Path("data/processed/bm25_manifest.json")
+    hybrid_dense_weight: float = Field(default=0.65, ge=0, le=1)
+    hybrid_sparse_weight: float = Field(default=0.35, ge=0, le=1)
+    hybrid_overfetch_factor: int = Field(default=4, ge=1, le=20)
+    hybrid_max_candidates: int = Field(default=100, ge=1, le=500)
+    hybrid_dense_timeout_seconds: float = Field(default=30, gt=0, le=300)
+    hybrid_sparse_timeout_seconds: float = Field(default=5, gt=0, le=60)
+    hybrid_allow_partial_results: bool = True
 
     @model_validator(mode="after")
     def validate_enabled(self) -> Self:
+        if self.hybrid_dense_weight + self.hybrid_sparse_weight <= 0:
+            raise ValueError("at least one hybrid weight must be positive")
         if self.pinecone_enabled and (
             self.pinecone_api_key is None or not self.pinecone_api_key.get_secret_value()
         ):

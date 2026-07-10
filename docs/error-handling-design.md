@@ -1,6 +1,6 @@
 # Proposed Error-handling Design
 
-Status: **Partially implemented.** Dense retrieval has typed configuration, validation, authentication, authorization, timeout, transient, permanent-dependency, and integrity failures. Only transient/rate-limit/server failures receive bounded backoff; cancellation propagates. The broader graph/LLM fallback design remains planned.
+Status: **Partially implemented.** Dense and sparse/hybrid retrieval have typed validation, timeout, dependency, authorization, stale-artifact, score, and attribution failures. Hybrid can return an explicit safe partial result for one ordinary branch failure; authorization and integrity failures do not widen retrieval. The broader graph/LLM fallback design remains planned.
 
 ## Taxonomy and default policy
 

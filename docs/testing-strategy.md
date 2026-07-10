@@ -1,6 +1,6 @@
 # Proposed Testing Strategy
 
-Status: **Partially implemented.** Existing foundations plus offline dense-retrieval tests run now. Dense coverage uses fake embeddings/Pinecone for configuration, input modes, vector validation, all 83 records, flat metadata, mandatory build/RBAC filters, idempotent batching, retry/cancellation, malformed output, negative cosine scores, and unauthorized-result dropping. Live Pinecone remains explicit and opt-in. Sparse/hybrid retrieval, graph/tools, streaming, and end-to-end assistant tests remain planned.
+Status: **Partially implemented.** Dense tests plus offline analyzer, BM25, sparse artifact/fingerprint, exact identifier, RBAC, normalization, fusion, attribution, deterministic ordering, and partial-result tests run now. Live Pinecone remains explicit and opt-in. Reranking, graph/tools, streaming, and end-to-end assistant tests remain planned.
 
 ## Test layers
 

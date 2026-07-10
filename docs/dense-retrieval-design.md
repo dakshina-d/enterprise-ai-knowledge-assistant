@@ -47,4 +47,4 @@ Evaluation selects document-level dense-suitable questions from the committed be
 
 ## Limitations and next step
 
-Live dimension, index, and evaluation values exist only when explicitly run with valid credentials. Stale records consume storage until a future safely scoped cleanup. Provider metadata limits may require future evidence storage separation. Sparse encoding and weighted hybrid fusion are next; reranking remains later evaluated work.
+Live dimension, index, and evaluation values exist only when explicitly run with valid credentials. Stale records consume storage until a future safely scoped cleanup. Provider metadata limits may require future evidence storage separation. Local BM25 and weighted hybrid fusion are now implemented; reranking remains later evaluated work.
