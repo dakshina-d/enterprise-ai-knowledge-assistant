@@ -17,7 +17,7 @@ status: "superseded"
 tags:
   - "governance"
   - "risk_and_compliance"
-related_document_ids:
+related_document_ids: []
 ---
 # Data Retention Policy — Legacy Schedule
 

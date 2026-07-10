@@ -1,6 +1,6 @@
 # Proposed Retrieval Design
 
-Status: **The deterministic fictional source corpus, metadata manifest, benchmarks, and validation are implemented; parsing, chunking, embeddings, sparse encoding, Pinecone, fusion, and retrieval remain planned.** Retrieved documents are untrusted data.
+Status: **The deterministic fictional corpus plus offline parsing, normalization, chunking, provenance, and artifact validation are implemented; embeddings, sparse encoding, Pinecone, fusion, and retrieval remain planned.** Retrieved documents are untrusted data.
 
 ## Offline ingestion
 
@@ -18,9 +18,9 @@ flowchart LR
     U --> V[Count and sample verification]
 ```
 
-The source dataset contains 51 Markdown documents with YAML front matter and SHA-256 body hashes. The manifest is provider neutral and intentionally contains no chunk IDs, vectors, or Pinecone fields. Security fixtures are outside the valid manifest and must never enter normal ingestion.
+The source dataset contains 51 Markdown documents with YAML front matter and SHA-256 body hashes. The manifest is provider neutral and contains no vectors or Pinecone fields. Security fixtures and the glossary are outside the allowlisted inputs. Implemented stages through content hashing emit deterministic JSONL records described in [ingestion design](ingestion-design.md); embedding and upsert remain proposed.
 
-Parsing rejects unsupported, oversized, encrypted, or malformed files. Normalization preserves headings and source offsets while removing unstable formatting. Structure-aware chunks target a configurable token range with small overlap; tables and section boundaries receive explicit handling. A deterministic `content_hash` supports idempotency, versioning, and deletion of superseded vectors. Dense embeddings and sparse term weights are generated offline and upserted together in bounded batches.
+Parsing rejects non-allowlisted, malformed, hash-mismatched, traversing, and symlinked inputs. Normalization preserves structure and source lines while removing unstable formatting. Structure-aware chunks use configurable approximate-token limits and bounded overlap. Deterministic hashes, UUIDv5 identifiers, and a build fingerprint support drift detection and future indexing. Dense embeddings, sparse term weights, deletion reconciliation, and batch upsert are not implemented.
 
 ## Metadata schema
 

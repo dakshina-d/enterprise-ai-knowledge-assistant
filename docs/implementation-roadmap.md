@@ -1,8 +1,8 @@
 # Implementation Roadmap
 
-Status: **Designed.** Each phase is a small, independently understandable proposed commit. Runtime phases remain planned and may be split further during implementation. Every phase must keep Ruff, MyPy, Pytest, documentation, and secret scanning green.
+Status: **Partially implemented.** Each phase is a small, independently understandable proposed commit. Remaining runtime phases may be split further during implementation. Every phase must keep Ruff, MyPy, Pytest, documentation, and secret scanning green.
 
-Progress: phases 1–5 are complete. Phase 5 delivered 51 deterministic fictional documents, canonical metadata/body hashes, research and access-control benchmarks, isolated malicious fixtures, generation/check tooling, and independent validation. Parsing, chunking, indexing, retrieval, tools, and AI execution remain planned.
+Progress: phases 1–6 are complete. Phase 6 delivered deterministic offline parsing, normalization, section-aware chunking, provenance/authority metadata, stable identifiers, transactional artifacts, drift validation, and automated tests. Indexing, retrieval, tools, and AI execution remain planned.
 
 | # | Proposed commit message | Scope | Dependencies | Acceptance criteria and tests | Traceability addressed | Primary risks |
 |---:|---|---|---|---|---|---|

@@ -1,6 +1,6 @@
 # Proposed Testing Strategy
 
-Status: **Partially implemented.** Health, contracts, authentication/RBAC, rate limiting, and deterministic sample-data tests run now. Corpus coverage verifies generation drift, manifest/enums, type/department/access/role distributions, 16 incidents and recurring causes, relationships, source status, hashes, benchmarks, fixture isolation, and safety scanning. Graph, parsing/chunking, retrieval/tool execution, streaming, and end-to-end assistant tests remain planned.
+Status: **Partially implemented.** Health, contracts, authentication/RBAC, rate limiting, deterministic sample-data, and offline ingestion tests run now. Ingestion coverage includes safe YAML/path rejection, hash and metadata agreement, normalization idempotency, Unicode/Markdown preservation, source lines, hard chunk limits, overlap, stable IDs, concurrency determinism, artifact drift, transactional failure, and real-corpus invariants. Graph, retrieval/tool execution, streaming, and end-to-end assistant tests remain planned.
 
 ## Test layers
 

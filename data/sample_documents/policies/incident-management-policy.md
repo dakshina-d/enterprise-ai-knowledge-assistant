@@ -17,7 +17,7 @@ status: "approved"
 tags:
   - "governance"
   - "operations"
-related_document_ids:
+related_document_ids: []
 ---
 # Incident Management Policy
 

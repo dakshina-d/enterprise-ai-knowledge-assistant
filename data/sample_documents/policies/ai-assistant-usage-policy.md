@@ -16,7 +16,7 @@ status: "approved"
 tags:
   - "governance"
   - "data_and_analytics"
-related_document_ids:
+related_document_ids: []
 ---
 # AI Assistant Usage Policy
 

@@ -17,7 +17,7 @@ status: "approved"
 tags:
   - "governance"
   - "cybersecurity"
-related_document_ids:
+related_document_ids: []
 ---
 # Information Classification and Handling Policy
 

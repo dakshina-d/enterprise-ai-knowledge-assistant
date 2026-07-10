@@ -16,7 +16,7 @@ status: "approved"
 tags:
   - "governance"
   - "digital_banking"
-related_document_ids:
+related_document_ids: []
 ---
 # Secure Software Development Policy
 

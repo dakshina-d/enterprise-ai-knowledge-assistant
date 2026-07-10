@@ -1,10 +1,10 @@
 # Enterprise AI Knowledge Assistant
 
-An enterprise-grade technical-assessment foundation for a future conversational knowledge assistant. This initial milestone establishes project structure, engineering standards, documentation, and runnable health checks only.
+An enterprise-grade technical-assessment foundation for a future conversational knowledge assistant.
 
 ## Current status
 
-Implemented: modular repository scaffolding, reusable validated domain/API contracts, proof-of-concept backend authentication and deterministic RBAC policies, a FastAPI application factory, live/readiness health endpoints, JSON logging foundations, environment-based settings, a Streamlit placeholder, tests, and quality tooling.
+Implemented: modular repository scaffolding, reusable validated domain/API contracts, proof-of-concept authentication, deterministic RBAC and rate limiting, health endpoints, a deterministic 51-document synthetic corpus, and an offline Markdown ingestion/chunking pipeline.
 
 Planned—not implemented: LangGraph agents, LLM calls, Pinecone retrieval, MCP/Python tool execution, conversational memory, streaming, guardrails, and business workflows.
 
@@ -80,6 +80,16 @@ py -3.12 scripts/validate_sample_documents.py
 
 The valid Markdown corpus and body-hash manifest are under `data/sample_documents/`. Research/access benchmarks are under `data/evaluation/`. Malicious-test-only fixtures are isolated under `data/security_fixtures/` and excluded from the valid manifest. See [sample-data design](docs/sample-data-design.md).
 
+Build or verify deterministic retrieval-ready artifacts with:
+
+```bash
+py -3.12 -m enterprise_ai_ingestion build
+py -3.12 -m enterprise_ai_ingestion check
+py -3.12 -m enterprise_ai_ingestion validate
+```
+
+The commands are offline and provider-neutral. See [ingestion design](docs/ingestion-design.md) for safety boundaries, artifact contracts, and limitations.
+
 ## Environment configuration
 
 Configuration is loaded from environment variables by `enterprise_ai.core.config.Settings`. Application settings include `APP_ENV`, `LOG_LEVEL`, `API_HOST`, `API_PORT`, and the documented `AUTH_*`/`DEMO_*` proof-of-concept variables. Future provider variable names are listed in `.env.example`; no provider integration is active.
@@ -91,7 +101,7 @@ Never commit `.env`, API keys, credentials, or production configuration. Use a s
 ```text
 backend/      FastAPI application and backend tests
 frontend/     Streamlit presentation layer
-ingestion/    Reserved ingestion component
+ingestion/    Offline deterministic parsing and chunking component
 mcp_server/   Reserved constrained MCP component
 data/         Non-sensitive sample documents
 docs/         Architecture, security, decisions, and assessment evidence
@@ -101,6 +111,6 @@ tests/        Reserved cross-component tests
 
 ## Current limitations
 
-The health responses are static process-level placeholders and do not check dependencies. The Streamlit UI does not call the backend and chat is disabled. There are no AI, retrieval, identity, authorization, memory, observability-provider, or tool-execution features yet.
+The health responses are static process-level placeholders and do not check dependencies. The Streamlit UI does not call the backend and chat is disabled. There are no LLM, vector-index, retrieval execution, memory, observability-provider, streaming, or tool-execution features yet.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and [requirements traceability](docs/requirements-traceability.md) for implementation status.

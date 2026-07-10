@@ -14,6 +14,7 @@ dependencies = [
   "fastapi>=0.115,<1.0",
   "PyJWT>=2.10,<3.0",
   "pydantic-settings>=2.7,<3.0",
+  "PyYAML>=6.0,<7.0",
   "streamlit>=1.41,<2.0",
   "uvicorn[standard]>=0.34,<1.0",
 ]
@@ -26,13 +27,14 @@ dev = [
   "pytest>=8.3,<9.0",
   "pytest-cov>=6.0,<7.0",
   "ruff>=0.9,<1.0",
+  "types-PyYAML>=6.0,<7.0",
 ]
 
 [tool.setuptools]
-package-dir = { "" = "backend/src" }
+package-dir = { "" = "backend/src", enterprise_ai_ingestion = "ingestion/src/enterprise_ai_ingestion" }
 
 [tool.setuptools.packages.find]
-where = ["backend/src"]
+where = ["backend/src", "ingestion/src"]
 
 [tool.ruff]
 target-version = "py312"
@@ -44,16 +46,17 @@ select = ["E", "F", "I", "B", "UP", "ANN", "ASYNC", "S", "RUF"]
 
 [tool.ruff.lint.per-file-ignores]
 "backend/tests/**/*.py" = ["S101", "S105", "S106"]
+"ingestion/tests/**/*.py" = ["S101", "S105", "S106"]
 "scripts/generate_sample_documents.py" = ["E501"]
 "scripts/validate_sample_documents.py" = ["E501"]
 
 [tool.mypy]
 python_version = "3.12"
 strict = true
-mypy_path = "backend/src"
-files = ["backend/src", "frontend"]
+mypy_path = ["backend/src", "ingestion/src"]
+files = ["backend/src", "frontend", "ingestion/src", "scripts"]
 
 [tool.pytest.ini_options]
 addopts = "-q --strict-config --strict-markers"
 testpaths = ["backend/tests", "mcp_server/tests", "ingestion/tests", "tests"]
-pythonpath = ["backend/src"]
+pythonpath = ["backend/src", "ingestion/src"]

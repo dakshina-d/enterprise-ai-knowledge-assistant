@@ -1,6 +1,6 @@
 # Initial Security Design
 
-The PoC authentication and deterministic RBAC foundation is implemented. LLM, retrieval execution, and tool execution remain unimplemented.
+The PoC authentication, deterministic RBAC/rate limiting, and offline ingestion safety boundary are implemented. LLM, retrieval execution, and tool execution remain unimplemented.
 
 | Threat | Intended controls |
 |---|---|
@@ -68,3 +68,5 @@ Policy names, capacity, refill, and cost are server configuration. Clients and L
 ## Synthetic-data safety boundary
 
 The valid corpus contains fictional documents only and is scanned for private-key markers, common API-key/token forms, password assignments, non-placeholder email domains, public-looking IPv4 addresses, and a small real-bank denylist. Nine intentionally malicious but non-executable fixtures are isolated under `data/security_fixtures/`, use a separate manifest, and are excluded from valid ingestion. The scan is lightweight test-data hygiene, not a substitute for production DLP, malware scanning, or legal review. All retrieved content will still be treated as untrusted when retrieval is implemented.
+
+The ingestion parser treats the valid manifest as an allowlist, bounds paths, rejects symlinks/traversal and fixture/glossary paths, verifies body hashes and exact metadata agreement, and uses a duplicate-key-rejecting safe YAML loader. Markdown and fenced code remain inert data. Managed artifacts are validated before a transactional directory swap. These local controls do not replace production malware scanning, DLP, tenant-aware job authorization, encrypted storage, or audit retention.

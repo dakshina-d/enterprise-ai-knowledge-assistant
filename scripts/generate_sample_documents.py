@@ -667,8 +667,11 @@ def _front_matter(metadata: dict[str, object]) -> str:
     lines = ["---"]
     for key, value in metadata.items():
         if isinstance(value, list):
-            lines.append(f"{key}:")
-            lines.extend(f"  - {json.dumps(item, ensure_ascii=False)}" for item in value)
+            if value:
+                lines.append(f"{key}:")
+                lines.extend(f"  - {json.dumps(item, ensure_ascii=False)}" for item in value)
+            else:
+                lines.append(f"{key}: []")
         else:
             lines.append(f"{key}: {json.dumps(value, ensure_ascii=False)}")
     return "\n".join([*lines, "---", ""])

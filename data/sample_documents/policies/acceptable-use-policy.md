@@ -17,7 +17,7 @@ status: "approved"
 tags:
   - "governance"
   - "risk_and_compliance"
-related_document_ids:
+related_document_ids: []
 ---
 # Acceptable Use Policy
 

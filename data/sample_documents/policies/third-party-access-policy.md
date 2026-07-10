@@ -16,7 +16,7 @@ status: "approved"
 tags:
   - "governance"
   - "cybersecurity"
-related_document_ids:
+related_document_ids: []
 ---
 # Third-party Access Policy
 
