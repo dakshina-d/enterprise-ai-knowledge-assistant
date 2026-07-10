@@ -37,6 +37,19 @@ class Settings(BaseSettings):
     demo_analyst_password_hash: SecretStr | None = None
     demo_admin_username: str = Field(default="demo-admin", min_length=1, max_length=128)
     demo_admin_password_hash: SecretStr | None = None
+    rate_limit_enabled: bool = True
+    rate_limit_login_capacity: float = Field(default=5.0, gt=0.0)
+    rate_limit_login_refill_per_second: float = Field(default=1.0 / 30.0, gt=0.0)
+    rate_limit_login_cost: float = Field(default=1.0, gt=0.0)
+    rate_limit_standard_capacity: float = Field(default=30.0, gt=0.0)
+    rate_limit_standard_refill_per_second: float = Field(default=0.5, gt=0.0)
+    rate_limit_standard_cost: float = Field(default=1.0, gt=0.0)
+    rate_limit_expensive_capacity: float = Field(default=10.0, gt=0.0)
+    rate_limit_expensive_refill_per_second: float = Field(default=1.0 / 15.0, gt=0.0)
+    rate_limit_expensive_cost: float = Field(default=2.0, gt=0.0)
+    rate_limit_bucket_ttl_seconds: float = Field(default=3_600.0, gt=0.0)
+    trust_proxy_headers: bool = False
+    trusted_proxy_hosts: str = ""
 
     @model_validator(mode="after")
     def validate_authentication_configuration(self) -> Self:

@@ -6,7 +6,6 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 
 from enterprise_ai.api.dependencies import (
-    CurrentPrincipal,
     get_authentication_service,
     get_authorization_service,
     get_token_service,
@@ -16,6 +15,11 @@ from enterprise_ai.models.identity import (
     LoginResponse,
     PublicPrincipalProfile,
 )
+from enterprise_ai.rate_limit.dependencies import (
+    RateLimitedPrincipal,
+    enforce_login_rate_limit,
+)
+from enterprise_ai.rate_limit.models import RateLimitDecision
 from enterprise_ai.security.authentication import AuthenticationService
 from enterprise_ai.security.authorization import AuthorizationService
 from enterprise_ai.security.exceptions import AuthenticationError
@@ -28,6 +32,7 @@ logger = logging.getLogger(__name__)
 @router.post("/login", response_model=LoginResponse)
 async def login(
     request: LoginRequest,
+    _rate_limit: Annotated[RateLimitDecision, Depends(enforce_login_rate_limit)],
     authentication: Annotated[AuthenticationService, Depends(get_authentication_service)],
     authorization: Annotated[AuthorizationService, Depends(get_authorization_service)],
     tokens: Annotated[TokenService, Depends(get_token_service)],
@@ -58,7 +63,7 @@ async def login(
 
 
 @router.get("/me", response_model=PublicPrincipalProfile)
-async def current_user(principal: CurrentPrincipal) -> PublicPrincipalProfile:
+async def current_user(principal: RateLimitedPrincipal) -> PublicPrincipalProfile:
     logger.info(
         "protected_endpoint_accessed",
         extra={
