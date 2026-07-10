@@ -24,6 +24,7 @@ def client() -> Iterator[TestClient]:
     settings = Settings(
         app_env="test",
         auth_enabled=True,
+        rate_limit_enabled=False,
         auth_token_secret=SECRET,
         auth_token_expiry_minutes=30,
         demo_viewer_password_hash=password_service.hash_password(PASSWORDS["demo-viewer"]),

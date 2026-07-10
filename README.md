@@ -6,7 +6,9 @@ An enterprise-grade technical-assessment foundation for a future conversational 
 
 Implemented: modular repository scaffolding, reusable validated domain/API contracts, proof-of-concept backend authentication and deterministic RBAC policies, a FastAPI application factory, live/readiness health endpoints, JSON logging foundations, environment-based settings, a Streamlit placeholder, tests, and quality tooling.
 
-Planned—not implemented: LangGraph agents, LLM calls, Pinecone retrieval, MCP tools, authentication/RBAC, rate limiting, conversational memory, guardrails, and business workflows.
+Planned—not implemented: LangGraph agents, LLM calls, Pinecone retrieval, MCP/Python tool execution, conversational memory, streaming, guardrails, and business workflows.
+
+The repository includes a deterministic 51-document synthetic corpus for the fictional Lanka Horizon Commercial Bank. All people, incidents, systems, dates, metrics, and identifiers are synthetic and do not describe any real financial institution.
 
 ## Proposed architecture
 
@@ -50,6 +52,14 @@ Place only the resulting hashes and a random signing secret of at least 32 chara
 
 The configured viewer, analyst, and administrator users are assessment-only. There are no refresh tokens, revocation, account lockout, MFA, federation, or distributed session controls. Production must replace demonstration authentication and local JWT issuance with an organizational OIDC identity provider such as Microsoft Entra ID, Keycloak, or Auth0, while retaining backend authorization checks.
 
+## Proof-of-concept rate limiting
+
+Rate limiting is enabled by default; set `RATE_LIMIT_ENABLED=false` only as an explicit local/test choice. Login uses an anonymous network fingerprint bucket (capacity 5, refill 1/30 token per second, cost 1); `/api/v1/auth/me` uses a backend-derived user-ID bucket (capacity 30, refill 0.5 token per second, cost 1). An expensive policy contract (capacity 10, refill 1/15 token per second, cost 2) is reserved for future AI/tool routes and is not attached today.
+
+Allowed responses include `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset`; reset is seconds until the current request cost is available and is `0` when allowed. Denials return `429`, the same informational headers, and `Retry-After` in whole seconds. Health endpoints remain unthrottled for orchestrator probes.
+
+The in-memory limiter is concurrency-safe only within one process, resets on restart, and does not coordinate workers. Production requires a shared Redis-compatible implementation using an atomic Lua script or transaction. Proxy headers are ignored by default; enable them only behind an explicitly allowlisted single-hop proxy.
+
 ## Quality checks
 
 ```bash
@@ -59,6 +69,16 @@ mypy backend/src frontend
 pytest
 pre-commit run --all-files
 ```
+
+## Sample corpus
+
+```bash
+py -3.12 scripts/generate_sample_documents.py
+py -3.12 scripts/generate_sample_documents.py --check
+py -3.12 scripts/validate_sample_documents.py
+```
+
+The valid Markdown corpus and body-hash manifest are under `data/sample_documents/`. Research/access benchmarks are under `data/evaluation/`. Malicious-test-only fixtures are isolated under `data/security_fixtures/` and excluded from the valid manifest. See [sample-data design](docs/sample-data-design.md).
 
 ## Environment configuration
 

@@ -1,6 +1,6 @@
 # Proposed Retrieval Design
 
-Status: **Designed, not implemented.** The PoC will use Pinecone hybrid retrieval over generated mock documents. Retrieved documents are untrusted data.
+Status: **The deterministic fictional source corpus, metadata manifest, benchmarks, and validation are implemented; parsing, chunking, embeddings, sparse encoding, Pinecone, fusion, and retrieval remain planned.** Retrieved documents are untrusted data.
 
 ## Offline ingestion
 
@@ -17,6 +17,8 @@ flowchart LR
     S --> U
     U --> V[Count and sample verification]
 ```
+
+The source dataset contains 51 Markdown documents with YAML front matter and SHA-256 body hashes. The manifest is provider neutral and intentionally contains no chunk IDs, vectors, or Pinecone fields. Security fixtures are outside the valid manifest and must never enter normal ingestion.
 
 Parsing rejects unsupported, oversized, encrypted, or malformed files. Normalization preserves headings and source offsets while removing unstable formatting. Structure-aware chunks target a configurable token range with small overlap; tables and section boundaries receive explicit handling. A deterministic `content_hash` supports idempotency, versioning, and deletion of superseded vectors. Dense embeddings and sparse term weights are generated offline and upserted together in bounded batches.
 

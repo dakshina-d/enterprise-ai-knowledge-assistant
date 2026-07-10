@@ -9,7 +9,7 @@ Status: **Designed, not implemented.** Errors use stable machine codes, safe pub
 | Validation | No | 0 | Correct request | `failed`; specific safe field guidance (`400/422`). |
 | Authentication | No | 0 | Re-authenticate | `denied`; generic `401`, log no credential. |
 | Authorization | No | 0 | None | `denied`; generic `403/404`, security audit. |
-| Rate limit | Later | 0 in graph; honor refill | Retry after server value | `denied`; `429` with bounded `Retry-After`. |
+| Rate limit | Client retries after refill | 0 server retries | Retry after server value | `denied`; implemented `429` with bounded `Retry-After`. |
 | Dependency failure | If transient/idempotent | 2, exponential 250 ms/1 s plus jitter | Cached/alternate path if authorized | `partial_success` or `failed`; name capability, not internals. |
 | Timeout | Sometimes | At most 1 within deadline | Partial evidence/result | `partial_success` or `failed`; concise timeout message. |
 | Transient | Yes | 2, exponential with jitter | Operation-specific | Continue, partial, or failed; trace every attempt. |
@@ -38,3 +38,5 @@ Logs contain request/trace IDs, typed code, operation, attempt, duration, and sa
 | Recursive-research budget exhaustion | Stop new workers, aggregate completed validated results, mark gaps and limitations. | Partial success if sufficient; otherwise failed. |
 
 Circuit breakers may be introduced after measurement; they must be per dependency and observable. Retries consume the original time/token/tool budget and use idempotency identifiers. One failed worker cannot mutate siblings or parent state; the reducer merges typed successful envelopes only.
+
+Rate-limit store failures, invalid policies, corrupted state, lock-path failures, malformed trusted-proxy input, and non-finite clock/input values fail closed with a sanitized retryable `503`; enforcement is never silently bypassed. Cancellation propagates. Negative clock elapsed time is clamped to zero. Bounded cleanup failure is safely logged and does not fail a request whose atomic enforcement already succeeded.

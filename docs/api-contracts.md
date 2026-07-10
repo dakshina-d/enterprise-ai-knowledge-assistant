@@ -26,7 +26,7 @@ Never include stack traces, secrets, raw prompts, authorization-policy internals
 |---|---|---|---|---|
 | `GET /health/live` | Process liveness. | None | Public | Safe GET; no streaming. Implemented. |
 | `GET /health/ready` | Dependency readiness. | None | Public | Safe GET; currently placeholder readiness. |
-| `POST /api/v1/auth/login` | Verify a configured PoC identity and issue a bearer token. | None | Valid configured demo identity | Idempotency not required; future rate limiting; no streaming. Implemented when auth is enabled. |
+| `POST /api/v1/auth/login` | Verify a configured PoC identity and issue a bearer token. | None | Valid configured demo identity | Anonymous-fingerprint login bucket; no streaming. Implemented when auth is enabled. |
 | `GET /api/v1/auth/me` | Return the safe current principal profile. | Bearer token | All roles | Safe GET; no streaming. Implemented when auth is enabled. |
 | `POST /api/v1/chat/sessions` | Create an owned conversation session. | Required | All roles | Idempotency key recommended; no streaming. |
 | `POST /api/v1/chat/sessions/{session_id}/messages` | Validate and accept one user turn. | Required; session owner | All roles, with route/tool restrictions | Idempotency key required; returns acceptance, tokens stream separately. |
@@ -58,6 +58,7 @@ Administrative ingestion endpoints are deferred. Offline CLI/job ingestion avoid
 - `200`: `{"access_token":"<JWT>","token_type":"Bearer","expires_in":1800,"user":{...},"permissions":[...],"expires_at":"..."}`. Passwords, hashes, and secrets are never returned.
 - Errors: `400` malformed, `401` invalid credentials, `429` rate limited, `503` identity service unavailable.
 - Security: generic authentication failure messages, Argon2id password verification, strict JWT issuer/audience/algorithm/claim validation, and no refresh token. Production uses an enterprise IdP/OIDC rather than this endpoint.
+- Rate limiting: performed before credential verification. Known and unknown usernames share the same client-derived policy behavior.
 
 ### `GET /api/v1/auth/me`
 
@@ -65,8 +66,11 @@ Administrative ingestion endpoints are deferred. Offline CLI/job ingestion avoid
 - `200`: `{user_id, username, display_name, role, permissions}` only.
 - Errors: `401` for missing, malformed, invalid, or expired tokens with `WWW-Authenticate: Bearer`.
 - Notes: JWT permissions must exactly match the backend role policy; token claims cannot elevate a role.
+- Rate limiting: bearer validation constructs the principal before the `user:{user_id}` standard bucket is consumed. Missing/invalid tokens return `401` without consuming any user bucket.
 
 The JWT is authenticated input, not the authorization authority. Decoding parses the role, loads the expected immutable permission set from `security/policies.py`, requires exact equality with the token permission claim, and constructs the principal from that validated set. Endpoint, tool, and future retrieval decisions still call backend authorization services.
+
+Rate-limited responses use `X-RateLimit-Limit` (bucket capacity, tokens), `X-RateLimit-Remaining` (whole tokens remaining), and `X-RateLimit-Reset` (whole seconds until the current cost is available; zero when allowed). A denial adds `Retry-After` with the same retry delay and returns stable code `rate_limit.exceeded`. No bucket key, address, or fingerprint is returned.
 
 ### `POST /api/v1/chat/sessions`
 

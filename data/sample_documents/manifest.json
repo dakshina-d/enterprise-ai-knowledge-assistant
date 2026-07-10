@@ -1,0 +1,1537 @@
+[
+  {
+    "document_id": "e8c1858c-5783-5356-99ed-6d0bff1d779a",
+    "title": "API Gateway and TrustID Architecture",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "cybersecurity",
+    "document_type": "architecture",
+    "access_level": "confidential",
+    "allowed_roles": [
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-04-20",
+    "updated_date": "2026-05-20",
+    "version": "1.2",
+    "owner": "Enterprise Architecture",
+    "status": "final",
+    "tags": [
+      "architecture",
+      "cybersecurity"
+    ],
+    "related_document_ids": [
+      "26788e3c-40e2-5a05-b720-21d63cab00f6"
+    ],
+    "file_path": "data/sample_documents/architecture/api-gateway-identity-architecture.md",
+    "content_hash": "a274013641b10f418aa27bc610040fdc83c34093ced3951b3b46ea23e7c613f0",
+    "approximate_word_count": 392,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "212cadb1-03ed-5ff2-8096-4a4e8052e566",
+    "title": "Card Payment Authorization Flow",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "payments",
+    "document_type": "architecture",
+    "access_level": "internal",
+    "allowed_roles": [
+      "viewer",
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-03-20",
+    "updated_date": "2026-05-20",
+    "version": "1.2",
+    "owner": "Enterprise Architecture",
+    "status": "final",
+    "tags": [
+      "architecture",
+      "payments"
+    ],
+    "related_document_ids": [
+      "26788e3c-40e2-5a05-b720-21d63cab00f6"
+    ],
+    "file_path": "data/sample_documents/architecture/card-payment-authorization-flow.md",
+    "content_hash": "80e08fc74be3e6cd26b35164b7cc3570f4794c6d33463d6920b2eb51a5905c08",
+    "approximate_word_count": 391,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "5177b428-9379-5ffe-8872-6f56ad61343d",
+    "title": "Customer Analytics Lakehouse Proposal",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "data_and_analytics",
+    "document_type": "architecture",
+    "access_level": "confidential",
+    "allowed_roles": [
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-02-20",
+    "updated_date": "2026-05-20",
+    "version": "1.2",
+    "owner": "Enterprise Architecture",
+    "status": "draft",
+    "tags": [
+      "architecture",
+      "data_and_analytics"
+    ],
+    "related_document_ids": [
+      "26788e3c-40e2-5a05-b720-21d63cab00f6"
+    ],
+    "file_path": "data/sample_documents/architecture/customer-analytics-lakehouse-proposal.md",
+    "content_hash": "a50aef955156e3ac700126bec8c9d183e4eea9b13e573dcf5f6fd3075d9f7237",
+    "approximate_word_count": 393,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "45bef0d5-b559-55d9-b192-d867d99628be",
+    "title": "Digital Banking Platform Overview",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "digital_banking",
+    "document_type": "architecture",
+    "access_level": "internal",
+    "allowed_roles": [
+      "viewer",
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-01-20",
+    "updated_date": "2026-05-20",
+    "version": "1.2",
+    "owner": "Enterprise Architecture",
+    "status": "final",
+    "tags": [
+      "architecture",
+      "digital_banking"
+    ],
+    "related_document_ids": [
+      "26788e3c-40e2-5a05-b720-21d63cab00f6"
+    ],
+    "file_path": "data/sample_documents/architecture/digital-banking-platform-overview.md",
+    "content_hash": "2fd55f6d64c6bee38105154515bc1075ea3298b11f4bac9bd1a133b1c29ed049",
+    "approximate_word_count": 392,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "af4ada65-1333-5843-876e-c9fe584776d7",
+    "title": "Disaster-recovery Architecture",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "infrastructure",
+    "document_type": "architecture",
+    "access_level": "restricted",
+    "allowed_roles": [
+      "administrator"
+    ],
+    "created_date": "2025-06-20",
+    "updated_date": "2026-05-20",
+    "version": "1.2",
+    "owner": "Enterprise Architecture",
+    "status": "final",
+    "tags": [
+      "architecture",
+      "infrastructure"
+    ],
+    "related_document_ids": [
+      "26788e3c-40e2-5a05-b720-21d63cab00f6"
+    ],
+    "file_path": "data/sample_documents/architecture/disaster-recovery-architecture.md",
+    "content_hash": "e8bec1594f377e9f48bace629a9b4fe65070405b3fa337ac1591f839f5389834",
+    "approximate_word_count": 389,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "ff2c7afe-6fb7-5d61-a8d2-aaa0288e69ea",
+    "title": "Event-driven Notification Architecture",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "customer_service",
+    "document_type": "architecture",
+    "access_level": "internal",
+    "allowed_roles": [
+      "viewer",
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-05-20",
+    "updated_date": "2026-05-20",
+    "version": "1.2",
+    "owner": "Enterprise Architecture",
+    "status": "final",
+    "tags": [
+      "architecture",
+      "customer_service"
+    ],
+    "related_document_ids": [
+      "26788e3c-40e2-5a05-b720-21d63cab00f6"
+    ],
+    "file_path": "data/sample_documents/architecture/event-driven-notification-architecture.md",
+    "content_hash": "0360b396d925f67d231fe9d8a1b3997b032a6bede2a9949a20d31ad8fa86ac03",
+    "approximate_word_count": 391,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "5437e7b3-c5ec-565e-a88e-0ab4ed58ace3",
+    "title": "OpsPulse Observability Platform Architecture",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "operations",
+    "document_type": "architecture",
+    "access_level": "internal",
+    "allowed_roles": [
+      "viewer",
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-01-20",
+    "updated_date": "2026-05-20",
+    "version": "1.2",
+    "owner": "Enterprise Architecture",
+    "status": "final",
+    "tags": [
+      "architecture",
+      "operations"
+    ],
+    "related_document_ids": [
+      "26788e3c-40e2-5a05-b720-21d63cab00f6"
+    ],
+    "file_path": "data/sample_documents/architecture/observability-platform-architecture.md",
+    "content_hash": "e711080218494d0a343c7ea120759f0f90600c9332373dba9e7d93352f0055b0",
+    "approximate_word_count": 391,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "7b6e37ed-0dac-54d0-90c2-8850e31362b3",
+    "title": "Payment Processing Architecture",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "payments",
+    "document_type": "architecture",
+    "access_level": "confidential",
+    "allowed_roles": [
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-02-20",
+    "updated_date": "2026-05-20",
+    "version": "1.2",
+    "owner": "Enterprise Architecture",
+    "status": "final",
+    "tags": [
+      "architecture",
+      "payments"
+    ],
+    "related_document_ids": [
+      "26788e3c-40e2-5a05-b720-21d63cab00f6"
+    ],
+    "file_path": "data/sample_documents/architecture/payment-processing-architecture.md",
+    "content_hash": "92b3194bbe1ce4f7319e8cd4dda50ae000bb21f499d2b56ab8c133ef1144e097",
+    "approximate_word_count": 390,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "92b978f9-bac0-5d02-8e2e-eeca5852f01f",
+    "title": "DataVista Daily Load Missed",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "data_and_analytics",
+    "document_type": "incident",
+    "access_level": "confidential",
+    "allowed_roles": [
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2026-05-11",
+    "updated_date": "2026-05-11",
+    "version": "1.0",
+    "owner": "Incident Management",
+    "status": "post_incident_final",
+    "tags": [
+      "incident",
+      "data_and_analytics",
+      "manual_operational_error"
+    ],
+    "related_document_ids": [
+      "899140d9-f9a4-56a4-b78f-f851a6b4378e",
+      "829bf020-40a2-56e4-8426-a37c68ae736e"
+    ],
+    "file_path": "data/sample_documents/incidents/inc-data-2026-052.md",
+    "content_hash": "6ca656ca304873d81a066e4195f21960f38423c42c0edacd04b93be0831604e4",
+    "approximate_word_count": 477,
+    "payment_related": false,
+    "root_cause_category": "manual_operational_error"
+  },
+  {
+    "document_id": "de62e2a0-3822-5bf2-ab84-76904a9a0bab",
+    "title": "NovaMobile Login Degradation",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "digital_banking",
+    "document_type": "incident",
+    "access_level": "confidential",
+    "allowed_roles": [
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-11-05",
+    "updated_date": "2025-11-05",
+    "version": "1.0",
+    "owner": "Incident Management",
+    "status": "post_incident_final",
+    "tags": [
+      "incident",
+      "digital_banking",
+      "capacity_planning_error"
+    ],
+    "related_document_ids": [
+      "ab74db88-eebb-527b-8601-1d884bbcaf09",
+      "829bf020-40a2-56e4-8426-a37c68ae736e"
+    ],
+    "file_path": "data/sample_documents/incidents/inc-dig-2025-112.md",
+    "content_hash": "398e44c94bfe3cebbae818a4ca9740a90f737bf29f08ac506a6c1218cd6b9030",
+    "approximate_word_count": 475,
+    "payment_related": false,
+    "root_cause_category": "capacity_planning_error"
+  },
+  {
+    "document_id": "d57f6f97-663c-5c01-8941-642d2149de87",
+    "title": "Customer Payment Alerts Delayed",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "customer_service",
+    "document_type": "incident",
+    "access_level": "confidential",
+    "allowed_roles": [
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2026-03-27",
+    "updated_date": "2026-03-27",
+    "version": "1.0",
+    "owner": "Incident Management",
+    "status": "post_incident_final",
+    "tags": [
+      "incident",
+      "payments",
+      "deployment_regression"
+    ],
+    "related_document_ids": [
+      "1a4c97d5-c9a5-59f1-a63c-c60957ee6fef",
+      "829bf020-40a2-56e4-8426-a37c68ae736e"
+    ],
+    "file_path": "data/sample_documents/incidents/inc-not-2026-039.md",
+    "content_hash": "d24129c5af9810bad2fe371173230046edbfc6caaa9e99044bec382f6c5d7566",
+    "approximate_word_count": 473,
+    "payment_related": true,
+    "root_cause_category": "deployment_regression"
+  },
+  {
+    "document_id": "6793a653-2336-5aab-bb56-c36c2730992e",
+    "title": "OpsPulse Alert Delivery Gap",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "operations",
+    "document_type": "incident",
+    "access_level": "confidential",
+    "allowed_roles": [
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2026-01-12",
+    "updated_date": "2026-01-12",
+    "version": "1.0",
+    "owner": "Incident Management",
+    "status": "post_incident_final",
+    "tags": [
+      "incident",
+      "operations",
+      "monitoring_gap"
+    ],
+    "related_document_ids": [
+      "1a4c97d5-c9a5-59f1-a63c-c60957ee6fef",
+      "829bf020-40a2-56e4-8426-a37c68ae736e"
+    ],
+    "file_path": "data/sample_documents/incidents/inc-ops-2026-011.md",
+    "content_hash": "67ca75ae1519561de33d069671d46461932cae6d8edf3e9343a2633c69565e7a",
+    "approximate_word_count": 473,
+    "payment_related": false,
+    "root_cause_category": "monitoring_gap"
+  },
+  {
+    "document_id": "75d600e8-26d9-52e6-8c91-1a6de2b0bbf8",
+    "title": "Intermittent LankaPay Transfer Failures",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "payments",
+    "document_type": "incident",
+    "access_level": "confidential",
+    "allowed_roles": [
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-07-03",
+    "updated_date": "2025-07-03",
+    "version": "1.0",
+    "owner": "Incident Management",
+    "status": "post_incident_final",
+    "tags": [
+      "incident",
+      "payments",
+      "connection_pool_exhaustion"
+    ],
+    "related_document_ids": [
+      "d5a5e043-46a4-5333-8636-f7e892f1c511",
+      "829bf020-40a2-56e4-8426-a37c68ae736e"
+    ],
+    "file_path": "data/sample_documents/incidents/inc-pay-2025-071.md",
+    "content_hash": "75c177bfabf8cfe05a899c926556df80ba282b2a609e68f57b170436b93ba035",
+    "approximate_word_count": 472,
+    "payment_related": true,
+    "root_cause_category": "connection_pool_exhaustion"
+  },
+  {
+    "document_id": "75196c78-c5c8-52d4-aab0-5cbae35327aa",
+    "title": "Card Authorization Timeouts",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "payments",
+    "document_type": "incident",
+    "access_level": "confidential",
+    "allowed_roles": [
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-08-14",
+    "updated_date": "2025-08-14",
+    "version": "1.0",
+    "owner": "Incident Management",
+    "status": "post_incident_final",
+    "tags": [
+      "incident",
+      "payments",
+      "third_party_gateway_timeout"
+    ],
+    "related_document_ids": [
+      "ab74db88-eebb-527b-8601-1d884bbcaf09",
+      "829bf020-40a2-56e4-8426-a37c68ae736e"
+    ],
+    "file_path": "data/sample_documents/incidents/inc-pay-2025-083.md",
+    "content_hash": "4dc18be10e440312bd1007bc457bed96417d1fe6c2c37f164cf547e730e13851",
+    "approximate_word_count": 477,
+    "payment_related": true,
+    "root_cause_category": "third_party_gateway_timeout"
+  },
+  {
+    "document_id": "d71d6b52-aaaa-5389-838a-2dd02331fa70",
+    "title": "Pending Payment Status Accumulation",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "payments",
+    "document_type": "incident",
+    "access_level": "confidential",
+    "allowed_roles": [
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-09-22",
+    "updated_date": "2025-09-22",
+    "version": "1.0",
+    "owner": "Incident Management",
+    "status": "post_incident_final",
+    "tags": [
+      "incident",
+      "payments",
+      "message_queue_backlog"
+    ],
+    "related_document_ids": [
+      "df41b181-7c96-5c0d-a410-2104b14fd040",
+      "829bf020-40a2-56e4-8426-a37c68ae736e"
+    ],
+    "file_path": "data/sample_documents/incidents/inc-pay-2025-097.md",
+    "content_hash": "87e6d4bb07a24586c645e96a4104ce6c0295dde7ac1b609b119e226f61c5286a",
+    "approximate_word_count": 474,
+    "payment_related": true,
+    "root_cause_category": "message_queue_backlog"
+  },
+  {
+    "document_id": "29eafb3b-5e2d-5cac-8995-341f16bab2bc",
+    "title": "Corporate Bulk Payments Delayed",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "payments",
+    "document_type": "incident",
+    "access_level": "confidential",
+    "allowed_roles": [
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-10-09",
+    "updated_date": "2025-10-09",
+    "version": "1.0",
+    "owner": "Incident Management",
+    "status": "post_incident_final",
+    "tags": [
+      "incident",
+      "payments",
+      "database_lock_contention"
+    ],
+    "related_document_ids": [
+      "d5a5e043-46a4-5333-8636-f7e892f1c511",
+      "829bf020-40a2-56e4-8426-a37c68ae736e"
+    ],
+    "file_path": "data/sample_documents/incidents/inc-pay-2025-104.md",
+    "content_hash": "2b496f66773ee9e562941e1f0200e4ea5766b56c67350faf3c6c6b18196cd380",
+    "approximate_word_count": 470,
+    "payment_related": true,
+    "root_cause_category": "database_lock_contention"
+  },
+  {
+    "document_id": "9d432321-e18c-5b28-9ca5-a50702ee1d03",
+    "title": "Duplicate Transfer Retry Storm",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "payments",
+    "document_type": "incident",
+    "access_level": "restricted",
+    "allowed_roles": [
+      "administrator"
+    ],
+    "created_date": "2025-11-28",
+    "updated_date": "2025-11-28",
+    "version": "1.0",
+    "owner": "Incident Management",
+    "status": "post_incident_final",
+    "tags": [
+      "incident",
+      "payments",
+      "retry_storm"
+    ],
+    "related_document_ids": [
+      "df41b181-7c96-5c0d-a410-2104b14fd040",
+      "829bf020-40a2-56e4-8426-a37c68ae736e"
+    ],
+    "file_path": "data/sample_documents/incidents/inc-pay-2025-119.md",
+    "content_hash": "2cafa34c6c1e632daf1ba0c93dacdfbf299a25bc110b4c0ab57caa4cf2768386",
+    "approximate_word_count": 473,
+    "payment_related": true,
+    "root_cause_category": "retry_storm"
+  },
+  {
+    "document_id": "0f30fb7d-0d5b-59e8-9d42-39c3bac38d0b",
+    "title": "Payment Gateway Certificate Rejection",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "cybersecurity",
+    "document_type": "incident",
+    "access_level": "restricted",
+    "allowed_roles": [
+      "administrator"
+    ],
+    "created_date": "2025-12-17",
+    "updated_date": "2025-12-17",
+    "version": "1.0",
+    "owner": "Incident Management",
+    "status": "post_incident_final",
+    "tags": [
+      "incident",
+      "payments",
+      "certificate_lifecycle_failure"
+    ],
+    "related_document_ids": [
+      "b49cad3f-7c66-5352-a5bd-68284ec3fd3c",
+      "829bf020-40a2-56e4-8426-a37c68ae736e"
+    ],
+    "file_path": "data/sample_documents/incidents/inc-pay-2025-126.md",
+    "content_hash": "68120dfde0f43200524cf79dac51514bfe04313af1c3dff0c459e252a3a7bfed",
+    "approximate_word_count": 474,
+    "payment_related": true,
+    "root_cause_category": "certificate_lifecycle_failure"
+  },
+  {
+    "document_id": "36ac5727-be2e-5f35-84fc-920e52f06829",
+    "title": "QR Payment Routing Failure",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "payments",
+    "document_type": "incident",
+    "access_level": "confidential",
+    "allowed_roles": [
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2026-01-29",
+    "updated_date": "2026-01-29",
+    "version": "1.0",
+    "owner": "Incident Management",
+    "status": "post_incident_final",
+    "tags": [
+      "incident",
+      "payments",
+      "configuration_drift"
+    ],
+    "related_document_ids": [
+      "ab74db88-eebb-527b-8601-1d884bbcaf09",
+      "829bf020-40a2-56e4-8426-a37c68ae736e"
+    ],
+    "file_path": "data/sample_documents/incidents/inc-pay-2026-018.md",
+    "content_hash": "57c2b1512b23c0d9fb644f76ef1571fd12cd6af0f9478b25e6faa3210925f803",
+    "approximate_word_count": 473,
+    "payment_related": true,
+    "root_cause_category": "configuration_drift"
+  },
+  {
+    "document_id": "13167a0c-5190-5984-84e5-705ca72c8699",
+    "title": "Card Settlement Consumer Lag",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "payments",
+    "document_type": "incident",
+    "access_level": "confidential",
+    "allowed_roles": [
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2026-02-16",
+    "updated_date": "2026-02-16",
+    "version": "1.0",
+    "owner": "Incident Management",
+    "status": "post_incident_final",
+    "tags": [
+      "incident",
+      "payments",
+      "message_queue_backlog"
+    ],
+    "related_document_ids": [
+      "df41b181-7c96-5c0d-a410-2104b14fd040",
+      "829bf020-40a2-56e4-8426-a37c68ae736e"
+    ],
+    "file_path": "data/sample_documents/incidents/inc-pay-2026-024.md",
+    "content_hash": "e5131df66c1ebad00d6566394e3dfb98708868c6c6cd21b0fea4969e9c2babed",
+    "approximate_word_count": 474,
+    "payment_related": true,
+    "root_cause_category": "message_queue_backlog"
+  },
+  {
+    "document_id": "41b4c7fd-7899-5866-a0fa-d4b346470a3b",
+    "title": "Transfer Database Connection Saturation",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "payments",
+    "document_type": "incident",
+    "access_level": "restricted",
+    "allowed_roles": [
+      "administrator"
+    ],
+    "created_date": "2026-03-08",
+    "updated_date": "2026-03-08",
+    "version": "1.0",
+    "owner": "Incident Management",
+    "status": "post_incident_final",
+    "tags": [
+      "incident",
+      "payments",
+      "connection_pool_exhaustion"
+    ],
+    "related_document_ids": [
+      "d5a5e043-46a4-5333-8636-f7e892f1c511",
+      "829bf020-40a2-56e4-8426-a37c68ae736e"
+    ],
+    "file_path": "data/sample_documents/incidents/inc-pay-2026-031.md",
+    "content_hash": "828177ee8e05014af0c172b83d925b187d14a26afd63954f6afb79e10614ae22",
+    "approximate_word_count": 472,
+    "payment_related": true,
+    "root_cause_category": "connection_pool_exhaustion"
+  },
+  {
+    "document_id": "f8ea8db7-cb7a-5168-9581-47d50faf748f",
+    "title": "Merchant Payment DNS Resolution Failure",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "payments",
+    "document_type": "incident",
+    "access_level": "confidential",
+    "allowed_roles": [
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2026-04-19",
+    "updated_date": "2026-04-19",
+    "version": "1.0",
+    "owner": "Incident Management",
+    "status": "post_incident_final",
+    "tags": [
+      "incident",
+      "payments",
+      "dns_service_discovery_failure"
+    ],
+    "related_document_ids": [
+      "ab74db88-eebb-527b-8601-1d884bbcaf09",
+      "829bf020-40a2-56e4-8426-a37c68ae736e"
+    ],
+    "file_path": "data/sample_documents/incidents/inc-pay-2026-046.md",
+    "content_hash": "13c746033a77ababbcd842222531d54d43a0050f09db686573584eac97834d2b",
+    "approximate_word_count": 479,
+    "payment_related": true,
+    "root_cause_category": "dns_service_discovery_failure"
+  },
+  {
+    "document_id": "bb55053c-0c31-58ea-9bfd-ec11a08dbfdd",
+    "title": "Payment Reconciliation Lock Contention",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "payments",
+    "document_type": "incident",
+    "access_level": "confidential",
+    "allowed_roles": [
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2026-06-07",
+    "updated_date": "2026-06-07",
+    "version": "1.0",
+    "owner": "Incident Management",
+    "status": "post_incident_final",
+    "tags": [
+      "incident",
+      "payments",
+      "database_lock_contention"
+    ],
+    "related_document_ids": [
+      "d5a5e043-46a4-5333-8636-f7e892f1c511",
+      "829bf020-40a2-56e4-8426-a37c68ae736e"
+    ],
+    "file_path": "data/sample_documents/incidents/inc-pay-2026-061.md",
+    "content_hash": "dc9fa49fd62f680e9e224d61e23029e3b249d020c46e70dd863a03a41d2f8968",
+    "approximate_word_count": 468,
+    "payment_related": true,
+    "root_cause_category": "database_lock_contention"
+  },
+  {
+    "document_id": "6d10d4ba-d6c2-5728-98b7-85f9a5d442b0",
+    "title": "Gateway Failover Capacity Shortfall",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "infrastructure",
+    "document_type": "incident",
+    "access_level": "restricted",
+    "allowed_roles": [
+      "administrator"
+    ],
+    "created_date": "2026-06-27",
+    "updated_date": "2026-06-27",
+    "version": "1.0",
+    "owner": "Incident Management",
+    "status": "post_incident_final",
+    "tags": [
+      "incident",
+      "payments",
+      "capacity_planning_error"
+    ],
+    "related_document_ids": [
+      "ab74db88-eebb-527b-8601-1d884bbcaf09",
+      "829bf020-40a2-56e4-8426-a37c68ae736e"
+    ],
+    "file_path": "data/sample_documents/incidents/inc-pay-2026-067.md",
+    "content_hash": "e6847c3fcfe4e4ba568362a6154603db59cdef2cec8202f57edaa218f380882e",
+    "approximate_word_count": 473,
+    "payment_related": true,
+    "root_cause_category": "capacity_planning_error"
+  },
+  {
+    "document_id": "db0a9476-6f41-5b54-99f9-859635a11767",
+    "title": "Architecture Review Board Notes — May 2026",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "infrastructure",
+    "document_type": "meeting_note",
+    "access_level": "internal",
+    "allowed_roles": [
+      "viewer",
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2026-03-05",
+    "updated_date": "2026-03-06",
+    "version": "1.0",
+    "owner": "Governance Secretariat",
+    "status": "final",
+    "tags": [
+      "meeting",
+      "infrastructure"
+    ],
+    "related_document_ids": [
+      "5177b428-9379-5ffe-8872-6f56ad61343d",
+      "af4ada65-1333-5843-876e-c9fe584776d7"
+    ],
+    "file_path": "data/sample_documents/meeting_notes/architecture-review-board-2026-05.md",
+    "content_hash": "207f7f1dcf0301503677fdbc341aa670e16cedf1d6aa6fbd346a617735ada3b4",
+    "approximate_word_count": 322,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "8f997156-19e0-5fde-963e-65bd95a0e69b",
+    "title": "Digital Banking Product Planning — March 2026",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "digital_banking",
+    "document_type": "meeting_note",
+    "access_level": "internal",
+    "allowed_roles": [
+      "viewer",
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2026-06-05",
+    "updated_date": "2026-06-06",
+    "version": "1.0",
+    "owner": "Governance Secretariat",
+    "status": "final",
+    "tags": [
+      "meeting",
+      "digital_banking"
+    ],
+    "related_document_ids": [
+      "7215b26a-63ee-5822-a194-b8e5f2525825",
+      "e6947e95-15ba-5a4b-b72c-d999edefc60b"
+    ],
+    "file_path": "data/sample_documents/meeting_notes/digital-banking-product-planning-2026-03.md",
+    "content_hash": "3d833a0b5b63e5c0c5b38a9d19e77a0cd203306f937389655ccfc2de2ccb8cee",
+    "approximate_word_count": 321,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "8a22b73b-9497-5fdd-9e05-f7bb729c4a40",
+    "title": "Incident Corrective-action Review — June 2026",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "operations",
+    "document_type": "meeting_note",
+    "access_level": "confidential",
+    "allowed_roles": [
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2026-05-05",
+    "updated_date": "2026-05-06",
+    "version": "1.0",
+    "owner": "Governance Secretariat",
+    "status": "final",
+    "tags": [
+      "meeting",
+      "operations"
+    ],
+    "related_document_ids": [
+      "75d600e8-26d9-52e6-8c91-1a6de2b0bbf8",
+      "29eafb3b-5e2d-5cac-8995-341f16bab2bc",
+      "0f30fb7d-0d5b-59e8-9d42-39c3bac38d0b",
+      "13167a0c-5190-5984-84e5-705ca72c8699",
+      "f8ea8db7-cb7a-5168-9581-47d50faf748f",
+      "6d10d4ba-d6c2-5728-98b7-85f9a5d442b0"
+    ],
+    "file_path": "data/sample_documents/meeting_notes/incident-corrective-action-review-2026-06.md",
+    "content_hash": "e31b4ac2bc4202d7c05a86eed37423120a53fca8b191a6a6409605c083dd4bc0",
+    "approximate_word_count": 341,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "31f36958-c4d2-5722-a21d-083fd9bdfbf8",
+    "title": "Payment Reliability Review — June 2026",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "payments",
+    "document_type": "meeting_note",
+    "access_level": "confidential",
+    "allowed_roles": [
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2026-02-05",
+    "updated_date": "2026-02-06",
+    "version": "1.0",
+    "owner": "Governance Secretariat",
+    "status": "final",
+    "tags": [
+      "meeting",
+      "payments"
+    ],
+    "related_document_ids": [
+      "d57f6f97-663c-5c01-8941-642d2149de87",
+      "f8ea8db7-cb7a-5168-9581-47d50faf748f",
+      "92b978f9-bac0-5d02-8e2e-eeca5852f01f",
+      "bb55053c-0c31-58ea-9bfd-ec11a08dbfdd",
+      "6d10d4ba-d6c2-5728-98b7-85f9a5d442b0"
+    ],
+    "file_path": "data/sample_documents/meeting_notes/payment-reliability-review-2026-06.md",
+    "content_hash": "dcb5fb1408d251eb4286c345879ee2ca3bae0049538baa58c13e0fd98c1eb693",
+    "approximate_word_count": 336,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "44584995-ee12-5b89-bb5e-0729cc0ae294",
+    "title": "Security Risk Committee Notes — April 2026",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "cybersecurity",
+    "document_type": "meeting_note",
+    "access_level": "restricted",
+    "allowed_roles": [
+      "administrator"
+    ],
+    "created_date": "2026-04-05",
+    "updated_date": "2026-04-06",
+    "version": "1.0",
+    "owner": "Governance Secretariat",
+    "status": "final",
+    "tags": [
+      "meeting",
+      "cybersecurity"
+    ],
+    "related_document_ids": [
+      "0f30fb7d-0d5b-59e8-9d42-39c3bac38d0b",
+      "640ca359-b767-57f0-ad92-e51659cffd58"
+    ],
+    "file_path": "data/sample_documents/meeting_notes/security-risk-committee-2026-04.md",
+    "content_hash": "dcfb3a5b024be35cabfb23e06af04c3dba15c5e184f48568b439243989335fd4",
+    "approximate_word_count": 322,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "08f8eb3d-9777-5813-ab6b-f95c89bb1fb8",
+    "title": "Acceptable Use Policy",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "risk_and_compliance",
+    "document_type": "policy",
+    "access_level": "public",
+    "allowed_roles": [
+      "viewer",
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-02-15",
+    "updated_date": "2026-05-15",
+    "version": "2.0",
+    "owner": "Enterprise Policy Office",
+    "status": "approved",
+    "tags": [
+      "governance",
+      "risk_and_compliance"
+    ],
+    "related_document_ids": [],
+    "file_path": "data/sample_documents/policies/acceptable-use-policy.md",
+    "content_hash": "7e8aa6eecfad64de28a20e6ca09e806f5b4a33839943e41b39bfda2f96de900d",
+    "approximate_word_count": 456,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "de28a740-b4de-5d03-8685-b58b909fd8d2",
+    "title": "AI Assistant Usage Policy",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "data_and_analytics",
+    "document_type": "policy",
+    "access_level": "internal",
+    "allowed_roles": [
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-03-15",
+    "updated_date": "2026-05-15",
+    "version": "2.0",
+    "owner": "Enterprise Policy Office",
+    "status": "approved",
+    "tags": [
+      "governance",
+      "data_and_analytics"
+    ],
+    "related_document_ids": [],
+    "file_path": "data/sample_documents/policies/ai-assistant-usage-policy.md",
+    "content_hash": "1f36b24ec6f3109406b53d3141d2a2ec9ece5e3d30421ae79d3c452fa5a3ceea",
+    "approximate_word_count": 458,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "06c0626e-f2be-5363-a93f-56c825e0a208",
+    "title": "Data Retention Policy — Legacy Schedule",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "risk_and_compliance",
+    "document_type": "policy",
+    "access_level": "internal",
+    "allowed_roles": [
+      "viewer",
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-06-15",
+    "updated_date": "2026-05-15",
+    "version": "2.0",
+    "owner": "Enterprise Policy Office",
+    "status": "superseded",
+    "tags": [
+      "governance",
+      "risk_and_compliance"
+    ],
+    "related_document_ids": [],
+    "file_path": "data/sample_documents/policies/data-retention-policy-legacy.md",
+    "content_hash": "2976604a5b399ea4ddb9ecb650cf8ca3039230329324acbda49407ef1285ef2c",
+    "approximate_word_count": 460,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "829bf020-40a2-56e4-8426-a37c68ae736e",
+    "title": "Incident Management Policy",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "operations",
+    "document_type": "policy",
+    "access_level": "internal",
+    "allowed_roles": [
+      "viewer",
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-04-15",
+    "updated_date": "2026-05-15",
+    "version": "2.0",
+    "owner": "Enterprise Policy Office",
+    "status": "approved",
+    "tags": [
+      "governance",
+      "operations"
+    ],
+    "related_document_ids": [],
+    "file_path": "data/sample_documents/policies/incident-management-policy.md",
+    "content_hash": "1770b3a93455141bdf0dcc1308d70f84b908bcaba31ff24d582b9f59d244ff32",
+    "approximate_word_count": 454,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "26788e3c-40e2-5a05-b720-21d63cab00f6",
+    "title": "Information Classification and Handling Policy",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "cybersecurity",
+    "document_type": "policy",
+    "access_level": "internal",
+    "allowed_roles": [
+      "viewer",
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-01-15",
+    "updated_date": "2026-05-15",
+    "version": "2.0",
+    "owner": "Enterprise Policy Office",
+    "status": "approved",
+    "tags": [
+      "governance",
+      "cybersecurity"
+    ],
+    "related_document_ids": [],
+    "file_path": "data/sample_documents/policies/information-classification-handling-policy.md",
+    "content_hash": "9810a1d374e409c50b60b796fe602f7ea53dce0159d5efeca803805316e40f12",
+    "approximate_word_count": 458,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "c01118c3-38bb-587e-8f56-3884c40a2f6e",
+    "title": "Secure Software Development Policy",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "digital_banking",
+    "document_type": "policy",
+    "access_level": "confidential",
+    "allowed_roles": [
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-01-15",
+    "updated_date": "2026-05-15",
+    "version": "2.0",
+    "owner": "Enterprise Policy Office",
+    "status": "approved",
+    "tags": [
+      "governance",
+      "digital_banking"
+    ],
+    "related_document_ids": [],
+    "file_path": "data/sample_documents/policies/secure-software-development-policy.md",
+    "content_hash": "b93ea59d9950ffe5f7be351894eaf5e19289840e0da5c8c48e886f20f0c0dbaa",
+    "approximate_word_count": 457,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "640ca359-b767-57f0-ad92-e51659cffd58",
+    "title": "Third-party Access Policy",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "cybersecurity",
+    "document_type": "policy",
+    "access_level": "confidential",
+    "allowed_roles": [
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-05-15",
+    "updated_date": "2026-05-15",
+    "version": "2.0",
+    "owner": "Enterprise Policy Office",
+    "status": "approved",
+    "tags": [
+      "governance",
+      "cybersecurity"
+    ],
+    "related_document_ids": [],
+    "file_path": "data/sample_documents/policies/third-party-access-policy.md",
+    "content_hash": "aa61f6e95d64d068fe6426382c3ea02d6d1c2daf57c5b1b3be299d5a2661dd3c",
+    "approximate_word_count": 454,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "8644cc96-5eb3-543c-acdc-e16481197f62",
+    "title": "Corporate Bulk-payment Upload Specification",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "payments",
+    "document_type": "product_specification",
+    "access_level": "confidential",
+    "allowed_roles": [
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-02-12",
+    "updated_date": "2026-04-12",
+    "version": "1.1",
+    "owner": "Product Management",
+    "status": "approved",
+    "tags": [
+      "product",
+      "payments"
+    ],
+    "related_document_ids": [
+      "7b6e37ed-0dac-54d0-90c2-8850e31362b3",
+      "26788e3c-40e2-5a05-b720-21d63cab00f6"
+    ],
+    "file_path": "data/sample_documents/product_specifications/corporate-bulk-payment-upload.md",
+    "content_hash": "11b02491229a93ac5c5ce5d234b5ac0753d7e2803d6d5ee729f5f6fb8bead54c",
+    "approximate_word_count": 371,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "2ada8e3f-c6a6-556d-a053-548c98ebc551",
+    "title": "Customer Notification Preferences Specification",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "customer_service",
+    "document_type": "product_specification",
+    "access_level": "public",
+    "allowed_roles": [
+      "viewer",
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-06-12",
+    "updated_date": "2026-04-12",
+    "version": "1.1",
+    "owner": "Product Management",
+    "status": "approved",
+    "tags": [
+      "product",
+      "customer_service"
+    ],
+    "related_document_ids": [
+      "af4ada65-1333-5843-876e-c9fe584776d7",
+      "26788e3c-40e2-5a05-b720-21d63cab00f6"
+    ],
+    "file_path": "data/sample_documents/product_specifications/customer-notification-preferences.md",
+    "content_hash": "f70f9b62a42188a27858f1e7a5d7c2547b1d94f5b79b36fa04f8e901c5086f36",
+    "approximate_word_count": 372,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "e6947e95-15ba-5a4b-b72c-d999edefc60b",
+    "title": "Digital Customer Onboarding Specification",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "digital_banking",
+    "document_type": "product_specification",
+    "access_level": "confidential",
+    "allowed_roles": [
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-05-12",
+    "updated_date": "2026-04-12",
+    "version": "1.1",
+    "owner": "Product Management",
+    "status": "approved",
+    "tags": [
+      "product",
+      "digital_banking"
+    ],
+    "related_document_ids": [
+      "ff2c7afe-6fb7-5d61-a8d2-aaa0288e69ea",
+      "26788e3c-40e2-5a05-b720-21d63cab00f6"
+    ],
+    "file_path": "data/sample_documents/product_specifications/digital-customer-onboarding.md",
+    "content_hash": "32c828b6287028b4104e86279c31465ffca318d001687c83cc8658dc3a4b005d",
+    "approximate_word_count": 373,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "388e5899-d90a-5f90-8057-a0ab47ec5849",
+    "title": "Fraud-alert Case Management Specification",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "risk_and_compliance",
+    "document_type": "product_specification",
+    "access_level": "confidential",
+    "allowed_roles": [
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-04-12",
+    "updated_date": "2026-04-12",
+    "version": "1.1",
+    "owner": "Product Management",
+    "status": "approved",
+    "tags": [
+      "product",
+      "risk_and_compliance"
+    ],
+    "related_document_ids": [
+      "e8c1858c-5783-5356-99ed-6d0bff1d779a",
+      "26788e3c-40e2-5a05-b720-21d63cab00f6"
+    ],
+    "file_path": "data/sample_documents/product_specifications/fraud-alert-case-management.md",
+    "content_hash": "07a30a54a2d4e2ac07be684265a7ce983e573b2cc74c232446b8d56669c7f7d8",
+    "approximate_word_count": 374,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "7215b26a-63ee-5822-a194-b8e5f2525825",
+    "title": "NovaMobile Card Controls Specification",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "digital_banking",
+    "document_type": "product_specification",
+    "access_level": "internal",
+    "allowed_roles": [
+      "viewer",
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-03-12",
+    "updated_date": "2026-04-12",
+    "version": "1.1",
+    "owner": "Product Management",
+    "status": "approved",
+    "tags": [
+      "product",
+      "digital_banking"
+    ],
+    "related_document_ids": [
+      "212cadb1-03ed-5ff2-8096-4a4e8052e566",
+      "26788e3c-40e2-5a05-b720-21d63cab00f6"
+    ],
+    "file_path": "data/sample_documents/product_specifications/mobile-card-controls.md",
+    "content_hash": "0840f1361f8294c24b72a775e9949841d66af3d2f374da783bac6973ab35d081",
+    "approximate_word_count": 373,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "f11f7e8d-c021-5162-858f-0d8d58a9cdf7",
+    "title": "Real-time Payment Status Dashboard Specification",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "payments",
+    "document_type": "product_specification",
+    "access_level": "internal",
+    "allowed_roles": [
+      "viewer",
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-01-12",
+    "updated_date": "2026-04-12",
+    "version": "1.1",
+    "owner": "Product Management",
+    "status": "approved",
+    "tags": [
+      "product",
+      "payments"
+    ],
+    "related_document_ids": [
+      "45bef0d5-b559-55d9-b192-d867d99628be",
+      "26788e3c-40e2-5a05-b720-21d63cab00f6"
+    ],
+    "file_path": "data/sample_documents/product_specifications/real-time-payment-status-dashboard.md",
+    "content_hash": "0ef851429157d5b1c7d6a40bc1ba0c4ccf25a026b22737cce3791ed553b393ff",
+    "approximate_word_count": 373,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "b49cad3f-7c66-5352-a5bd-68284ec3fd3c",
+    "title": "Certificate Expiration Response Runbook",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "cybersecurity",
+    "document_type": "runbook",
+    "access_level": "confidential",
+    "allowed_roles": [
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-05-10",
+    "updated_date": "2026-06-10",
+    "version": "1.3",
+    "owner": "Technology Operations",
+    "status": "active",
+    "tags": [
+      "operations",
+      "cybersecurity"
+    ],
+    "related_document_ids": [
+      "ff2c7afe-6fb7-5d61-a8d2-aaa0288e69ea",
+      "829bf020-40a2-56e4-8426-a37c68ae736e"
+    ],
+    "file_path": "data/sample_documents/runbooks/certificate-expiration-response.md",
+    "content_hash": "8b6f53f87c4c9191c00422acff2683b6d0a24038ef4ff1a7dc3c901e476a51e3",
+    "approximate_word_count": 406,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "1a4c97d5-c9a5-59f1-a63c-c60957ee6fef",
+    "title": "NotifyFlow Customer Notification Outage Runbook",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "customer_service",
+    "document_type": "runbook",
+    "access_level": "internal",
+    "allowed_roles": [
+      "viewer",
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-02-10",
+    "updated_date": "2026-06-10",
+    "version": "1.3",
+    "owner": "Technology Operations",
+    "status": "active",
+    "tags": [
+      "operations",
+      "customer_service"
+    ],
+    "related_document_ids": [
+      "5177b428-9379-5ffe-8872-6f56ad61343d",
+      "829bf020-40a2-56e4-8426-a37c68ae736e"
+    ],
+    "file_path": "data/sample_documents/runbooks/customer-notification-outage.md",
+    "content_hash": "206c57db564dcd0532cf0f3434a6c74bd34976b424d1e0575d3ddd8f6ea62b65",
+    "approximate_word_count": 408,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "d5a5e043-46a4-5333-8636-f7e892f1c511",
+    "title": "Database Connection Exhaustion Runbook",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "infrastructure",
+    "document_type": "runbook",
+    "access_level": "confidential",
+    "allowed_roles": [
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-03-10",
+    "updated_date": "2026-06-10",
+    "version": "1.3",
+    "owner": "Technology Operations",
+    "status": "active",
+    "tags": [
+      "operations",
+      "infrastructure"
+    ],
+    "related_document_ids": [
+      "212cadb1-03ed-5ff2-8096-4a4e8052e566",
+      "829bf020-40a2-56e4-8426-a37c68ae736e"
+    ],
+    "file_path": "data/sample_documents/runbooks/database-connection-exhaustion.md",
+    "content_hash": "6605c00bd511f7740d4f3d04e65da4a899bbc6e158de5e0faa540a66c03000c6",
+    "approximate_word_count": 406,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "d25c199b-60f1-5c91-9688-47e0f5fff8f2",
+    "title": "Sentinel Fraud Engine Latency Runbook",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "risk_and_compliance",
+    "document_type": "runbook",
+    "access_level": "confidential",
+    "allowed_roles": [
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-01-10",
+    "updated_date": "2026-06-10",
+    "version": "1.3",
+    "owner": "Technology Operations",
+    "status": "active",
+    "tags": [
+      "operations",
+      "risk_and_compliance"
+    ],
+    "related_document_ids": [
+      "5437e7b3-c5ec-565e-a88e-0ab4ed58ace3",
+      "829bf020-40a2-56e4-8426-a37c68ae736e"
+    ],
+    "file_path": "data/sample_documents/runbooks/fraud-engine-latency-response.md",
+    "content_hash": "78cd3b989cdf0691faaf6588d0af8ab8e96dabf892e59d018059e72095551695",
+    "approximate_word_count": 408,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "899140d9-f9a4-56a4-b78f-f851a6b4378e",
+    "title": "Event-stream Consumer Lag Runbook",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "infrastructure",
+    "document_type": "runbook",
+    "access_level": "internal",
+    "allowed_roles": [
+      "viewer",
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-06-10",
+    "updated_date": "2026-06-10",
+    "version": "1.3",
+    "owner": "Technology Operations",
+    "status": "active",
+    "tags": [
+      "operations",
+      "infrastructure"
+    ],
+    "related_document_ids": [
+      "af4ada65-1333-5843-876e-c9fe584776d7",
+      "829bf020-40a2-56e4-8426-a37c68ae736e"
+    ],
+    "file_path": "data/sample_documents/runbooks/kafka-consumer-lag-response.md",
+    "content_hash": "35bcd210c3603b08d387f65f352cda6023952825473fb4d92d8fb2228114b127",
+    "approximate_word_count": 405,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "721326ef-ef5c-55cd-84d5-b977b7e923b2",
+    "title": "Legacy LedgerBridge Restart Runbook",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "operations",
+    "document_type": "runbook",
+    "access_level": "restricted",
+    "allowed_roles": [
+      "administrator"
+    ],
+    "created_date": "2025-03-10",
+    "updated_date": "2026-06-10",
+    "version": "1.3",
+    "owner": "Technology Operations",
+    "status": "archived",
+    "tags": [
+      "operations",
+      "operations"
+    ],
+    "related_document_ids": [
+      "45bef0d5-b559-55d9-b192-d867d99628be",
+      "829bf020-40a2-56e4-8426-a37c68ae736e"
+    ],
+    "file_path": "data/sample_documents/runbooks/legacy-ledger-restart-runbook.md",
+    "content_hash": "94cbb044b14bf1a77d4f7fef517a1894e62d40fbf816cd977b525b370bb78a1c",
+    "approximate_word_count": 406,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "692f7482-4f81-5dde-8011-9682c3760f3e",
+    "title": "NovaMobile Login Degradation Runbook",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "digital_banking",
+    "document_type": "runbook",
+    "access_level": "internal",
+    "allowed_roles": [
+      "viewer",
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-04-10",
+    "updated_date": "2026-06-10",
+    "version": "1.3",
+    "owner": "Technology Operations",
+    "status": "active",
+    "tags": [
+      "operations",
+      "digital_banking"
+    ],
+    "related_document_ids": [
+      "e8c1858c-5783-5356-99ed-6d0bff1d779a",
+      "829bf020-40a2-56e4-8426-a37c68ae736e"
+    ],
+    "file_path": "data/sample_documents/runbooks/mobile-banking-login-degradation.md",
+    "content_hash": "e5bfa13f4e7b2b489286052f30a21c47297c5a63328a74e1c0646b95fc25acb8",
+    "approximate_word_count": 407,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "ab74db88-eebb-527b-8601-1d884bbcaf09",
+    "title": "HorizonPay Gateway Failover Runbook",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "payments",
+    "document_type": "runbook",
+    "access_level": "internal",
+    "allowed_roles": [
+      "viewer",
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-01-10",
+    "updated_date": "2026-06-10",
+    "version": "1.3",
+    "owner": "Technology Operations",
+    "status": "active",
+    "tags": [
+      "operations",
+      "payments"
+    ],
+    "related_document_ids": [
+      "45bef0d5-b559-55d9-b192-d867d99628be",
+      "829bf020-40a2-56e4-8426-a37c68ae736e"
+    ],
+    "file_path": "data/sample_documents/runbooks/payment-gateway-failover-runbook.md",
+    "content_hash": "566a37a6e156078d19cfb068504aa2042a0663d6fefa07a95b8c2f010212f946",
+    "approximate_word_count": 406,
+    "payment_related": false,
+    "root_cause_category": null
+  },
+  {
+    "document_id": "df41b181-7c96-5c0d-a410-2104b14fd040",
+    "title": "Payment Queue Backlog Recovery Runbook",
+    "source": "lhcb-synthetic-knowledge-base",
+    "department": "payments",
+    "document_type": "runbook",
+    "access_level": "internal",
+    "allowed_roles": [
+      "viewer",
+      "analyst",
+      "administrator"
+    ],
+    "created_date": "2025-02-10",
+    "updated_date": "2026-06-10",
+    "version": "1.3",
+    "owner": "Technology Operations",
+    "status": "active",
+    "tags": [
+      "operations",
+      "payments"
+    ],
+    "related_document_ids": [
+      "7b6e37ed-0dac-54d0-90c2-8850e31362b3",
+      "829bf020-40a2-56e4-8426-a37c68ae736e"
+    ],
+    "file_path": "data/sample_documents/runbooks/payment-queue-backlog-recovery.md",
+    "content_hash": "60234ad6909188830841cbd68aa60a1a8630175bc666b92b972610d854bdb11b",
+    "approximate_word_count": 406,
+    "payment_related": false,
+    "root_cause_category": null
+  }
+]

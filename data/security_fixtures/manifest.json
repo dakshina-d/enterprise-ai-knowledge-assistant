@@ -1,0 +1,47 @@
+[
+  {
+    "file_path": "data/security_fixtures/broken-related-reference.md",
+    "purpose": "broken_related_reference",
+    "included_in_valid_manifest": false
+  },
+  {
+    "file_path": "data/security_fixtures/data-exfiltration-request.md",
+    "purpose": "data_exfiltration_request",
+    "included_in_valid_manifest": false
+  },
+  {
+    "file_path": "data/security_fixtures/fake-citation-directive.md",
+    "purpose": "fake_citation_directive",
+    "included_in_valid_manifest": false
+  },
+  {
+    "file_path": "data/security_fixtures/indirect-prompt-injection.md",
+    "purpose": "indirect_prompt_injection",
+    "included_in_valid_manifest": false
+  },
+  {
+    "file_path": "data/security_fixtures/instruction-override-attempt.md",
+    "purpose": "instruction_override_attempt",
+    "included_in_valid_manifest": false
+  },
+  {
+    "file_path": "data/security_fixtures/malformed-metadata.md",
+    "purpose": "malformed_metadata",
+    "included_in_valid_manifest": false
+  },
+  {
+    "file_path": "data/security_fixtures/missing-access-level.md",
+    "purpose": "missing_access_level",
+    "included_in_valid_manifest": false
+  },
+  {
+    "file_path": "data/security_fixtures/tool-abuse-instruction.md",
+    "purpose": "tool_abuse_instruction",
+    "included_in_valid_manifest": false
+  },
+  {
+    "file_path": "data/security_fixtures/unknown-role.md",
+    "purpose": "unknown_role",
+    "included_in_valid_manifest": false
+  }
+]

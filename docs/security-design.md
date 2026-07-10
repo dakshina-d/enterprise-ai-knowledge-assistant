@@ -58,3 +58,13 @@ No permission-check HTTP endpoint is exposed. The previously drafted assessment-
 Access level alone is insufficient: the authenticated role must also appear in the document's validated `allowed_roles`. Missing or malformed metadata fails closed. There is no implicit “all roles” marker in the PoC.
 
 This is not production identity: there is no federation, MFA, refresh/revocation, account lifecycle, lockout, key rotation, asymmetric signing, or distributed token denylist. Production should validate externally issued OIDC tokens from an organizational IdP (for example Entra ID, Keycloak, or Auth0), map trusted groups/claims to internal roles, use managed keys/secrets, and preserve the same backend authorization service.
+
+## Implemented rate-limit boundary
+
+Login buckets use `anonymous:<sha256 fingerprint>` internally; authenticated buckets use the JWT-validated principal UUID, never a bearer token, `X-User-ID`, username, or request parameter. Direct ASGI client host is used by default and raw addresses are neither stored nor logged. `X-Forwarded-For` is accepted only when proxy trust is explicitly enabled, the direct peer is allowlisted, and exactly one valid forwarded IP is present. A network fingerprint can still group NAT users or change with client networks and is only a PoC fallback.
+
+Policy names, capacity, refill, and cost are server configuration. Clients and LLMs cannot select or alter them. Login, standard, and future expensive operations fail closed if enforcement is unavailable. Health probes are unthrottled by design. In-memory state is not a distributed defense; production must move atomic evaluation to Redis and enforce trusted proxy/network topology.
+
+## Synthetic-data safety boundary
+
+The valid corpus contains fictional documents only and is scanned for private-key markers, common API-key/token forms, password assignments, non-placeholder email domains, public-looking IPv4 addresses, and a small real-bank denylist. Nine intentionally malicious but non-executable fixtures are isolated under `data/security_fixtures/`, use a separate manifest, and are excluded from valid ingestion. The scan is lightweight test-data hygiene, not a substitute for production DLP, malware scanning, or legal review. All retrieved content will still be treated as untrusted when retrieval is implemented.

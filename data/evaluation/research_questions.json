@@ -1,0 +1,249 @@
+[
+  {
+    "question_id": "rq-001",
+    "question": "Summarize all outage reports related to payment failures during the last year and identify recurring root causes.",
+    "benchmark_period": "2025-07-01 through 2026-06-30",
+    "expected_route": "recursive_research",
+    "required_role": "analyst",
+    "relevant_document_ids": [
+      "75d600e8-26d9-52e6-8c91-1a6de2b0bbf8",
+      "75196c78-c5c8-52d4-aab0-5cbae35327aa",
+      "d71d6b52-aaaa-5389-838a-2dd02331fa70",
+      "29eafb3b-5e2d-5cac-8995-341f16bab2bc",
+      "9d432321-e18c-5b28-9ca5-a50702ee1d03",
+      "0f30fb7d-0d5b-59e8-9d42-39c3bac38d0b",
+      "36ac5727-be2e-5f35-84fc-920e52f06829",
+      "13167a0c-5190-5984-84e5-705ca72c8699",
+      "41b4c7fd-7899-5866-a0fa-d4b346470a3b",
+      "d57f6f97-663c-5c01-8941-642d2149de87",
+      "f8ea8db7-cb7a-5168-9581-47d50faf748f",
+      "bb55053c-0c31-58ea-9bfd-ec11a08dbfdd",
+      "6d10d4ba-d6c2-5728-98b7-85f9a5d442b0"
+    ],
+    "expected_topics": [
+      "payment impact",
+      "recurrence",
+      "corrective actions"
+    ],
+    "expected_root_cause_groups": [
+      "capacity_planning_error",
+      "certificate_lifecycle_failure",
+      "configuration_drift",
+      "connection_pool_exhaustion",
+      "database_lock_contention",
+      "deployment_regression",
+      "dns_service_discovery_failure",
+      "message_queue_backlog",
+      "retry_storm",
+      "third_party_gateway_timeout"
+    ],
+    "expected_access_outcome": "allow",
+    "notes": "Evidence expectations only; exact answer wording is intentionally unspecified."
+  },
+  {
+    "question_id": "rq-002",
+    "question": "What is the approved response when payment messages accumulate?",
+    "benchmark_period": "2025-07-01 through 2026-06-30",
+    "expected_route": "simple_retrieval",
+    "required_role": "viewer",
+    "relevant_document_ids": [
+      "df41b181-7c96-5c0d-a410-2104b14fd040"
+    ],
+    "expected_topics": [
+      "queue age",
+      "controlled drain",
+      "idempotency"
+    ],
+    "expected_root_cause_groups": [],
+    "expected_access_outcome": "allow",
+    "notes": "Evidence expectations only; exact answer wording is intentionally unspecified."
+  },
+  {
+    "question_id": "rq-003",
+    "question": "Which incidents involved database connection pool saturation or unavailable connection slots?",
+    "benchmark_period": "2025-07-01 through 2026-06-30",
+    "expected_route": "hybrid_retrieval",
+    "required_role": "analyst",
+    "relevant_document_ids": [
+      "75d600e8-26d9-52e6-8c91-1a6de2b0bbf8",
+      "41b4c7fd-7899-5866-a0fa-d4b346470a3b"
+    ],
+    "expected_topics": [
+      "connection pool",
+      "semantic variants"
+    ],
+    "expected_root_cause_groups": [
+      "connection_pool_exhaustion"
+    ],
+    "expected_access_outcome": "allow",
+    "notes": "Evidence expectations only; exact answer wording is intentionally unspecified."
+  },
+  {
+    "question_id": "rq-004",
+    "question": "Compare the causes of pending payment status in September and delayed settlement in February.",
+    "benchmark_period": "2025-07-01 through 2026-06-30",
+    "expected_route": "recursive_research",
+    "required_role": "analyst",
+    "relevant_document_ids": [
+      "d71d6b52-aaaa-5389-838a-2dd02331fa70",
+      "13167a0c-5190-5984-84e5-705ca72c8699"
+    ],
+    "expected_topics": [
+      "message queue backlog",
+      "consumer lag"
+    ],
+    "expected_root_cause_groups": [
+      "message_queue_backlog"
+    ],
+    "expected_access_outcome": "allow",
+    "notes": "Evidence expectations only; exact answer wording is intentionally unspecified."
+  },
+  {
+    "question_id": "rq-005",
+    "question": "What does INC-PAY-2025-126 say about certificate lifecycle ownership?",
+    "benchmark_period": "2025-07-01 through 2026-06-30",
+    "expected_route": "simple_retrieval",
+    "required_role": "administrator",
+    "relevant_document_ids": [
+      "0f30fb7d-0d5b-59e8-9d42-39c3bac38d0b"
+    ],
+    "expected_topics": [
+      "certificate",
+      "restricted incident"
+    ],
+    "expected_root_cause_groups": [
+      "certificate_lifecycle_failure"
+    ],
+    "expected_access_outcome": "allow",
+    "notes": "Evidence expectations only; exact answer wording is intentionally unspecified."
+  },
+  {
+    "question_id": "rq-006",
+    "question": "Show confidential cybersecurity documents about third-party access.",
+    "benchmark_period": "2025-07-01 through 2026-06-30",
+    "expected_route": "metadata_filtered_retrieval",
+    "required_role": "analyst",
+    "relevant_document_ids": [
+      "640ca359-b767-57f0-ad92-e51659cffd58",
+      "e8c1858c-5783-5356-99ed-6d0bff1d779a"
+    ],
+    "expected_topics": [
+      "department filter",
+      "access filter"
+    ],
+    "expected_root_cause_groups": [],
+    "expected_access_outcome": "allow",
+    "notes": "Evidence expectations only; exact answer wording is intentionally unspecified."
+  },
+  {
+    "question_id": "rq-007",
+    "question": "As a viewer, provide the restricted disaster-recovery topology.",
+    "benchmark_period": "2025-07-01 through 2026-06-30",
+    "expected_route": "simple_retrieval",
+    "required_role": "viewer",
+    "relevant_document_ids": [
+      "af4ada65-1333-5843-876e-c9fe584776d7"
+    ],
+    "expected_topics": [
+      "authorization denial"
+    ],
+    "expected_root_cause_groups": [],
+    "expected_access_outcome": "deny",
+    "notes": "Evidence expectations only; exact answer wording is intentionally unspecified."
+  },
+  {
+    "question_id": "rq-008",
+    "question": "Which final architecture decision controls instead of the rejected lakehouse shortcut?",
+    "benchmark_period": "2025-07-01 through 2026-06-30",
+    "expected_route": "cross_document_synthesis",
+    "required_role": "analyst",
+    "relevant_document_ids": [
+      "5177b428-9379-5ffe-8872-6f56ad61343d",
+      "db0a9476-6f41-5b54-99f9-859635a11767"
+    ],
+    "expected_topics": [
+      "draft",
+      "rejected proposal",
+      "authority"
+    ],
+    "expected_root_cause_groups": [],
+    "expected_access_outcome": "allow",
+    "notes": "Evidence expectations only; exact answer wording is intentionally unspecified."
+  },
+  {
+    "question_id": "rq-009",
+    "question": "Does the legacy retention schedule override current approved controls?",
+    "benchmark_period": "2025-07-01 through 2026-06-30",
+    "expected_route": "cross_document_synthesis",
+    "required_role": "viewer",
+    "relevant_document_ids": [
+      "06c0626e-f2be-5363-a93f-56c825e0a208",
+      "26788e3c-40e2-5a05-b720-21d63cab00f6"
+    ],
+    "expected_topics": [
+      "superseded conflict"
+    ],
+    "expected_root_cause_groups": [],
+    "expected_access_outcome": "allow",
+    "notes": "Evidence expectations only; exact answer wording is intentionally unspecified."
+  },
+  {
+    "question_id": "rq-010",
+    "question": "Compare recurring database lock contention incidents and their open actions.",
+    "benchmark_period": "2025-07-01 through 2026-06-30",
+    "expected_route": "structured_analysis",
+    "required_role": "analyst",
+    "relevant_document_ids": [
+      "29eafb3b-5e2d-5cac-8995-341f16bab2bc",
+      "bb55053c-0c31-58ea-9bfd-ec11a08dbfdd"
+    ],
+    "expected_topics": [
+      "database locks",
+      "open actions"
+    ],
+    "expected_root_cause_groups": [
+      "database_lock_contention"
+    ],
+    "expected_access_outcome": "allow",
+    "notes": "Evidence expectations only; exact answer wording is intentionally unspecified."
+  },
+  {
+    "question_id": "rq-011",
+    "question": "Which products depend on payment architecture and require audit evidence?",
+    "benchmark_period": "2025-07-01 through 2026-06-30",
+    "expected_route": "recursive_research",
+    "required_role": "analyst",
+    "relevant_document_ids": [
+      "f11f7e8d-c021-5162-858f-0d8d58a9cdf7",
+      "8644cc96-5eb3-543c-acdc-e16481197f62",
+      "7b6e37ed-0dac-54d0-90c2-8850e31362b3"
+    ],
+    "expected_topics": [
+      "product versus architecture",
+      "audit"
+    ],
+    "expected_root_cause_groups": [],
+    "expected_access_outcome": "allow",
+    "notes": "Evidence expectations only; exact answer wording is intentionally unspecified."
+  },
+  {
+    "question_id": "rq-012",
+    "question": "Why did different customer symptoms arise from capacity-planning errors?",
+    "benchmark_period": "2025-07-01 through 2026-06-30",
+    "expected_route": "recursive_research",
+    "required_role": "analyst",
+    "relevant_document_ids": [
+      "de62e2a0-3822-5bf2-ab84-76904a9a0bab",
+      "6d10d4ba-d6c2-5728-98b7-85f9a5d442b0"
+    ],
+    "expected_topics": [
+      "capacity planning",
+      "different symptoms"
+    ],
+    "expected_root_cause_groups": [
+      "capacity_planning_error"
+    ],
+    "expected_access_outcome": "allow",
+    "notes": "Evidence expectations only; exact answer wording is intentionally unspecified."
+  }
+]

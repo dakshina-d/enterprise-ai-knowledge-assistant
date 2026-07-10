@@ -1,6 +1,6 @@
 # Proposed Testing Strategy
 
-Status: **Partially implemented.** Health, shared-contract, Argon2 password, strict JWT, login/current-user API, exact RBAC, tool mapping, retrieval authorization, safe error, and fail-fast configuration tests run now. Graph, retrieval execution, tool execution, streaming, and end-to-end assistant tests remain planned. Tests use generated documents and synthetic identities; no production data or credentials.
+Status: **Partially implemented.** Health, contracts, authentication/RBAC, rate limiting, and deterministic sample-data tests run now. Corpus coverage verifies generation drift, manifest/enums, type/department/access/role distributions, 16 incidents and recurring causes, relationships, source status, hashes, benchmarks, fixture isolation, and safety scanning. Graph, parsing/chunking, retrieval/tool execution, streaming, and end-to-end assistant tests remain planned.
 
 ## Test layers
 

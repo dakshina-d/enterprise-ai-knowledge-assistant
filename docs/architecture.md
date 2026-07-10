@@ -1,6 +1,6 @@
 # Proposed Architecture
 
-Status: **Partially implemented.** Repository/configuration/logging foundations, shared contracts, FastAPI health endpoints, PoC authentication, deterministic RBAC/tool/retrieval policies, and a disabled Streamlit placeholder currently run. Graph, retrieval, tool, memory, LLM, SSE, and UI integrations remain planned.
+Status: **Partially implemented.** Repository/configuration/logging foundations, shared contracts, FastAPI health endpoints, PoC authentication, deterministic RBAC/tool/retrieval policies, process-local per-user/login token buckets, and a disabled Streamlit placeholder currently run. Graph, retrieval, tool, memory, LLM, SSE, and UI integrations remain planned.
 
 ## Architectural principles
 
@@ -134,7 +134,7 @@ flowchart TB
     API -->|TLS| LangSmith[LangSmith]
 ```
 
-For the PoC, an in-memory token bucket and session store may be explicitly accepted as single-process limitations. Production should use a managed identity provider, distributed rate-limit/session storage, secrets manager, network policies, horizontally scalable API workers, durable event/session persistence, isolated analysis jobs, and centralized telemetry.
+The implemented PoC token bucket uses per-bucket async locks and bounded opportunistic TTL cleanup. It is process-local, resets on restart, and cannot coordinate multiple workers. Production should use an atomic Redis Lua script or equivalent transaction plus a managed identity provider, distributed session storage, secrets manager, network policies, horizontally scalable API workers, durable event/session persistence, isolated analysis jobs, and centralized telemetry.
 
 ## Responsibility summary
 
