@@ -1,55 +1,55 @@
 # Requirements Traceability
 
-“Implemented” means executable and presently verified in this baseline. Every AI, retrieval, security-feature, and bonus row remains “Planned.”
+Statuses are intentionally strict: **Implemented** means executable and verified now; **Designed** means a reviewable contract exists but no runtime feature; **Planned** means runtime work remains. Design evidence never substitutes for an operational demo.
 
-| Requirement | Priority | Planned component | Verification method | Current status | Demo evidence |
+| Requirement | Priority | Planned component / design reference | Verification method | Current status | Demo evidence |
 |---|---|---|---|---|---|
-| Repository scaffolding | Must | Repository root | Tree review | Implemented | Modular directory walkthrough |
-| Documentation | Must | `docs/` | Content review | Implemented | Architecture, security, ADR, and plans |
-| Health endpoints | Must | Backend API | Automated endpoint tests | Implemented | `/health/live` and `/health/ready` responses |
-| Logging foundations | Must | Backend core | Ruff, MyPy, unit inspection | Implemented | JSON formatter output |
-| Streamlit chat | Must | Frontend | UI and integration test | Planned | Disabled placeholder only |
-| Multi-turn conversation | Must | Graph and memory | Conversation integration test | Planned | Future multi-turn scenario |
-| Streaming responses | Must | API and frontend | Streaming integration test | Planned | Future token stream capture |
-| Live agent activity | Must | Graph, API, and frontend | Event-stream UI test | Planned | Placeholder panel only |
-| FastAPI | Must | Backend API | Startup and API tests | Planned | Health-only baseline exists; assistant API pending |
-| Async APIs | Must | Backend API | Async integration tests | Planned | Future request concurrency test |
-| Async retrieval | Must | Retrieval | Async contract tests | Planned | Future concurrent retrieval trace |
-| Async tool execution | Must | Tools | Timeout/concurrency tests | Planned | Future parallel tool trace |
-| Structured logging | Must | Observability | Log schema and capture tests | Planned | JSON foundation exists; request/agent events pending |
-| LangGraph | Must | Graph | Graph topology and execution tests | Planned | Proposed flow diagram |
-| Supervisor agent | Must | Agents | Routing scenario tests | Planned | Future LangSmith trace |
-| Retrieval agent | Must | Agents | Retrieval scenario tests | Planned | Future attributed answer |
-| Research agent | Must | Agents | Tool-use scenario tests | Planned | Future research trace |
-| Response agent | Must | Agents | Synthesis scenario tests | Planned | Future grounded response |
-| RLM decomposition | Must | Graph | Complex-query decomposition test | Planned | Future decomposition trace |
-| Recursive sub-analysis | Must | Graph | Bounded-recursion tests | Planned | Future depth/budget trace |
-| Hybrid dense and sparse retrieval | Must | Retrieval | Relevance evaluation | Planned | Future evaluation report |
-| Pinecone namespaces | Must | Retrieval and ingestion | Namespace isolation test | Planned | Future index inspection |
-| Metadata filtering | Must | Retrieval and security | Filter enforcement tests | Planned | Future role-filtered query |
-| Document attribution | Must | Retrieval and response | Citation provenance tests | Planned | Future source-linked response |
-| Session memory | Must | Memory | Multi-turn isolation tests | Planned | Future session replay |
-| Knowledge search tool | Must | Tools and retrieval | Tool contract tests | Planned | Future tool-call trace |
-| MCP tool | Must | MCP server and tools | MCP contract/authorization tests | Planned | Future constrained MCP call |
-| Python analysis tool | Must | Tools | Sandbox and resource-limit tests | Planned | Future isolated analysis |
-| LangSmith traces | Must | Observability | Trace presence/schema check | Planned | Future trace link |
-| Prompt-injection protection | Must | Security | Adversarial evaluation | Planned | Future blocked prompt case |
-| Input validation | Must | API and security | Invalid payload tests | Planned | Future validation response |
-| Retrieved-content validation | Must | Retrieval and security | Malicious-document tests | Planned | Future quarantined content |
-| Tool authorization | Must | Security and tools | Role/tool matrix tests | Planned | Future denied tool call |
-| Hallucinated-citation protection | Must | Security and response | Fabricated-citation tests | Planned | Future rejected citation |
-| Brand-safety validation | Must | Security and response | Policy evaluation suite | Planned | Future guarded output |
-| Viewer role | Must | Security | RBAC integration tests | Planned | Future read-only scenario |
-| Analyst role | Must | Security | RBAC integration tests | Planned | Future analytics scenario |
-| Administrator role | Must | Security | RBAC integration tests | Planned | Future admin scenario |
-| Token-bucket rate limiting | Must | Security and API | Burst/refill tests | Planned | Future 429 and recovery |
-| LLM failure handling | Must | Services and graph | Provider fault-injection test | Planned | Future graceful fallback |
-| Vector-database failure handling | Must | Retrieval | Pinecone fault-injection test | Planned | Future degraded response |
-| MCP failure handling | Must | MCP server and tools | MCP fault-injection test | Planned | Future bounded failure |
-| Tool timeout handling | Must | Tools | Timeout tests | Planned | Future timeout event |
-| Invalid-request handling | Must | API | Validation/error contract tests | Planned | Future structured 4xx response |
-| Human-in-the-loop bonus | Bonus | Graph and frontend | Interrupt/resume test | Planned | Future approval checkpoint |
-| Reranking bonus | Bonus | Retrieval | Comparative relevance evaluation | Planned | Future metrics comparison |
-| Long-term memory bonus | Bonus | Memory | Persistence/privacy tests | Planned | Future cross-session recall |
-| Feedback-loop bonus | Bonus | Frontend and observability | Feedback persistence test | Planned | Future feedback record |
-| Docker Compose bonus | Bonus | Deployment | Clean-environment smoke test | Planned | Future multi-service startup |
+| Repository scaffolding | Must | Modular monorepo; [ADR 0001](adr/0001-project-structure.md) | Tree and packaging review | Implemented | Current directory walkthrough |
+| Architecture and implementation roadmap | Must | [Architecture](architecture.md), [roadmap](implementation-roadmap.md), ADRs | Cross-document terminology/link and Mermaid review | Designed | Document walkthrough only |
+| Health endpoints | Must | Backend API; [API contracts](api-contracts.md) | Automated `live` and `ready` tests plus startup smoke test | Implemented | Current endpoint responses |
+| Logging foundations | Must | Backend core; [architecture](architecture.md), [error handling](error-handling-design.md) | Ruff/MyPy and JSON formatter test/inspection | Implemented | Current JSON formatter; request events pending |
+| Streamlit chat | Must | Frontend; [API contracts](api-contracts.md), [roadmap](implementation-roadmap.md) | UI and end-to-end chat tests | Planned | Disabled placeholder only |
+| Multi-turn conversation | Must | Graph/memory; [graph design](graph-design.md), [testing strategy](testing-strategy.md) | Session ownership and multi-turn integration test | Planned | Future scripted session replay |
+| Streaming responses | Must | FastAPI/Streamlit; [event design](event-stream-design.md), [ADR 0004](adr/0004-server-sent-events.md) | SSE ordering, reconnect, redaction, terminal-event tests | Planned | Future sanitized SSE capture |
+| Live agent activity | Must | Event projector/UI; [event design](event-stream-design.md) | Event catalogue contract and UI rendering tests | Planned | Placeholder activity panel only |
+| FastAPI | Must | Backend; [API contracts](api-contracts.md) | OpenAPI/endpoint integration and startup tests | Planned | Health-only baseline currently runs |
+| Async APIs | Must | Backend/graph; [architecture](architecture.md), [API contracts](api-contracts.md) | Concurrent request and cancellation tests | Planned | Future concurrency test report |
+| Async retrieval | Must | Retrieval; [retrieval design](retrieval-design.md) | Async adapter timeout/concurrency tests | Planned | Future trace/test result |
+| Async tool execution | Must | Graph/tools; [graph design](graph-design.md) | Parallel tool, timeout, and isolation tests | Planned | Future sanitized tool events |
+| Structured logging | Must | Observability; [error handling](error-handling-design.md), [testing strategy](testing-strategy.md) | Schema, correlation, redaction, failure capture tests | Planned | JSON foundation only |
+| LangGraph | Must | Graph; [graph design](graph-design.md), [ADR 0002](adr/0002-langgraph-as-orchestrator.md) | Graph compile, invariant, route, and terminal-state tests | Planned | Proposed diagrams only |
+| Supervisor agent | Must | Graph/agents; [graph design](graph-design.md) | Table-driven intent/complexity routing tests | Planned | Future route event/trace |
+| Retrieval agent | Must | Agents/retrieval; [graph design](graph-design.md), [retrieval design](retrieval-design.md) | Grounded retrieval workflow tests | Planned | Future attributed answer |
+| Research agent | Must | Agents/graph; [graph design](graph-design.md), [ADR 0006](adr/0006-recursive-research-design.md) | Fan-out/fan-in and partial-worker tests | Planned | Future batch events |
+| Response agent | Must | Agents/guardrails; [graph design](graph-design.md) | Grounding, citation, response-policy tests | Planned | Future validated response |
+| RLM decomposition | Must | Recursive research; [graph design](graph-design.md) | Complex-query decomposition fixture tests | Planned | Future structured task plan, not chain-of-thought |
+| Recursive sub-analysis | Must | Graph; [ADR 0006](adr/0006-recursive-research-design.md) | Depth/concurrency/time/token budget tests | Planned | Future bounded batch trace |
+| Hybrid dense and sparse retrieval | Must | Pinecone retrieval; [retrieval design](retrieval-design.md), [ADR 0003](adr/0003-hybrid-retrieval-strategy.md) | Versioned relevance evaluation and fusion unit tests | Planned | Future metrics report |
+| Pinecone namespaces | Must | Retrieval/ingestion; [retrieval design](retrieval-design.md) | Namespace isolation integration tests | Planned | Future test-index inspection |
+| Metadata filtering | Must | Retrieval/RBAC; [retrieval design](retrieval-design.md), [ADR 0005](adr/0005-rbac-enforcement-boundary.md) | Mandatory-filter and post-query recheck tests | Planned | Future denied/restricted query test |
+| Document attribution | Must | Evidence models; [retrieval design](retrieval-design.md) | Provenance completeness and claim-mapping tests | Planned | Future source-linked response |
+| Session memory | Must | Memory/graph; [graph design](graph-design.md), [testing strategy](testing-strategy.md) | Multi-turn, ownership, bounded-context tests | Planned | Future session replay |
+| Knowledge search tool | Must | Tools/retrieval; [graph design](graph-design.md), [retrieval design](retrieval-design.md) | Authorization/schema/result contract tests | Planned | Future safe tool event |
+| MCP tool | Must | MCP server/client; [architecture](architecture.md), [error handling](error-handling-design.md) | MCP contract, allowlist, timeout, malformed-output tests | Planned | Future constrained call |
+| Python analysis tool | Must | Restricted runtime; [architecture](architecture.md), [testing strategy](testing-strategy.md) | Role, resource, network/secret, escape tests | Planned | Future isolated job evidence |
+| LangSmith traces | Must | Observability; [architecture](architecture.md), [testing strategy](testing-strategy.md) | Span/correlation/redaction verification | Planned | Future sanitized trace reference |
+| Prompt-injection protection | Must | Security/graph; [graph design](graph-design.md), [testing strategy](testing-strategy.md) | Direct/indirect adversarial evaluation | Planned | Future blocked-input case |
+| Input validation | Must | FastAPI/graph; [API contracts](api-contracts.md), [graph design](graph-design.md) | Boundary/size/schema fuzz and contract tests | Planned | Future safe 400/422 response |
+| Retrieved-content validation | Must | Retrieval/security; [retrieval design](retrieval-design.md) | Malicious-document and policy-invariance tests | Planned | Future quarantine event |
+| Tool authorization | Must | Backend policy; [graph design](graph-design.md), [ADR 0005](adr/0005-rbac-enforcement-boundary.md) | Role/tool/argument/data-scope matrix | Planned | Future authorized and denied calls |
+| Hallucinated-citation protection | Must | Evidence/response; [retrieval design](retrieval-design.md), [graph design](graph-design.md) | Unknown/unused/unsupported citation tests | Planned | Future rejected citation |
+| Brand-safety validation | Must | Response guardrail; [graph design](graph-design.md) | Versioned policy corpus and repair/refusal tests | Planned | Future guarded output |
+| Viewer role | Must | Backend RBAC; [ADR 0005](adr/0005-rbac-enforcement-boundary.md) | Read/tool/retrieval negative matrix | Planned | Future viewer denial scenario |
+| Analyst role | Must | Backend RBAC; [ADR 0005](adr/0005-rbac-enforcement-boundary.md) | Approved analysis and restricted-data tests | Planned | Future analyst scenario |
+| Administrator role | Must | Backend RBAC; [ADR 0005](adr/0005-rbac-enforcement-boundary.md) | Full approved-tool matrix; unknown tool denial | Planned | Future admin scenario |
+| Token-bucket rate limiting | Must | API/security; [architecture](architecture.md), [testing strategy](testing-strategy.md) | Per-user concurrency, refill, burst, 429 tests | Planned | Future isolation demonstration |
+| LLM failure handling | Must | Graph/services; [error handling](error-handling-design.md) | Unavailable/timeout/retry/fallback fault tests | Planned | Future partial/failure event |
+| Vector-database failure handling | Must | Retrieval; [error handling](error-handling-design.md) | Pinecone unavailable/timeout injection tests | Planned | Future degraded response |
+| MCP failure handling | Must | MCP/tools; [error handling](error-handling-design.md) | Unavailable/timeout/idempotency tests | Planned | Future partial result |
+| Tool timeout handling | Must | Tools/graph; [error handling](error-handling-design.md) | Cancellation, deadline, sibling-isolation tests | Planned | Future timeout event |
+| Invalid-request handling | Must | API; [API contracts](api-contracts.md), [error handling](error-handling-design.md) | Error-envelope/schema/idempotency tests | Planned | Future structured error |
+| Human-in-the-loop bonus | Bonus | Graph/UI; [graph design](graph-design.md), [roadmap](implementation-roadmap.md) | Pause/resume/deny/expiry tests | Planned | Future approval checkpoint |
+| Reranking bonus | Bonus | Retrieval; [retrieval design](retrieval-design.md) | Blind comparative quality/latency evaluation | Planned | Future metrics comparison |
+| Long-term memory bonus | Bonus | Memory; [roadmap](implementation-roadmap.md) | Consent, isolation, deletion, persistence tests | Planned | Future optional scenario |
+| Feedback-loop bonus | Bonus | API/UI/evaluation; [API contracts](api-contracts.md), [roadmap](implementation-roadmap.md) | Ownership, persistence, privacy, evaluation-use tests | Planned | Future feedback record/report |
+| Docker Compose bonus | Bonus | Deployment; [architecture](architecture.md), [roadmap](implementation-roadmap.md) | Clean-environment startup, isolation, E2E test | Planned | Future reproducible stack startup |
