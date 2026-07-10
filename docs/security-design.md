@@ -1,6 +1,6 @@
 # Initial Security Design
 
-This is a preliminary threat list for planned capabilities. The current baseline contains no LLM, retrieval, identity, or tool integration.
+The PoC authentication and deterministic RBAC foundation is implemented. LLM, retrieval execution, and tool execution remain unimplemented.
 
 | Threat | Intended controls |
 |---|---|
@@ -15,4 +15,46 @@ This is a preliminary threat list for planned capabilities. The current baseline
 | Denial of service | Validate request size, apply token-bucket limits, bound recursion and concurrency, and set dependency timeouts. |
 | Sensitive information in logs | Use structured allowlisted fields, redaction, access controls, retention limits, and no raw prompt logging by default. |
 
-Authentication and production identity integration remain undecided. Demonstration identities, if used, will be visibly marked as proof-of-concept only. Security tests and threat-model revisions will accompany each new trust boundary.
+## Implemented PoC identity boundary
+
+- Demonstration usernames and Argon2id password hashes are environment configuration; no plaintext password is stored.
+- Login failures are indistinguishable and never log usernames, passwords, hashes, or tokens.
+- HS256 JWTs require `sub`, username, role, permissions, issuer, audience, issued/expiry times, and JWT ID. The decoder pins the algorithm and rejects invalid types, roles, permissions, signatures, issuer, audience, and expiry.
+- JWT permission claims must exactly equal the centralized server policy for the validated role. Extra, missing, unknown, or incorrectly typed permissions invalidate the token; the JWT is never the final authorization authority.
+- Backend policy is the authority: viewer receives knowledge search; analyst adds Python analysis and MCP tools; administrator receives all defined permissions.
+- Tool requirements and access levels are immutable mappings. Document authorization requires both a permitted access level and explicit inclusion in `allowed_roles`.
+
+### RBAC permission matrix
+
+| Role | Knowledge search | Python analysis | MCP tools | Administrative tools | Ingestion management | Human approval |
+|---|---:|---:|---:|---:|---:|---:|
+| Viewer | Allow | Deny | Deny | Deny | Deny | Deny |
+| Analyst | Allow | Allow | Allow | Deny | Deny | Deny |
+| Administrator | Allow | Allow | Allow | Allow | Allow | Allow |
+
+### Fixed tool requirements
+
+| Tool | Required permission |
+|---|---|
+| Knowledge search | `knowledge_search` |
+| Python analysis | `python_analysis` |
+| Employee directory | `mcp_tools` |
+| Service catalog | `mcp_tools` |
+| Incident records | `mcp_tools` |
+| Administrative ingestion | `ingestion_management` |
+
+Unknown tools default to denial and have no inferred permission. Tool parameters cannot alter this mapping.
+
+No permission-check HTTP endpoint is exposed. The previously drafted assessment-only route was removed; role and permission behavior is verified directly through the authorization service and integration tests assert the old path returns `404` for anonymous, viewer, analyst, and administrator callers.
+
+### Retrieval access policy
+
+| Role | Permitted access levels |
+|---|---|
+| Viewer | Public, internal |
+| Analyst | Public, internal, confidential |
+| Administrator | Public, internal, confidential, restricted |
+
+Access level alone is insufficient: the authenticated role must also appear in the document's validated `allowed_roles`. Missing or malformed metadata fails closed. There is no implicit “all roles” marker in the PoC.
+
+This is not production identity: there is no federation, MFA, refresh/revocation, account lifecycle, lockout, key rotation, asymmetric signing, or distributed token denylist. Production should validate externally issued OIDC tokens from an organizational IdP (for example Entra ID, Keycloak, or Auth0), map trusted groups/claims to internal roles, use managed keys/secrets, and preserve the same backend authorization service.

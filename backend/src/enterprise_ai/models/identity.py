@@ -82,10 +82,29 @@ class LoginRequest(ContractModel):
 
 
 class LoginResponse(ContractModel):
+    access_token: Annotated[str, Field(min_length=1)]
+    token_type: Annotated[str, Field(pattern="^Bearer$")] = "Bearer"  # noqa: S105
+    expires_in: Annotated[int, Field(ge=1)]
     user: PublicUserProfile
+    permissions: frozenset[ToolPermission]
     expires_at: datetime
 
     @field_validator("expires_at")
     @classmethod
     def validate_expires_at(cls, value: datetime) -> datetime:
         return ensure_utc_aware(value)
+
+
+class PublicPrincipalProfile(ContractModel):
+    user_id: UserId
+    username: Annotated[str, Field(min_length=1, max_length=128)]
+    display_name: Annotated[str, Field(min_length=1, max_length=200)]
+    role: UserRole
+    permissions: frozenset[ToolPermission]
+
+
+class AuthorizationDecision(ContractModel):
+    allowed: bool
+    reason_code: Annotated[str, Field(min_length=1, max_length=100)]
+    public_explanation: Annotated[str, Field(min_length=1, max_length=500)]
+    required_permission: ToolPermission

@@ -1,6 +1,6 @@
 # Proposed Architecture
 
-Status: **Designed, not implemented.** Only repository scaffolding, configuration and JSON-logging foundations, FastAPI health endpoints, and a disabled Streamlit placeholder currently run. This document defines a production-oriented proof of concept (PoC), not operational capability.
+Status: **Partially implemented.** Repository/configuration/logging foundations, shared contracts, FastAPI health endpoints, PoC authentication, deterministic RBAC/tool/retrieval policies, and a disabled Streamlit placeholder currently run. Graph, retrieval, tool, memory, LLM, SSE, and UI integrations remain planned.
 
 ## Architectural principles
 

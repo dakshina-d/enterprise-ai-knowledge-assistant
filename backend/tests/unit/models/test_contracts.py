@@ -34,6 +34,7 @@ from enterprise_ai.models.identity import (
     LoginRequest,
     LoginResponse,
     PublicUserProfile,
+    ToolPermission,
     UserRole,
 )
 from enterprise_ai.models.retrieval import (
@@ -69,7 +70,13 @@ def test_public_identity_response_has_no_password_field() -> None:
     profile = PublicUserProfile(
         user_id=uuid4(), username="demo", display_name="Demo User", role=UserRole.ANALYST
     )
-    response = LoginResponse(user=profile, expires_at=datetime.now(UTC) + timedelta(hours=1))
+    response = LoginResponse(
+        access_token="test-access-token",
+        expires_in=3600,
+        user=profile,
+        permissions=frozenset(),
+        expires_at=datetime.now(UTC) + timedelta(hours=1),
+    )
 
     assert "password" not in response.model_dump_json()
 
@@ -204,6 +211,7 @@ def test_tool_request_accepts_bounded_json_parameters() -> None:
         allowed=True,
         reason_code="policy.allowed",
         public_explanation="The tool is permitted for this request.",
+        required_permission=ToolPermission.KNOWLEDGE_SEARCH,
     )
 
     assert request.parameters["query"] == "availability"
@@ -249,7 +257,7 @@ def _event(**overrides: object) -> AgentEvent:
         "trace_id": uuid4(),
         "status": AgentEventStatus.RUNNING,
         "public_message": "Generating response",
-        "payload": PublicAgentEventPayload(token="Hello"),  # noqa: S106 - streamed text
+        "payload": PublicAgentEventPayload(token="Hello"),
     }
     values.update(overrides)
     return AgentEvent.model_validate(values)

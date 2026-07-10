@@ -13,6 +13,7 @@ from enterprise_ai.models.common import (
     UserId,
     new_identifier,
 )
+from enterprise_ai.models.identity import ToolPermission
 from enterprise_ai.models.validation import JsonValue, ensure_utc_aware, validate_json_compatible
 
 MAX_TOOL_PAYLOAD_BYTES = 16_384
@@ -60,6 +61,7 @@ class ToolAuthorizationDecision(ContractModel):
     allowed: bool
     reason_code: Annotated[str, Field(min_length=1, max_length=100, pattern=r"^[a-z0-9_.-]+$")]
     public_explanation: Annotated[str, Field(min_length=1, max_length=500)]
+    required_permission: ToolPermission | None
 
 
 class ToolExecutionMetadata(ContractModel):

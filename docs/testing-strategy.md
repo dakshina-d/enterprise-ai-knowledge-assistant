@@ -1,6 +1,6 @@
 # Proposed Testing Strategy
 
-Status: **Designed, not implemented**, except the existing health endpoint unit tests. Tests use generated documents and synthetic identities; no production data or credentials.
+Status: **Partially implemented.** Health, shared-contract, Argon2 password, strict JWT, login/current-user API, exact RBAC, tool mapping, retrieval authorization, safe error, and fail-fast configuration tests run now. Graph, retrieval execution, tool execution, streaming, and end-to-end assistant tests remain planned. Tests use generated documents and synthetic identities; no production data or credentials.
 
 ## Test layers
 

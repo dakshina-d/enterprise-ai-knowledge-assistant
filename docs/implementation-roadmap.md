@@ -2,7 +2,7 @@
 
 Status: **Designed.** Each phase is a small, independently understandable proposed commit. Runtime phases remain planned and may be split further during implementation. Every phase must keep Ruff, MyPy, Pytest, documentation, and secret scanning green.
 
-Progress: phases 1 and 2 are complete. Phase 2 delivered provider-neutral immutable Pydantic contracts and validation tests only; it did not implement any runtime capability from later phases.
+Progress: phases 1–3 are complete. Phase 2 delivered provider-neutral immutable Pydantic contracts. Phase 3 delivered configuration-backed demonstration authentication, strict bearer JWTs, FastAPI principal dependencies, and centralized RBAC/tool/retrieval policies. No retrieval or tool execution was added.
 
 | # | Proposed commit message | Scope | Dependencies | Acceptance criteria and tests | Traceability addressed | Primary risks |
 |---:|---|---|---|---|---|---|
