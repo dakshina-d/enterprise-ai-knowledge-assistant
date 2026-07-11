@@ -1,5 +1,8 @@
 # Requirements Traceability
 
+Repository CI is implemented with Python 3.12, offline provider policy, generated-artifact drift
+checks, Ruff, strict MyPy, complete Pytest/JUnit output, read-only permissions, and clean-tree gating.
+
 Statuses are intentionally strict: **Implemented** means executable and verified now; **Designed** means a reviewable contract exists but no runtime feature; **Planned** means runtime work remains. Design evidence never substitutes for an operational demo.
 
 | Requirement | Priority | Planned component / design reference | Verification method | Current status | Demo evidence |

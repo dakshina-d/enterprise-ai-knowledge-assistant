@@ -10,6 +10,27 @@ aggregates and provenance, cancellation, graph routing, and static prohibited-pr
 Grounded-response tests use a deterministic fake for context bounds, citation mapping, invented-ID
 repair/fallback, no-evidence abstention, prompt-injection isolation, and explicit provider closure.
 
+## Repository CI
+
+`.github/workflows/ci.yml` runs one authoritative Ubuntu validation job with Python 3.12 for pushes
+to `main`, pull requests targeting `main`, and manual dispatch. The job installs `.[dev]`, runs
+`pip check`, then executes corpus, ingestion, sparse-index/evaluation, Ruff, strict MyPy, and the
+complete Pytest suite. It finishes with `git diff --exit-code` to detect mutations from read-only
+checks and uploads `artifacts/pytest-results.xml` for seven days even after failure.
+
+CI explicitly disables Pinecone live tests, selects the fake LLM provider, and requires no secrets.
+OpenAI and Pinecone live coverage belongs in separately authorized future workflows. The workflow
+uses the ordinary `pull_request` event rather than `pull_request_target`; untrusted contributor code
+therefore does not execute with target-repository write permissions or secrets. Permissions are
+limited to `contents: read`, checkout credentials are not persisted, and superseded branch/PR runs
+are cancelled.
+
+Run the same checks locally using the commands in the README quality, corpus, ingestion, and sparse
+sections. Inspect the `pytest-results-<run-id>` artifact when a GitHub test failure needs JUnit
+details. Branch protection should require `Repository CI / Quality and tests` after its first
+successful run. CI validates but does not deploy, publish containers, call live providers, or prove
+behavior on every operating system.
+
 ## Test layers
 
 | Layer | Scope and examples | Gate |

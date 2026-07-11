@@ -1,0 +1,102 @@
+name: Repository CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-and-tests:
+    name: Quality and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      PYTHONHASHSEED: "0"
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+      TZ: UTC
+      AUTH_ENABLED: "false"
+      PINECONE_ENABLED: "false"
+      RUN_PINECONE_LIVE_TESTS: "false"
+      RUN_OPENAI_LIVE_TESTS: "false"
+      LLM_ENABLED: "true"
+      LLM_PROVIDER: fake
+      GRAPH_OFFLINE_RETRIEVAL_MODE: sparse
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Show safe tool versions
+        run: |
+          python --version
+          python -m pip --version
+
+      - name: Install project and development dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+          python -m pip check
+
+      - name: Check generated corpus
+        run: |
+          python scripts/generate_sample_documents.py --check
+          python scripts/validate_sample_documents.py
+
+      - name: Check ingestion artifacts
+        run: |
+          python -m enterprise_ai_ingestion check
+          python -m enterprise_ai_ingestion validate
+
+      - name: Check and evaluate sparse retrieval
+        run: |
+          python -m enterprise_ai.retrieval.cli check-sparse
+          python -m enterprise_ai.retrieval.cli validate-sparse
+          python -m enterprise_ai.retrieval.cli evaluate-sparse
+
+      - name: Check formatting and lint
+        run: |
+          python -m ruff format --check .
+          python -m ruff check .
+
+      - name: Run strict type checking
+        run: python -m mypy backend/src frontend ingestion/src scripts
+
+      - name: Run complete test suite
+        run: |
+          mkdir -p artifacts
+          python -m pytest --junitxml=artifacts/pytest-results.xml
+
+      - name: Verify tracked files remain unchanged
+        run: |
+          status="$(git status --short)"
+          printf '%s\n' "$status"
+          test -z "$status"
+          git diff --exit-code
+
+      - name: Upload Pytest results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pytest-results-${{ github.run_id }}
+          path: artifacts/pytest-results.xml
+          if-no-files-found: warn
+          retention-days: 7

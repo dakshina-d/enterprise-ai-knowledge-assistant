@@ -10,6 +10,7 @@ htmlcov/
 dist/
 build/
 data/evaluation/results/
+artifacts/
 
 # Environments and secrets
 .venv/

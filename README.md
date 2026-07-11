@@ -1,5 +1,7 @@
 # Enterprise AI Knowledge Assistant
 
+[![Repository CI](https://github.com/dakshina-d/enterprise-ai-knowledge-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/dakshina-d/enterprise-ai-knowledge-assistant/actions/workflows/ci.yml)
+
 An enterprise-grade technical-assessment foundation for a future conversational knowledge assistant.
 
 ## Current status
@@ -71,6 +73,15 @@ mypy backend/src frontend
 pytest
 pre-commit run --all-files
 ```
+
+GitHub Actions runs the authoritative Python 3.12 validation on pushes to `main`, pull requests
+targeting `main`, and manual dispatch. It checks corpus and retrieval-artifact drift, offline sparse
+evaluation, Ruff, strict MyPy, and the complete Pytest suite using fake/offline providers. Pinecone
+and OpenAI live tests remain skipped. Failed runs retain the JUnit XML artifact for seven days.
+
+Repository settings should require the `Repository CI / Quality and tests` check before merging to
+`main`. CI uses `pull_request`, not `pull_request_target`, so untrusted pull-request code never runs
+with elevated target-repository permissions or secrets.
 
 ## Sample corpus
 

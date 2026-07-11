@@ -1,5 +1,8 @@
 # Implementation Roadmap
 
+Repository-wide GitHub Actions validation is implemented in `.github/workflows/ci.yml`, covering
+the deterministic offline corpus/retrieval pipeline, static quality gates, and full test suite.
+
 Status: **Partially implemented.** Each phase is a small, independently understandable proposed commit. Remaining runtime phases may be split further during implementation. Every phase must keep Ruff, MyPy, Pytest, documentation, and secret scanning green.
 
 Progress: phases 1–8 are complete. Phase 8 delivered deterministic local BM25 artifacts/retrieval, exact-identifier analysis, concurrent dense–sparse retrieval, transparent score normalization/fusion, and offline sparse evaluation. Reranking, tools, and AI execution remain planned.
