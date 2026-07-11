@@ -41,6 +41,12 @@ class AgentEventType(StrEnum):
     RESEARCH_BATCH_COMPLETED = "research.batch_completed"
     VALIDATION_COMPLETED = "validation.completed"
     MEMORY_UPDATED = "memory.updated"
+    MEMORY_LOAD_STARTED = "memory.load_started"
+    MEMORY_LOADED = "memory.loaded"
+    MEMORY_CONTEXT_RESOLVED = "memory.context_resolved"
+    MEMORY_UPDATE_STARTED = "memory.update_started"
+    MEMORY_EVICTED = "memory.evicted"
+    MEMORY_FAILED = "memory.failed"
     RESPONSE_TOKEN = "response.token"  # noqa: S105 - event name, not a credential
     RESPONSE_COMPLETED = "response.completed"
     RESPONSE_FAILED = "response.failed"
@@ -70,6 +76,10 @@ class PublicAgentEventPayload(ContractModel):
     error_code: Annotated[str | None, Field(max_length=100)] = None
     retryable: bool | None = None
     citation_count: Annotated[int | None, Field(ge=0)] = None
+    turn_count: Annotated[int | None, Field(ge=0)] = None
+    evidence_reference_count: Annotated[int | None, Field(ge=0)] = None
+    context_used: bool | None = None
+    evicted_turn_count: Annotated[int | None, Field(ge=0)] = None
 
 
 class AgentEvent(ContractModel):

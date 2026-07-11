@@ -13,6 +13,10 @@ from enterprise_ai.graph.events import event
 from enterprise_ai.graph.routing import classify, supervise
 from enterprise_ai.graph.schemas import GraphEvidenceAttribution, GraphOutput
 from enterprise_ai.graph.state import GraphState
+from enterprise_ai.memory.context import resolve_followup
+from enterprise_ai.memory.exceptions import MemoryError
+from enterprise_ai.memory.models import MemoryContext
+from enterprise_ai.memory.service import ConversationMemoryService
 from enterprise_ai.models.common import ProcessingStatus
 from enterprise_ai.models.events import AgentEventStatus, AgentEventType, PublicAgentEventPayload
 from enterprise_ai.models.graph import (
@@ -49,6 +53,7 @@ def create_nodes(
     settings: RetrievalSettings,
     retriever: KnowledgeRetriever,
     authorization: AuthorizationService,
+    memory: ConversationMemoryService,
 ) -> dict[str, object]:
     def guarded(
         node_name: str, node: Callable[[GraphState], Awaitable[dict[str, object]]]
@@ -153,6 +158,74 @@ def create_nodes(
                 state, "classify_intent", f"Classified as {intent.value}."
             ),
             "execution_step_count": state.get("execution_step_count", 0) + 1,
+        }
+
+    async def load_memory(state: GraphState) -> dict[str, object]:
+        started = event(
+            state,
+            AgentEventType.MEMORY_LOAD_STARTED,
+            AgentEventStatus.STARTED,
+            "Session memory load started.",
+            node="load_memory",
+        )
+        try:
+            result = await memory.load(state["session_id"], state["principal"])
+        except MemoryError:
+            return {
+                "warnings": ("Session memory could not be loaded; continuing statelessly.",),
+                "conversation_context": MemoryContext(),
+                "memory_used": False,
+                "memory_update_status": "load_failed",
+                "activity_events": (started,),
+                "visited_nodes": ("load_memory",),
+            }
+        snapshot = result.snapshot
+        context = snapshot.context if snapshot is not None else MemoryContext()
+        temporary = cast(GraphState, dict(state))
+        temporary["activity_events"] = (*state.get("activity_events", ()), started)
+        loaded = event(
+            temporary,
+            AgentEventType.MEMORY_LOADED,
+            AgentEventStatus.COMPLETED,
+            "Session memory loaded.",
+            node="load_memory",
+            payload=PublicAgentEventPayload(
+                turn_count=context.turn_count,
+                evidence_reference_count=(
+                    snapshot.evidence_reference_count if snapshot is not None else 0
+                ),
+            ),
+        )
+        return {
+            "conversation_context": context,
+            "memory_used": snapshot is not None and snapshot.turn_count > 0,
+            "memory_update_status": "loaded" if result.enabled else "disabled",
+            "activity_events": (started, loaded),
+            "visited_nodes": ("load_memory",),
+        }
+
+    async def resolve_followup_context(state: GraphState) -> dict[str, object]:
+        query, detected, used = resolve_followup(
+            state["original_query"],
+            state.get("conversation_context", MemoryContext()),
+        )
+        if not memory.settings.memory_followup_context_enabled:
+            query, used = state["original_query"], False
+        resolved = event(
+            state,
+            AgentEventType.MEMORY_CONTEXT_RESOLVED,
+            AgentEventStatus.COMPLETED,
+            "Follow-up context evaluated.",
+            node="resolve_followup_context",
+            payload=PublicAgentEventPayload(context_used=used),
+        )
+        return {
+            "resolved_query": query,
+            "normalized_query": query,
+            "context_reference_detected": detected,
+            "context_used": used,
+            "activity_events": (resolved,),
+            "visited_nodes": ("resolve_followup_context",),
         }
 
     async def supervisor(state: GraphState) -> dict[str, object]:
@@ -329,6 +402,59 @@ def create_nodes(
             "activity_events": _node_events(state, "prepare_output", "Public output prepared."),
         }
 
+    async def update_memory(state: GraphState) -> dict[str, object]:
+        started = event(
+            state,
+            AgentEventType.MEMORY_UPDATE_STARTED,
+            AgentEventStatus.STARTED,
+            "Session memory update started.",
+            node="update_memory",
+        )
+        status = state.get("processing_status", ProcessingStatus.RUNNING)
+        effective_status = (
+            ProcessingStatus.COMPLETED if status is ProcessingStatus.RUNNING else status
+        )
+        try:
+            result = await memory.update(
+                request_id=state["request_id"],
+                session_id=state["session_id"],
+                principal=state["principal"],
+                user_message=state["original_query"],
+                assistant_message=state["response_text"],
+                intent=state.get("detected_intent", Intent.UNSUPPORTED),
+                selected_route=state["selected_route"],
+                completion_status=effective_status,
+                evidence=state.get("retrieved_evidence", ()),
+                warnings=state.get("warnings", ()),
+                created_at=state["invocation_timestamp"],
+            )
+        except MemoryError:
+            return {
+                "warnings": ("Response completed, but session memory was not updated.",),
+                "memory_update_status": "failed",
+                "activity_events": (started,),
+                "visited_nodes": ("update_memory",),
+            }
+        temporary = cast(GraphState, dict(state))
+        temporary["activity_events"] = (*state.get("activity_events", ()), started)
+        updated = event(
+            temporary,
+            AgentEventType.MEMORY_UPDATED,
+            AgentEventStatus.COMPLETED,
+            "Session memory update completed.",
+            node="update_memory",
+            payload=PublicAgentEventPayload(evicted_turn_count=result.eviction.evicted_turns),
+        )
+        return {
+            "memory_update_status": (
+                "duplicate" if result.duplicate else "stored" if result.stored else "skipped"
+            ),
+            "memory_eviction_count": result.eviction.evicted_turns,
+            "current_turn_sequence": result.sequence_number,
+            "activity_events": (started, updated),
+            "visited_nodes": ("update_memory",),
+        }
+
     async def handle_failure(state: GraphState) -> dict[str, object]:
         return {
             "processing_status": ProcessingStatus.FAILED,
@@ -383,6 +509,10 @@ def create_nodes(
                 route=state["selected_route"],
                 recursion_depth=0,
             ),
+            memory_used=state.get("memory_used", False),
+            context_resolved=state.get("context_used", False),
+            turn_sequence=state.get("current_turn_sequence"),
+            memory_update_status=state.get("memory_update_status", "disabled"),
         )
         return {
             "processing_status": status,
@@ -394,6 +524,8 @@ def create_nodes(
     return {
         "initialize_request": initialize,
         "validate_request": guarded("validate_request", validate_request),
+        "load_memory": guarded("load_memory", load_memory),
+        "resolve_followup_context": guarded("resolve_followup_context", resolve_followup_context),
         "classify_intent": guarded("classify_intent", classify_intent),
         "supervisor": guarded("supervisor", supervisor),
         "simple_retrieval": guarded("simple_retrieval", simple_retrieval),
@@ -402,6 +534,7 @@ def create_nodes(
         "deny_request": guarded("deny_request", deny_request),
         "unsupported": guarded("unsupported", unsupported),
         "prepare_output": guarded("prepare_output", prepare_output),
+        "update_memory": guarded("update_memory", update_memory),
         "handle_failure": handle_failure,
         "finalize_execution": finalize,
     }

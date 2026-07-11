@@ -6,6 +6,7 @@ from typing import Any
 from uuid import UUID
 
 from enterprise_ai.graph.schemas import GraphInput, GraphOutput, GraphStreamItem
+from enterprise_ai.memory.service import ConversationMemoryService
 from enterprise_ai.models.events import AgentEvent, AgentEventType
 from enterprise_ai.models.graph import GraphError
 from enterprise_ai.models.identity import ToolPermission, UserRole
@@ -17,11 +18,17 @@ class SessionOwnershipError(PermissionError):
 
 
 class GraphRuntime:
-    def __init__(self, graph: Any, settings: RetrievalSettings) -> None:  # noqa: ANN401
+    def __init__(
+        self,
+        graph: Any,  # noqa: ANN401
+        settings: RetrievalSettings,
+        memory: ConversationMemoryService | None = None,
+    ) -> None:
         self._graph = graph
         self._settings = settings
         self._session_owners: dict[UUID, tuple[UUID, UserRole, frozenset[ToolPermission]]] = {}
         self._ownership_lock = asyncio.Lock()
+        self._memory = memory
 
     async def _claim_session(self, graph_input: GraphInput) -> None:
         principal = graph_input.principal
@@ -61,6 +68,8 @@ class GraphRuntime:
             "user_message": graph_input.user_message,
             "retrieval_filters": graph_input.retrieval_filters,
             "requested_top_k": graph_input.requested_top_k,
+            "invocation_timestamp": graph_input.invocation_timestamp,
+            "original_query": graph_input.user_message,
             "retrieved_evidence": (),
             "validation_reports": (),
             "warnings": (),
@@ -132,3 +141,9 @@ class GraphRuntime:
         """Inspect the request-scoped checkpoint without exposing it in public output."""
         await self._claim_session(graph_input)
         return await self._graph.aget_state(self._config(graph_input))
+
+    async def inspect_memory(self, graph_input: GraphInput) -> object:
+        await self._claim_session(graph_input)
+        if self._memory is None:
+            return None
+        return await self._memory.inspect(graph_input.session_id, graph_input.principal)

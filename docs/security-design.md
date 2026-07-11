@@ -2,6 +2,10 @@
 
 The PoC authentication, RBAC/rate limiting, ingestion, dense retrieval, and local sparse/hybrid security boundaries are implemented. Sparse candidates are authorized before scoring; both branches use the same principal and narrowing filters; attribution must agree before fusion. Query text is never parsed as filter syntax. LLM and tool execution remain unimplemented.
 
+Session memory binds user ID, role, permissions, and a policy fingerprint. Policy changes require a
+new session. Only sanitized public turns and authorized attribution references are retained; no
+headers, tokens, evidence bodies, prompts, vectors, or private reasoning are stored.
+
 | Threat | Intended controls |
 |---|---|
 | Prompt injection | Separate instructions from user data, validate input, constrain graph transitions, and apply output guardrails. |

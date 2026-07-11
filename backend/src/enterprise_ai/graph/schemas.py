@@ -77,6 +77,10 @@ class GraphOutput(ContractModel):
     response_text: str
     validation_reports: tuple[ValidationReport, ...] = ()
     agent_status: PublicAgentStatus
+    memory_used: bool = False
+    context_resolved: bool = False
+    turn_sequence: int | None = None
+    memory_update_status: str = "disabled"
 
 
 class GraphStreamItem(ContractModel):

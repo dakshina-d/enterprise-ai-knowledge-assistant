@@ -2,6 +2,10 @@
 
 Status: **Partially implemented.** Dense tests plus offline analyzer, BM25, sparse artifact/fingerprint, exact identifier, RBAC, normalization, fusion, attribution, deterministic ordering, and partial-result tests run now. Live Pinecone remains explicit and opt-in. Reranking, graph/tools, streaming, and end-to-end assistant tests remain planned.
 
+Memory tests cover ownership, immutable snapshots, idempotency conflicts, sequences, TTL, eviction,
+concurrency, sanitization, structured context, follow-up resolution, lifecycle ordering, and repeated
+graph invocations within one runtime.
+
 ## Test layers
 
 | Layer | Scope and examples | Gate |

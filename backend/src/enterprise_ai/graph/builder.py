@@ -11,12 +11,14 @@ from enterprise_ai.graph.nodes import create_nodes
 from enterprise_ai.graph.routing import ROUTE_NODE
 from enterprise_ai.graph.schemas import GraphTopology
 from enterprise_ai.graph.state import GraphState
+from enterprise_ai.memory.dependencies import create_memory_service
+from enterprise_ai.memory.service import ConversationMemoryService
 from enterprise_ai.retrieval.config import RetrievalSettings
 from enterprise_ai.security.authorization import AuthorizationService
 
 
 def _after_validation(state: GraphState) -> str:
-    return "handle_failure" if state.get("failure") else "classify_intent"
+    return "handle_failure" if state.get("failure") else "load_memory"
 
 
 def _after_retrieval(state: GraphState) -> str:
@@ -42,11 +44,15 @@ def build_graph(
     *,
     checkpointer: BaseCheckpointSaver[Any] | None = None,
     authorization: AuthorizationService | None = None,
+    memory: ConversationMemoryService | None = None,
 ) -> Any:  # noqa: ANN401 - LangGraph's compiled generic is not a stable public contract.
     """Build a real asynchronous StateGraph with injected infrastructure."""
     graph = StateGraph(GraphState)
     for name, node in create_nodes(
-        settings, retriever, authorization or AuthorizationService()
+        settings,
+        retriever,
+        authorization or AuthorizationService(),
+        memory or create_memory_service(settings),
     ).items():
         graph.add_node(name, cast(Any, node))
 
@@ -55,6 +61,16 @@ def build_graph(
     graph.add_conditional_edges(
         "validate_request",
         _after_validation,
+        {name: name for name in ("handle_failure", "load_memory")},
+    )
+    graph.add_conditional_edges(
+        "load_memory",
+        _after_operation("resolve_followup_context"),
+        {name: name for name in ("handle_failure", "resolve_followup_context")},
+    )
+    graph.add_conditional_edges(
+        "resolve_followup_context",
+        _after_operation("classify_intent"),
         {name: name for name in ("handle_failure", "classify_intent")},
     )
     graph.add_conditional_edges(
@@ -85,6 +101,11 @@ def build_graph(
         )
     graph.add_conditional_edges(
         "prepare_output",
+        _after_operation("update_memory"),
+        {name: name for name in ("handle_failure", "update_memory")},
+    )
+    graph.add_conditional_edges(
+        "update_memory",
         _after_operation("finalize_execution"),
         {name: name for name in ("handle_failure", "finalize_execution")},
     )
@@ -100,6 +121,8 @@ def describe_graph() -> GraphTopology:
         nodes=(
             "initialize_request",
             "validate_request",
+            "load_memory",
+            "resolve_followup_context",
             "classify_intent",
             "supervisor",
             "simple_retrieval",
@@ -108,6 +131,7 @@ def describe_graph() -> GraphTopology:
             "deny_request",
             "unsupported",
             "prepare_output",
+            "update_memory",
             "handle_failure",
             "finalize_execution",
         ),
@@ -119,8 +143,12 @@ def describe_graph() -> GraphTopology:
         ),
         conditional_routes={
             **{f"supervisor.{route.value}": node for route, node in ROUTE_NODE.items()},
-            "validate_request.ok": "classify_intent",
+            "validate_request.ok": "load_memory",
             "validate_request.failure": "handle_failure",
+            "load_memory.ok": "resolve_followup_context",
+            "load_memory.failure": "handle_failure",
+            "resolve_followup_context.ok": "classify_intent",
+            "resolve_followup_context.failure": "handle_failure",
             "classify_intent.ok": "supervisor",
             "classify_intent.failure": "handle_failure",
             "simple_retrieval.ok": "validate_evidence",
@@ -130,8 +158,10 @@ def describe_graph() -> GraphTopology:
             "direct_response.ok": "prepare_output",
             "deny_request.ok": "prepare_output",
             "unsupported.ok": "prepare_output",
-            "prepare_output.ok": "finalize_execution",
+            "prepare_output.ok": "update_memory",
             "prepare_output.failure": "handle_failure",
+            "update_memory.ok": "finalize_execution",
+            "update_memory.failure": "handle_failure",
         },
         terminal_nodes=("finalize_execution",),
         implemented_capabilities=(
@@ -139,6 +169,7 @@ def describe_graph() -> GraphTopology:
             "RBAC routing",
             "sparse retrieval",
             "public events",
+            "bounded session conversational memory",
         ),
         planned_capabilities=(
             "LLM synthesis",
@@ -146,5 +177,6 @@ def describe_graph() -> GraphTopology:
             "Python analysis",
             "MCP tools",
             "durable checkpoints",
+            "durable distributed conversation memory",
         ),
     )

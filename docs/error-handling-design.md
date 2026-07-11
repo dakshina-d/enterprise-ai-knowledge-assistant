@@ -2,6 +2,10 @@
 
 Status: **Partially implemented.** Dense and sparse/hybrid retrieval have typed validation, timeout, dependency, authorization, stale-artifact, score, and attribution failures. Hybrid can return an explicit safe partial result for one ordinary branch failure; authorization and integrity failures do not widen retrieval. The broader graph/LLM fallback design remains planned.
 
+Memory ownership and integrity errors fail closed. Disabled memory is stateless; non-security load
+failures continue with a warning, and post-response update failures report that memory was not
+saved without exposing stored content.
+
 ## Taxonomy and default policy
 
 | Category | Retry | Max retries / backoff | Fallback | Terminal outcome and public strategy |

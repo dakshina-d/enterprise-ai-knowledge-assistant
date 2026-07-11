@@ -1,6 +1,9 @@
 # Proposed Architecture
 
-Status: **Partially implemented.** Foundations, ingestion, optional Pinecone dense retrieval, local BM25 sparse retrieval, and backend hybrid fusion now run. Reranking, graph, tool, memory, LLM, SSE, and UI integrations remain planned. Pinecone remains explicit and is not initialized during API startup.
+Status: **Partially implemented.** Foundations, retrieval, baseline graph orchestration, and bounded
+process-local session memory now run. Durable/distributed or semantic memory, tools, LLM, SSE, and
+UI integration remain planned. Conversation memory is a replaceable store boundary distinct from
+the LangGraph checkpointer; see [session memory](session-memory-design.md).
 
 ## Architectural principles
 

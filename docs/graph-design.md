@@ -3,14 +3,15 @@
 Status: **A versioned LangGraph 1.x baseline is implemented.** It uses a real asynchronous
 `StateGraph`, typed reducer-aware state, deterministic classification and RBAC supervision,
 offline sparse retrieval, evidence validation, public events, bounded execution, and an explicit
-in-memory checkpointer. The richer research, tool, generation, citation, and memory nodes below
-remain the target design and are routed to an honest `unsupported` node today.
+in-memory checkpointer plus separate bounded session conversational memory. The richer research,
+tool, generation, citation, long-term, and semantic-memory nodes below remain the target design.
 
 ## Implemented baseline topology
 
 ```mermaid
 flowchart LR
-    START --> I[initialize_request] --> V[validate_request] --> C[classify_intent]
+    START --> I[initialize_request] --> V[validate_request] --> M[load_memory]
+    M --> Q[resolve_followup_context] --> C[classify_intent]
     C --> S[supervisor]
     S -->|conversation| D[direct_response]
     S -->|knowledge + permitted| R[simple_retrieval] --> E[validate_evidence]
@@ -20,7 +21,7 @@ flowchart LR
     E --> P
     X --> P
     U --> P
-    P --> F[finalize_execution] --> END
+    P --> UM[update_memory] --> F[finalize_execution] --> END
 ```
 
 The supervisor selects only enum-backed routes. Retrieval receives the authenticated principal
@@ -34,6 +35,8 @@ durable encrypted saver, apply retention/deletion policy, and preserve the same 
 boundary. Checkpoints must never contain secrets, credentials, prompts, or private reasoning.
 Each CLI process constructs a fresh saver, and test runtimes use an explicit checkpointer factory;
 there is no module-global saver and no persistence across process restart.
+Conversation turns live in a separate `ConversationMemoryStore`, not in the checkpointer contract.
+Only bounded structured context enters graph state. See [session memory](session-memory-design.md).
 
 Run the baseline fully offline:
 

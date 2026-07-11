@@ -6,6 +6,7 @@ from uuid import UUID
 
 from enterprise_ai.graph.reducers import append_events, append_text, append_unique
 from enterprise_ai.graph.schemas import GraphOutput
+from enterprise_ai.memory.models import MemoryContext
 from enterprise_ai.models.common import ProcessingStatus
 from enterprise_ai.models.events import AgentEvent
 from enterprise_ai.models.graph import GraphError, Intent, Route, ValidationReport
@@ -20,6 +21,8 @@ class GraphState(TypedDict, total=False):
     session_id: UUID
     principal: AuthenticatedPrincipal
     user_message: str
+    original_query: str
+    resolved_query: str
     normalized_query: str
     detected_intent: Intent
     task_complexity: str
@@ -43,3 +46,11 @@ class GraphState(TypedDict, total=False):
     retrieval_status: str
     failure: bool
     final_output: GraphOutput
+    invocation_timestamp: datetime
+    conversation_context: MemoryContext
+    memory_used: bool
+    context_reference_detected: bool
+    context_used: bool
+    memory_update_status: str
+    memory_eviction_count: int
+    current_turn_sequence: int

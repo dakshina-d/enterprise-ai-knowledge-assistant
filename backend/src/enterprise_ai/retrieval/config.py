@@ -62,6 +62,18 @@ class RetrievalSettings(BaseSettings):
     graph_max_errors: int = Field(default=10, ge=1, le=100)
     graph_checkpoint_mode: Literal["memory"] = "memory"
     graph_offline_retrieval_mode: Literal["sparse", "hybrid"] = "sparse"
+    memory_enabled: bool = True
+    memory_max_sessions: int = Field(default=1_000, ge=1, le=100_000)
+    memory_max_turns_per_session: int = Field(default=12, ge=1, le=100)
+    memory_max_total_characters: int = Field(default=20_000, ge=1, le=1_000_000)
+    memory_max_user_message_characters: int = Field(default=4_000, ge=1, le=4_000)
+    memory_max_assistant_message_characters: int = Field(default=8_000, ge=1, le=32_000)
+    memory_max_evidence_references: int = Field(default=50, ge=1, le=1_000)
+    memory_session_ttl_seconds: int = Field(default=7_200, ge=1, le=604_800)
+    memory_max_context_topics: int = Field(default=20, ge=1, le=100)
+    memory_max_context_identifiers: int = Field(default=30, ge=1, le=200)
+    memory_followup_context_enabled: bool = True
+    memory_redact_sensitive_patterns: bool = True
 
     @model_validator(mode="after")
     def validate_enabled(self) -> Self:
