@@ -7,6 +7,8 @@ concurrency, sanitization, structured context, follow-up resolution, lifecycle o
 graph invocations within one runtime.
 Restricted-analysis tests cover role scope, corpus hashes/paths, taxonomy rules, deterministic
 aggregates and provenance, cancellation, graph routing, and static prohibited-primitive scanning.
+Grounded-response tests use a deterministic fake for context bounds, citation mapping, invented-ID
+repair/fallback, no-evidence abstention, prompt-injection isolation, and explicit provider closure.
 
 ## Test layers
 

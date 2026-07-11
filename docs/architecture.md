@@ -7,6 +7,8 @@ the LangGraph checkpointer; see [session memory](session-memory-design.md).
 
 The restricted analysis boundary maps typed operations to trusted standard-library functions over
 manifest-authorized incident rows. It is not a code-execution sandbox.
+Grounded response generation depends on an application provider protocol; retrieval, authorization,
+structured output, and citation metadata remain application-owned.
 
 ## Architectural principles
 

@@ -121,6 +121,11 @@ administrators. It executes only typed allowlisted aggregate operations over aut
 incident rows—never caller-supplied Python. See
 [python-analysis design](docs/python-analysis-tool-design.md).
 
+Grounded response generation now uses an application-owned provider abstraction, typed drafts, and
+deterministic current-context citation validation. Offline development defaults to the fake
+provider; OpenAI Responses API mode is explicit and enforces `store=false`. See
+[LLM response design](docs/llm-response-agent-design.md) and [model selection](docs/model-selection.md).
+
 ## Environment configuration
 
 Configuration is loaded from environment variables by `enterprise_ai.core.config.Settings`. Application settings include `APP_ENV`, `LOG_LEVEL`, `API_HOST`, `API_PORT`, and the documented `AUTH_*`/`DEMO_*` proof-of-concept variables. Future provider variable names are listed in `.env.example`; no provider integration is active.

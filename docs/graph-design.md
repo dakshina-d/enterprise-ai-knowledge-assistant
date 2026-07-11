@@ -18,11 +18,13 @@ flowchart LR
     S -->|not permitted| X[deny_request]
     S -->|planned route| U[unsupported]
     S -->|structured + permitted| PA[python_analysis]
+    R --> E[validate_evidence] --> G[generate_response] --> CV[validate_citations]
     D --> P[prepare_output]
     E --> P
     X --> P
     U --> P
-    PA --> P
+    PA --> G
+    CV --> P
     P --> UM[update_memory] --> F[finalize_execution] --> END
 ```
 

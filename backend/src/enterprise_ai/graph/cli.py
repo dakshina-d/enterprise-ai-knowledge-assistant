@@ -9,6 +9,7 @@ from enterprise_ai.graph.checkpointer import create_checkpointer
 from enterprise_ai.graph.dependencies import OfflineSparseAdapter
 from enterprise_ai.graph.runtime import GraphRuntime
 from enterprise_ai.graph.schemas import GraphInput
+from enterprise_ai.llm.dependencies import create_response_service
 from enterprise_ai.memory.dependencies import create_memory_service
 from enterprise_ai.models.identity import AuthenticatedPrincipal, UserRole
 from enterprise_ai.retrieval.config import RetrievalSettings
@@ -41,10 +42,18 @@ def _parser() -> argparse.ArgumentParser:
 def _runtime(settings: RetrievalSettings) -> GraphRuntime:
     adapter = OfflineSparseAdapter(SparseRetrievalService(settings))
     memory = create_memory_service(settings)
+    responses = create_response_service(settings)
     return GraphRuntime(
-        build_graph(settings, adapter, checkpointer=create_checkpointer(), memory=memory),
+        build_graph(
+            settings,
+            adapter,
+            checkpointer=create_checkpointer(),
+            memory=memory,
+            responses=responses,
+        ),
         settings,
         memory,
+        responses,
     )
 
 
@@ -67,11 +76,14 @@ async def _run(arguments: argparse.Namespace) -> None:
         requested_top_k=arguments.top_k,
     )
     runtime = _runtime(RetrievalSettings())
-    if arguments.command == "run":
-        print((await runtime.ainvoke(graph_input)).model_dump_json(indent=2))
-        return
-    async for item in runtime.astream(graph_input):
-        print(item.model_dump_json(exclude_none=True))
+    try:
+        if arguments.command == "run":
+            print((await runtime.ainvoke(graph_input)).model_dump_json(indent=2))
+            return
+        async for item in runtime.astream(graph_input):
+            print(item.model_dump_json(exclude_none=True))
+    finally:
+        await runtime.aclose()
 
 
 async def _conversation(arguments: argparse.Namespace) -> None:
@@ -81,17 +93,21 @@ async def _conversation(arguments: argparse.Namespace) -> None:
     principal = assessment_principal(UserRole(arguments.role))
     messages = list(arguments.message)
     print("Process-local conversational memory; content is lost when this process exits.")
-    if not messages:
-        while True:
-            message = (await asyncio.to_thread(input, "message (or 'exit'): ")).strip()
-            if message.casefold() in {"exit", "quit"}:
-                break
-            if message:
-                messages.append(message)
-                await _conversation_turn(runtime, principal, session_id, message, arguments.top_k)
-        return
-    for message in messages:
-        await _conversation_turn(runtime, principal, session_id, message, arguments.top_k)
+    try:
+        if not messages:
+            while True:
+                message = (await asyncio.to_thread(input, "message (or 'exit'): ")).strip()
+                if message.casefold() in {"exit", "quit"}:
+                    break
+                if message:
+                    await _conversation_turn(
+                        runtime, principal, session_id, message, arguments.top_k
+                    )
+            return
+        for message in messages:
+            await _conversation_turn(runtime, principal, session_id, message, arguments.top_k)
+    finally:
+        await runtime.aclose()
 
 
 async def _conversation_turn(

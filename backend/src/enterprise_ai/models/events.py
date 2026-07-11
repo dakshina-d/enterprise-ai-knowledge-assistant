@@ -50,6 +50,15 @@ class AgentEventType(StrEnum):
     RESPONSE_TOKEN = "response.token"  # noqa: S105 - event name, not a credential
     RESPONSE_COMPLETED = "response.completed"
     RESPONSE_FAILED = "response.failed"
+    RESPONSE_GENERATION_STARTED = "response.generation_started"
+    RESPONSE_GENERATION_COMPLETED = "response.generation_completed"
+    RESPONSE_GENERATION_FAILED = "response.generation_failed"
+    CITATION_VALIDATION_STARTED = "citation.validation_started"
+    CITATION_VALIDATION_COMPLETED = "citation.validation_completed"
+    CITATION_VALIDATION_FAILED = "citation.validation_failed"
+    RESPONSE_REPAIR_STARTED = "response.repair_started"
+    RESPONSE_REPAIR_COMPLETED = "response.repair_completed"
+    RESPONSE_FALLBACK_USED = "response.fallback_used"
 
 
 class AgentEventStatus(StrEnum):

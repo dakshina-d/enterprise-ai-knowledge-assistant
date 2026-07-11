@@ -13,6 +13,8 @@ from enterprise_ai.graph.events import event
 from enterprise_ai.graph.routing import classify, supervise
 from enterprise_ai.graph.schemas import GraphEvidenceAttribution, GraphOutput
 from enterprise_ai.graph.state import GraphState
+from enterprise_ai.llm.models import ResponseMode
+from enterprise_ai.llm.response_service import GroundedResponseService
 from enterprise_ai.memory.context import resolve_followup
 from enterprise_ai.memory.exceptions import MemoryError
 from enterprise_ai.memory.models import MemoryContext
@@ -56,6 +58,7 @@ def create_nodes(
     authorization: AuthorizationService,
     memory: ConversationMemoryService,
     analysis: PythonAnalysisTool,
+    responses: GroundedResponseService,
 ) -> dict[str, object]:
     def guarded(
         node_name: str, node: Callable[[GraphState], Awaitable[dict[str, object]]]
@@ -453,6 +456,78 @@ def create_nodes(
             "visited_nodes": ("python_analysis",),
         }
 
+    async def generate_response(state: GraphState) -> dict[str, object]:
+        started = event(
+            state,
+            AgentEventType.RESPONSE_GENERATION_STARTED,
+            AgentEventStatus.STARTED,
+            "Grounded response generation started.",
+            node="generate_response",
+        )
+        if state.get("analysis_result") is not None:
+            grounded = await responses.analysis_response(
+                state["original_query"], state["analysis_result"]
+            )
+            update: dict[str, object] = {
+                "response_mode": ResponseMode.STRUCTURED_ANALYSIS,
+                "grounded_response": grounded,
+                "response_text": grounded.answer_text,
+                "provider_status": "completed",
+                "deterministic_fallback_used": grounded.deterministic_fallback_used,
+            }
+        else:
+            grounded, draft, validation, repairs = await responses.retrieval_response(
+                state["original_query"], state.get("retrieved_evidence", ()), state["principal"]
+            )
+            update = {
+                "response_mode": ResponseMode.GROUNDED_RETRIEVAL,
+                "grounded_response": grounded,
+                "grounded_answer_draft": draft,
+                "citation_validation": validation,
+                "response_repair_count": repairs,
+                "response_text": grounded.answer_text,
+                "provider_status": "completed",
+                "deterministic_fallback_used": grounded.deterministic_fallback_used,
+            }
+        temporary = cast(GraphState, dict(state))
+        temporary["activity_events"] = (*state.get("activity_events", ()), started)
+        completed = event(
+            temporary,
+            AgentEventType.RESPONSE_GENERATION_COMPLETED,
+            AgentEventStatus.COMPLETED,
+            "Grounded response generation completed.",
+            node="generate_response",
+        )
+        update.update(
+            {
+                "activity_events": (started, completed),
+                "visited_nodes": ("generate_response",),
+            }
+        )
+        return update
+
+    async def validate_response_citations(state: GraphState) -> dict[str, object]:
+        validation = state.get("citation_validation")
+        valid = (
+            validation is None
+            or validation.valid
+            or state["grounded_response"].deterministic_fallback_used
+        )
+        completed = event(
+            state,
+            AgentEventType.CITATION_VALIDATION_COMPLETED
+            if valid
+            else AgentEventType.CITATION_VALIDATION_FAILED,
+            AgentEventStatus.COMPLETED if valid else AgentEventStatus.FAILED,
+            "Citation validation completed." if valid else "Citation validation failed safely.",
+            node="validate_citations",
+        )
+        return {
+            "failure": not valid,
+            "activity_events": (completed,),
+            "visited_nodes": ("validate_citations",),
+        }
+
     async def update_memory(state: GraphState) -> dict[str, object]:
         started = event(
             state,
@@ -534,7 +609,7 @@ def create_nodes(
             node="finalize_execution",
         )
         output = GraphOutput(
-            graph_version="1.0",
+            graph_version="1.1",
             request_id=state["request_id"],
             trace_id=state["trace_id"],
             session_id=state["session_id"],
@@ -565,6 +640,21 @@ def create_nodes(
             turn_sequence=state.get("current_turn_sequence"),
             memory_update_status=state.get("memory_update_status", "disabled"),
             analysis_result=state.get("analysis_result"),
+            citations=(
+                state["grounded_response"].citations if state.get("grounded_response") else ()
+            ),
+            response_provider=(
+                state["grounded_response"].provider if state.get("grounded_response") else None
+            ),
+            response_model=(
+                state["grounded_response"].model if state.get("grounded_response") else None
+            ),
+            deterministic_fallback_used=state.get("deterministic_fallback_used", False),
+            insufficient_evidence=(
+                state["grounded_response"].insufficient_evidence
+                if state.get("grounded_response")
+                else False
+            ),
         )
         return {
             "processing_status": status,
@@ -586,6 +676,8 @@ def create_nodes(
         "deny_request": guarded("deny_request", deny_request),
         "unsupported": guarded("unsupported", unsupported),
         "python_analysis": guarded("python_analysis", python_analysis),
+        "generate_response": guarded("generate_response", generate_response),
+        "validate_citations": guarded("validate_citations", validate_response_citations),
         "prepare_output": guarded("prepare_output", prepare_output),
         "update_memory": guarded("update_memory", update_memory),
         "handle_failure": handle_failure,

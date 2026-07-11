@@ -1,0 +1,124 @@
+"""Strict grounded-response provider and public validation contracts."""
+
+from enum import StrEnum
+from typing import Annotated, Self
+from uuid import UUID
+
+from pydantic import Field, model_validator
+
+from enterprise_ai.models.common import ContractModel
+
+
+class ResponseMode(StrEnum):
+    GROUNDED_RETRIEVAL = "grounded_retrieval"
+    STRUCTURED_ANALYSIS = "structured_analysis"
+    DIRECT = "direct"
+
+
+class Confidence(StrEnum):
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+
+
+class GroundedClaim(ContractModel):
+    claim_id: Annotated[str, Field(pattern=r"^C[1-9][0-9]{0,2}$")]
+    text: Annotated[str, Field(min_length=1, max_length=2_000)]
+    supporting_evidence_ids: tuple[Annotated[str, Field(pattern=r"^E[1-9][0-9]{0,2}$")], ...] = ()
+    factual: bool = True
+    confidence: Confidence = Confidence.MEDIUM
+    qualification: Annotated[str | None, Field(max_length=500)] = None
+
+    @model_validator(mode="after")
+    def factual_citations(self) -> Self:
+        if self.factual and not self.supporting_evidence_ids:
+            raise ValueError("factual claims require evidence IDs")
+        return self
+
+
+class GroundedAnswerDraft(ContractModel):
+    answer_summary: Annotated[str, Field(min_length=1, max_length=8_000)]
+    claims: tuple[GroundedClaim, ...] = Field(default=(), max_length=20)
+    warnings: tuple[Annotated[str, Field(max_length=500)], ...] = ()
+    insufficient_evidence: bool = False
+    clarification_needed: bool = False
+
+
+class LLMUsage(ContractModel):
+    input_tokens: int | None = Field(default=None, ge=0)
+    output_tokens: int | None = Field(default=None, ge=0)
+
+
+class LLMProviderMetadata(ContractModel):
+    provider: str
+    model: str
+    response_id: str | None = None
+
+
+class LLMGenerationRequest(ContractModel):
+    mode: ResponseMode
+    instructions: str
+    input_text: str
+    allowed_evidence_ids: tuple[str, ...] = ()
+    model: str
+    maximum_output_tokens: int
+
+
+class LLMGenerationResult(ContractModel):
+    draft: GroundedAnswerDraft
+    metadata: LLMProviderMetadata
+    usage: LLMUsage = Field(default_factory=LLMUsage)
+
+
+class EvidenceContextItem(ContractModel):
+    model_id: str
+    evidence_id: UUID
+    chunk_id: UUID
+    document_id: UUID
+    title: str
+    document_type: str
+    department: str
+    status: str
+    version: str
+    updated_date: str
+    section: str
+    source_file: str
+    source_line_start: int
+    source_line_end: int
+    access_level: str
+    text: str
+    build_fingerprint: str
+
+
+class VerifiedCitation(ContractModel):
+    marker: str
+    evidence_id: UUID
+    chunk_id: UUID
+    document_id: UUID
+    title: str
+    section: str
+    source_file: str
+    source_line_start: int
+    source_line_end: int
+    version: str
+    updated_date: str
+    access_level: str
+    department: str
+    document_type: str
+
+
+class CitationValidationResult(ContractModel):
+    valid: bool
+    errors: tuple[str, ...] = ()
+    citations: tuple[VerifiedCitation, ...] = ()
+
+
+class GroundedResponse(ContractModel):
+    answer_text: str
+    citations: tuple[VerifiedCitation, ...] = ()
+    provider: str
+    model: str
+    prompt_version: str
+    deterministic_fallback_used: bool = False
+    insufficient_evidence: bool = False
+    uncertainty: str | None = None

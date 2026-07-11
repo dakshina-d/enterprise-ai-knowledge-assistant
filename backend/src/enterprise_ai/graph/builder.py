@@ -11,6 +11,8 @@ from enterprise_ai.graph.nodes import create_nodes
 from enterprise_ai.graph.routing import ROUTE_NODE
 from enterprise_ai.graph.schemas import GraphTopology
 from enterprise_ai.graph.state import GraphState
+from enterprise_ai.llm.dependencies import create_response_service
+from enterprise_ai.llm.response_service import GroundedResponseService
 from enterprise_ai.memory.dependencies import create_memory_service
 from enterprise_ai.memory.service import ConversationMemoryService
 from enterprise_ai.retrieval.config import RetrievalSettings
@@ -47,6 +49,7 @@ def build_graph(
     authorization: AuthorizationService | None = None,
     memory: ConversationMemoryService | None = None,
     analysis: PythonAnalysisTool | None = None,
+    responses: GroundedResponseService | None = None,
 ) -> Any:  # noqa: ANN401 - LangGraph's compiled generic is not a stable public contract.
     """Build a real asynchronous StateGraph with injected infrastructure."""
     graph = StateGraph(GraphState)
@@ -56,6 +59,7 @@ def build_graph(
         authorization or AuthorizationService(),
         memory or create_memory_service(settings),
         analysis or PythonAnalysisTool(settings),
+        responses or create_response_service(settings),
     ).items():
         graph.add_node(name, cast(Any, node))
 
@@ -93,10 +97,25 @@ def build_graph(
     )
     graph.add_conditional_edges(
         "validate_evidence",
+        _after_operation("generate_response"),
+        {name: name for name in ("handle_failure", "generate_response")},
+    )
+    graph.add_conditional_edges(
+        "python_analysis",
+        _after_operation("generate_response"),
+        {name: name for name in ("handle_failure", "generate_response")},
+    )
+    graph.add_conditional_edges(
+        "generate_response",
+        _after_operation("validate_citations"),
+        {name: name for name in ("handle_failure", "validate_citations")},
+    )
+    graph.add_conditional_edges(
+        "validate_citations",
         _after_operation("prepare_output"),
         {name: name for name in ("handle_failure", "prepare_output")},
     )
-    for node in ("direct_response", "deny_request", "unsupported", "python_analysis"):
+    for node in ("direct_response", "deny_request", "unsupported"):
         graph.add_conditional_edges(
             node,
             _after_operation("prepare_output"),
@@ -119,7 +138,7 @@ def build_graph(
 
 def describe_graph() -> GraphTopology:
     return GraphTopology(
-        graph_version="1.0",
+        graph_version="1.1",
         entry_point="initialize_request",
         nodes=(
             "initialize_request",
@@ -134,6 +153,8 @@ def describe_graph() -> GraphTopology:
             "deny_request",
             "unsupported",
             "python_analysis",
+            "generate_response",
+            "validate_citations",
             "prepare_output",
             "update_memory",
             "handle_failure",
@@ -157,13 +178,17 @@ def describe_graph() -> GraphTopology:
             "classify_intent.failure": "handle_failure",
             "simple_retrieval.ok": "validate_evidence",
             "simple_retrieval.failure": "handle_failure",
-            "validate_evidence.ok": "prepare_output",
+            "validate_evidence.ok": "generate_response",
             "validate_evidence.failure": "handle_failure",
             "direct_response.ok": "prepare_output",
             "deny_request.ok": "prepare_output",
             "unsupported.ok": "prepare_output",
-            "python_analysis.ok": "prepare_output",
+            "python_analysis.ok": "generate_response",
             "python_analysis.failure": "handle_failure",
+            "generate_response.ok": "validate_citations",
+            "generate_response.failure": "handle_failure",
+            "validate_citations.ok": "prepare_output",
+            "validate_citations.failure": "handle_failure",
             "prepare_output.ok": "update_memory",
             "prepare_output.failure": "handle_failure",
             "update_memory.ok": "finalize_execution",
@@ -177,9 +202,10 @@ def describe_graph() -> GraphTopology:
             "public events",
             "bounded session conversational memory",
             "restricted structured Python analysis",
+            "grounded structured response generation",
+            "deterministic citation validation",
         ),
         planned_capabilities=(
-            "LLM synthesis",
             "recursive research",
             "MCP tools",
             "durable checkpoints",

@@ -233,6 +233,6 @@ async def test_retrieval_deadline_becomes_typed_failure() -> None:
 
 def test_topology_descriptor_is_versioned() -> None:
     topology = describe_graph()
-    assert topology.graph_version == "1.0"
+    assert topology.graph_version == "1.1"
     assert topology.entry_point == "initialize_request"
     assert topology.terminal_nodes == ("finalize_execution",)

@@ -7,6 +7,8 @@ failures continue with a warning, and post-response update failures report that 
 saved without exposing stored content.
 Restricted-analysis authorization, validation, dataset-integrity, limit, timeout, and calculation
 failures are sanitized and never fall back to broader data or arbitrary execution.
+Provider failures use bounded retry classes. Invalid citations receive one bounded same-context
+repair and then a safe deterministic fallback; permanent authorization/attribution failures do not retry.
 
 ## Taxonomy and default policy
 

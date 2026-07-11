@@ -7,6 +7,8 @@ new session. Only sanitized public turns and authorized attribution references a
 headers, tokens, evidence bodies, prompts, vectors, or private reasoning are stored.
 Structured analysis authorizes before corpus extraction and again before execution. It accepts no
 source code, imports, callables, paths, URLs, network, filesystem, environment, or subprocess API.
+Retrieved text is untrusted prompt data. Only freshly authorized current-context evidence IDs pass
+citation validation; model-generated filenames, line numbers, URLs, and policy changes are ignored.
 
 | Threat | Intended controls |
 |---|---|

@@ -6,6 +6,7 @@ from typing import Any
 from uuid import UUID
 
 from enterprise_ai.graph.schemas import GraphInput, GraphOutput, GraphStreamItem
+from enterprise_ai.llm.response_service import GroundedResponseService
 from enterprise_ai.memory.service import ConversationMemoryService
 from enterprise_ai.models.events import AgentEvent, AgentEventType
 from enterprise_ai.models.graph import GraphError
@@ -23,12 +24,14 @@ class GraphRuntime:
         graph: Any,  # noqa: ANN401
         settings: RetrievalSettings,
         memory: ConversationMemoryService | None = None,
+        responses: GroundedResponseService | None = None,
     ) -> None:
         self._graph = graph
         self._settings = settings
         self._session_owners: dict[UUID, tuple[UUID, UserRole, frozenset[ToolPermission]]] = {}
         self._ownership_lock = asyncio.Lock()
         self._memory = memory
+        self._responses = responses
 
     async def _claim_session(self, graph_input: GraphInput) -> None:
         principal = graph_input.principal
@@ -54,7 +57,7 @@ class GraphRuntime:
                 "request_id": str(graph_input.request_id),
                 "session_id": str(graph_input.session_id),
                 "user_role": graph_input.principal.identity.role.value,
-                "graph_version": "1.0",
+                "graph_version": "1.1",
             },
         }
 
@@ -147,3 +150,7 @@ class GraphRuntime:
         if self._memory is None:
             return None
         return await self._memory.inspect(graph_input.session_id, graph_input.principal)
+
+    async def aclose(self) -> None:
+        if self._responses is not None:
+            await self._responses.close()

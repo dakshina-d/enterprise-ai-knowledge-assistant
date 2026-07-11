@@ -6,6 +6,7 @@ from uuid import UUID
 
 from pydantic import Field, field_validator, model_validator
 
+from enterprise_ai.llm.models import VerifiedCitation
 from enterprise_ai.models.common import ContractModel, ProcessingStatus, utc_now
 from enterprise_ai.models.events import AgentEvent
 from enterprise_ai.models.graph import Intent, PublicAgentStatus, Route, ValidationReport
@@ -83,6 +84,11 @@ class GraphOutput(ContractModel):
     turn_sequence: int | None = None
     memory_update_status: str = "disabled"
     analysis_result: AnalysisResult | None = None
+    citations: tuple[VerifiedCitation, ...] = ()
+    response_provider: str | None = None
+    response_model: str | None = None
+    deterministic_fallback_used: bool = False
+    insufficient_evidence: bool = False
 
 
 class GraphStreamItem(ContractModel):

@@ -6,6 +6,12 @@ from uuid import UUID
 
 from enterprise_ai.graph.reducers import append_events, append_text, append_unique
 from enterprise_ai.graph.schemas import GraphOutput
+from enterprise_ai.llm.models import (
+    CitationValidationResult,
+    GroundedAnswerDraft,
+    GroundedResponse,
+    ResponseMode,
+)
 from enterprise_ai.memory.models import MemoryContext
 from enterprise_ai.models.common import ProcessingStatus
 from enterprise_ai.models.events import AgentEvent
@@ -57,3 +63,10 @@ class GraphState(TypedDict, total=False):
     current_turn_sequence: int
     analysis_request: AnalysisRequest
     analysis_result: AnalysisResult
+    response_mode: ResponseMode
+    grounded_answer_draft: GroundedAnswerDraft
+    citation_validation: CitationValidationResult
+    grounded_response: GroundedResponse
+    response_repair_count: int
+    provider_status: str
+    deterministic_fallback_used: bool

@@ -83,6 +83,26 @@ class RetrievalSettings(BaseSettings):
     python_analysis_max_text_field_characters: int = Field(default=2_000, ge=1, le=10_000)
     python_analysis_max_distinct_values: int = Field(default=500, ge=1, le=5_000)
     python_analysis_allow_partial_rows: bool = True
+    llm_enabled: bool = True
+    llm_provider: Literal["fake", "openai"] = "fake"
+    openai_api_key: SecretStr | None = None
+    openai_response_model: str = "gpt-5.4-mini"
+    openai_response_timeout_seconds: float = Field(default=30, gt=0, le=300)
+    openai_response_max_retries: int = Field(default=2, ge=0, le=5)
+    openai_response_retry_base_seconds: float = Field(default=0.25, gt=0, le=10)
+    openai_response_max_output_tokens: int = Field(default=1_500, ge=64, le=16_000)
+    openai_response_temperature: float = Field(default=0.1, ge=0, le=1)
+    openai_response_store: Literal[False] = False
+    openai_response_service_tier: Literal["auto", "default", "flex", "priority"] = "auto"
+    openai_response_reasoning_effort: Literal["none", "low", "medium", "high"] = "low"
+    llm_max_evidence_items: int = Field(default=8, ge=1, le=20)
+    llm_max_evidence_characters: int = Field(default=24_000, ge=1, le=100_000)
+    llm_max_evidence_item_characters: int = Field(default=4_000, ge=1, le=16_000)
+    llm_max_prompt_characters: int = Field(default=32_000, ge=1, le=200_000)
+    llm_max_answer_characters: int = Field(default=8_000, ge=1, le=32_000)
+    llm_max_citations: int = Field(default=20, ge=1, le=100)
+    llm_citation_repair_attempts: int = Field(default=1, ge=0, le=2)
+    llm_allow_deterministic_fallback: bool = True
 
     @model_validator(mode="after")
     def validate_enabled(self) -> Self:
@@ -92,7 +112,18 @@ class RetrievalSettings(BaseSettings):
             self.pinecone_api_key is None or not self.pinecone_api_key.get_secret_value()
         ):
             raise ValueError("PINECONE_API_KEY is required when Pinecone is enabled")
+        if (
+            self.llm_enabled
+            and self.llm_provider == "openai"
+            and (self.openai_api_key is None or not self.openai_api_key.get_secret_value())
+        ):
+            raise ValueError("OPENAI_API_KEY is required when the OpenAI LLM provider is enabled")
         return self
+
+    def openai_api_key_value(self) -> str:
+        if self.openai_api_key is None:
+            raise RetrievalConfigurationError("OpenAI configuration is incomplete")
+        return self.openai_api_key.get_secret_value()
 
     def require_enabled(self) -> None:
         if not self.pinecone_enabled:
