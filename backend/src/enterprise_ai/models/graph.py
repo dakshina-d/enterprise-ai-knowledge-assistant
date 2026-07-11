@@ -38,6 +38,7 @@ class Route(StrEnum):
     MCP_TOOL = "mcp_tool"
     HUMAN_APPROVAL = "human_approval"
     DENY = "deny"
+    UNSUPPORTED = "unsupported"
     FAILURE = "failure"
 
 

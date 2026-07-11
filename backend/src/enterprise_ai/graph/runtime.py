@@ -1,0 +1,134 @@
+"""Bounded async runtime around the compiled baseline graph."""
+
+import asyncio
+from collections.abc import AsyncIterator
+from typing import Any
+from uuid import UUID
+
+from enterprise_ai.graph.schemas import GraphInput, GraphOutput, GraphStreamItem
+from enterprise_ai.models.events import AgentEvent, AgentEventType
+from enterprise_ai.models.graph import GraphError
+from enterprise_ai.models.identity import ToolPermission, UserRole
+from enterprise_ai.retrieval.config import RetrievalSettings
+
+
+class SessionOwnershipError(PermissionError):
+    """Raised when a checkpoint thread is reused by another user."""
+
+
+class GraphRuntime:
+    def __init__(self, graph: Any, settings: RetrievalSettings) -> None:  # noqa: ANN401
+        self._graph = graph
+        self._settings = settings
+        self._session_owners: dict[UUID, tuple[UUID, UserRole, frozenset[ToolPermission]]] = {}
+        self._ownership_lock = asyncio.Lock()
+
+    async def _claim_session(self, graph_input: GraphInput) -> None:
+        principal = graph_input.principal
+        claim = (
+            principal.identity.user_id,
+            principal.identity.role,
+            principal.permissions,
+        )
+        async with self._ownership_lock:
+            owner = self._session_owners.setdefault(graph_input.session_id, claim)
+            if owner != claim:
+                raise SessionOwnershipError("session belongs to another authenticated principal")
+
+    def _config(self, graph_input: GraphInput) -> dict[str, Any]:
+        return {
+            "configurable": {
+                "thread_id": str(graph_input.session_id),
+            },
+            "recursion_limit": self._settings.graph_max_steps + 4,
+            "run_name": "enterprise-ai-baseline",
+            "tags": ["baseline-graph", "offline-safe"],
+            "metadata": {
+                "request_id": str(graph_input.request_id),
+                "session_id": str(graph_input.session_id),
+                "user_role": graph_input.principal.identity.role.value,
+                "graph_version": "1.0",
+            },
+        }
+
+    @staticmethod
+    def _base_state(graph_input: GraphInput) -> dict[str, object]:
+        return {
+            "request_id": graph_input.request_id,
+            "trace_id": graph_input.trace_id,
+            "session_id": graph_input.session_id,
+            "principal": graph_input.principal,
+            "user_message": graph_input.user_message,
+            "retrieval_filters": graph_input.retrieval_filters,
+            "requested_top_k": graph_input.requested_top_k,
+            "retrieved_evidence": (),
+            "validation_reports": (),
+            "warnings": (),
+            "errors": (),
+            "visited_nodes": (),
+            "activity_events": (),
+        }
+
+    def _initial_state(self, graph_input: GraphInput) -> dict[str, object]:
+        state = self._base_state(graph_input)
+        if len(graph_input.user_message) > self._settings.graph_max_message_characters:
+            state["failure"] = True
+            state["errors"] = (
+                GraphError(
+                    code="graph.message_character_budget_exceeded",
+                    safe_message="Message character budget was exceeded.",
+                    node="validate_request",
+                ),
+            )
+        return state
+
+    async def _execute(self, graph_input: GraphInput) -> dict[str, Any]:
+        await self._claim_session(graph_input)
+        # A small outer grace lets the node-local deadline route through handle_failure.
+        async with asyncio.timeout(self._settings.graph_timeout_seconds + 0.25):
+            result = await self._graph.ainvoke(
+                self._initial_state(graph_input), config=self._config(graph_input)
+            )
+        return dict(result)
+
+    async def ainvoke(self, graph_input: GraphInput) -> GraphOutput:
+        state = await self._execute(graph_input)
+        return GraphOutput.model_validate(state["final_output"])
+
+    async def astream(self, graph_input: GraphInput) -> AsyncIterator[GraphStreamItem]:
+        """Parse LangGraph v2 custom/value stream parts into the public contract."""
+        await self._claim_session(graph_input)
+        output_emitted = False
+        terminal_seen = False
+        async with asyncio.timeout(self._settings.graph_timeout_seconds + 0.25):
+            async for part in self._graph.astream(
+                self._initial_state(graph_input),
+                config=self._config(graph_input),
+                stream_mode=["custom", "values"],
+                version="v2",
+            ):
+                if not isinstance(part, dict):
+                    continue
+                part_type = part.get("type")
+                data = part.get("data")
+                if part_type == "custom":
+                    public_event = AgentEvent.model_validate(data)
+                    terminal_seen = public_event.event_type in {
+                        AgentEventType.RESPONSE_COMPLETED,
+                        AgentEventType.RESPONSE_FAILED,
+                    }
+                    yield GraphStreamItem(event=public_event)
+                elif (
+                    part_type == "values"
+                    and isinstance(data, dict)
+                    and "final_output" in data
+                    and terminal_seen
+                    and not output_emitted
+                ):
+                    output_emitted = True
+                    yield GraphStreamItem(output=GraphOutput.model_validate(data["final_output"]))
+
+    async def inspect_state(self, graph_input: GraphInput) -> object:
+        """Inspect the request-scoped checkpoint without exposing it in public output."""
+        await self._claim_session(graph_input)
+        return await self._graph.aget_state(self._config(graph_input))

@@ -1,4 +1,9 @@
-# Proposed Event-stream Design
+# Event-stream Baseline and Target Design
+
+The baseline graph now creates versioned, allowlisted `AgentEvent` models with correlated request,
+trace, and session IDs, monotonic per-invocation sequence numbers, and exactly one terminal event.
+`enterprise_ai.graph.cli stream` exposes the safe typed async stream for offline inspection.
+FastAPI SSE transport, reconnect/replay semantics, and UI rendering remain proposed below.
 
 Status: **The versioned public event envelope and allowlisted payload model are implemented; SSE transport remains planned.** The PoC will use authenticated Server-Sent Events (SSE) for one-way FastAPI-to-Streamlit delivery. SSE fits token and activity updates, supports event IDs and reconnection, works over ordinary HTTP, and is simpler than WebSockets when the client sends commands through normal POST requests.
 

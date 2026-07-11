@@ -52,6 +52,16 @@ class RetrievalSettings(BaseSettings):
     hybrid_dense_timeout_seconds: float = Field(default=30, gt=0, le=300)
     hybrid_sparse_timeout_seconds: float = Field(default=5, gt=0, le=60)
     hybrid_allow_partial_results: bool = True
+    graph_max_steps: int = Field(default=20, ge=1, le=100)
+    graph_max_recursion_depth: int = Field(default=2, ge=0, le=3)
+    graph_timeout_seconds: float = Field(default=30, gt=0, le=300)
+    graph_max_messages: int = Field(default=20, ge=1, le=100)
+    graph_max_message_characters: int = Field(default=20_000, ge=1, le=100_000)
+    graph_max_evidence_items: int = Field(default=20, ge=1, le=100)
+    graph_max_warnings: int = Field(default=20, ge=1, le=100)
+    graph_max_errors: int = Field(default=10, ge=1, le=100)
+    graph_checkpoint_mode: Literal["memory"] = "memory"
+    graph_offline_retrieval_mode: Literal["sparse", "hybrid"] = "sparse"
 
     @model_validator(mode="after")
     def validate_enabled(self) -> Self:

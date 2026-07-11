@@ -92,6 +92,25 @@ py -3.12 -m enterprise_ai_ingestion validate
 
 The commands are offline and provider-neutral. See [ingestion design](docs/ingestion-design.md) for safety boundaries, artifact contracts, and limitations.
 
+## Baseline LangGraph orchestration
+
+The repository now includes a real LangGraph 1.x asynchronous baseline with typed state and
+input/output contracts, deterministic intent and role-aware routing, offline BM25 retrieval,
+validated evidence, sanitized activity events, bounded execution, and an injected in-memory
+checkpointer. Inspect or exercise it without API keys or network access:
+
+```bash
+py -3.12 -m enterprise_ai.graph.cli describe
+py -3.12 -m enterprise_ai.graph.cli run "hello" --role viewer
+py -3.12 -m enterprise_ai.graph.cli stream "hello" --role viewer
+py -3.12 -m enterprise_ai.graph.cli run "What is the leave policy?" --role viewer --top-k 3
+```
+
+The CLI role controls backend authorization; it does not bypass document access rules. The local
+checkpointer is volatile, process-local assessment infrastructure. See
+[graph design](docs/graph-design.md) for topology, security boundaries, production replacement,
+and the deliberately unsupported future nodes.
+
 ## Environment configuration
 
 Configuration is loaded from environment variables by `enterprise_ai.core.config.Settings`. Application settings include `APP_ENV`, `LOG_LEVEL`, `API_HOST`, `API_PORT`, and the documented `AUTH_*`/`DEMO_*` proof-of-concept variables. Future provider variable names are listed in `.env.example`; no provider integration is active.
@@ -113,6 +132,10 @@ tests/        Reserved cross-component tests
 
 ## Current limitations
 
-The health responses are static process-level placeholders and do not check dependencies. The Streamlit UI does not call the backend and chat is disabled. There are no LLM, vector-index, retrieval execution, memory, observability-provider, streaming, or tool-execution features yet.
+The health responses are static process-level placeholders and do not check dependencies. The
+Streamlit UI does not call the backend and chat is disabled. Dense and sparse retrieval plus the
+baseline orchestration can be exercised from their CLIs, but there is no LLM response synthesis,
+recursive research execution, durable memory, observability provider, browser streaming endpoint,
+Python sandbox, MCP execution, or human approval workflow yet.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and [requirements traceability](docs/requirements-traceability.md) for implementation status.

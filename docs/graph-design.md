@@ -1,6 +1,48 @@
-# Proposed LangGraph Design
+# LangGraph Baseline and Target Design
 
-Status: **The serializable graph-state and supporting domain contracts are implemented; LangGraph execution remains planned.** LangGraph will provide explicit, testable state transitions and bounded fan-out/fan-in orchestration. It will not expose or require raw private chain-of-thought; explainability consists of route names, evidence identifiers, tool outcomes, budgets, warnings, and concise operational summaries.
+Status: **A versioned LangGraph 1.x baseline is implemented.** It uses a real asynchronous
+`StateGraph`, typed reducer-aware state, deterministic classification and RBAC supervision,
+offline sparse retrieval, evidence validation, public events, bounded execution, and an explicit
+in-memory checkpointer. The richer research, tool, generation, citation, and memory nodes below
+remain the target design and are routed to an honest `unsupported` node today.
+
+## Implemented baseline topology
+
+```mermaid
+flowchart LR
+    START --> I[initialize_request] --> V[validate_request] --> C[classify_intent]
+    C --> S[supervisor]
+    S -->|conversation| D[direct_response]
+    S -->|knowledge + permitted| R[simple_retrieval] --> E[validate_evidence]
+    S -->|not permitted| X[deny_request]
+    S -->|planned route| U[unsupported]
+    D --> P[prepare_output]
+    E --> P
+    X --> P
+    U --> P
+    P --> F[finalize_execution] --> END
+```
+
+The supervisor selects only enum-backed routes. Retrieval receives the authenticated principal
+and backend filters through an injected protocol. Session IDs are claimed outside graph state to
+one authenticated user, role, and permission set and become the LangGraph thread ID. Request IDs
+remain correlation IDs rather than checkpoint namespaces. Events are allowlisted domain models with
+monotonic per-invocation sequence numbers and exactly one terminal event.
+
+Local checkpointing is intentionally volatile and single-process. Production must inject a
+durable encrypted saver, apply retention/deletion policy, and preserve the same session ownership
+boundary. Checkpoints must never contain secrets, credentials, prompts, or private reasoning.
+Each CLI process constructs a fresh saver, and test runtimes use an explicit checkpointer factory;
+there is no module-global saver and no persistence across process restart.
+
+Run the baseline fully offline:
+
+```bash
+py -3.12 -m enterprise_ai.graph.cli describe
+py -3.12 -m enterprise_ai.graph.cli run "hello" --role viewer
+py -3.12 -m enterprise_ai.graph.cli stream "hello" --role viewer
+py -3.12 -m enterprise_ai.graph.cli run "What is the leave policy?" --role viewer
+```
 
 `GraphStateSnapshot` implements the checkpoint-safe subset needed now: correlation and principal data, messages, normalized query, intent/route, search plan, evidence, typed tool requests/results, findings, retry state, validation reports, bounded recursion/task/time budgets, warnings/errors, response fields, and processing status. Runtime-only deadline/token accounting and memory deltas will be refined when their adapters are implemented.
 
