@@ -15,6 +15,7 @@ from enterprise_ai.memory.dependencies import create_memory_service
 from enterprise_ai.memory.service import ConversationMemoryService
 from enterprise_ai.retrieval.config import RetrievalSettings
 from enterprise_ai.security.authorization import AuthorizationService
+from enterprise_ai.tools.python_analysis.service import PythonAnalysisTool
 
 
 def _after_validation(state: GraphState) -> str:
@@ -45,6 +46,7 @@ def build_graph(
     checkpointer: BaseCheckpointSaver[Any] | None = None,
     authorization: AuthorizationService | None = None,
     memory: ConversationMemoryService | None = None,
+    analysis: PythonAnalysisTool | None = None,
 ) -> Any:  # noqa: ANN401 - LangGraph's compiled generic is not a stable public contract.
     """Build a real asynchronous StateGraph with injected infrastructure."""
     graph = StateGraph(GraphState)
@@ -53,6 +55,7 @@ def build_graph(
         retriever,
         authorization or AuthorizationService(),
         memory or create_memory_service(settings),
+        analysis or PythonAnalysisTool(settings),
     ).items():
         graph.add_node(name, cast(Any, node))
 
@@ -93,7 +96,7 @@ def build_graph(
         _after_operation("prepare_output"),
         {name: name for name in ("handle_failure", "prepare_output")},
     )
-    for node in ("direct_response", "deny_request", "unsupported"):
+    for node in ("direct_response", "deny_request", "unsupported", "python_analysis"):
         graph.add_conditional_edges(
             node,
             _after_operation("prepare_output"),
@@ -130,6 +133,7 @@ def describe_graph() -> GraphTopology:
             "direct_response",
             "deny_request",
             "unsupported",
+            "python_analysis",
             "prepare_output",
             "update_memory",
             "handle_failure",
@@ -158,6 +162,8 @@ def describe_graph() -> GraphTopology:
             "direct_response.ok": "prepare_output",
             "deny_request.ok": "prepare_output",
             "unsupported.ok": "prepare_output",
+            "python_analysis.ok": "prepare_output",
+            "python_analysis.failure": "handle_failure",
             "prepare_output.ok": "update_memory",
             "prepare_output.failure": "handle_failure",
             "update_memory.ok": "finalize_execution",
@@ -170,11 +176,11 @@ def describe_graph() -> GraphTopology:
             "sparse retrieval",
             "public events",
             "bounded session conversational memory",
+            "restricted structured Python analysis",
         ),
         planned_capabilities=(
             "LLM synthesis",
             "recursive research",
-            "Python analysis",
             "MCP tools",
             "durable checkpoints",
             "durable distributed conversation memory",

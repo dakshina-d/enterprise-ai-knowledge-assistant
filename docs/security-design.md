@@ -5,6 +5,8 @@ The PoC authentication, RBAC/rate limiting, ingestion, dense retrieval, and loca
 Session memory binds user ID, role, permissions, and a policy fingerprint. Policy changes require a
 new session. Only sanitized public turns and authorized attribution references are retained; no
 headers, tokens, evidence bodies, prompts, vectors, or private reasoning are stored.
+Structured analysis authorizes before corpus extraction and again before execution. It accepts no
+source code, imports, callables, paths, URLs, network, filesystem, environment, or subprocess API.
 
 | Threat | Intended controls |
 |---|---|

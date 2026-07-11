@@ -5,6 +5,8 @@ Status: **Partially implemented.** Dense and sparse/hybrid retrieval have typed 
 Memory ownership and integrity errors fail closed. Disabled memory is stateless; non-security load
 failures continue with a warning, and post-response update failures report that memory was not
 saved without exposing stored content.
+Restricted-analysis authorization, validation, dataset-integrity, limit, timeout, and calculation
+failures are sanitized and never fall back to broader data or arbitrary execution.
 
 ## Taxonomy and default policy
 

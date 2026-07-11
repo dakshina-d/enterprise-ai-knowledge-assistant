@@ -13,6 +13,7 @@ from enterprise_ai.models.identity import AccessLevel, AuthenticatedPrincipal
 from enterprise_ai.models.validation import validate_text_length
 from enterprise_ai.retrieval.filters import DenseQueryFilters
 from enterprise_ai.retrieval.hybrid.models import HybridEvidence
+from enterprise_ai.tools.python_analysis.models import AnalysisResult
 
 
 class GraphInput(ContractModel):
@@ -81,6 +82,7 @@ class GraphOutput(ContractModel):
     context_resolved: bool = False
     turn_sequence: int | None = None
     memory_update_status: str = "disabled"
+    analysis_result: AnalysisResult | None = None
 
 
 class GraphStreamItem(ContractModel):

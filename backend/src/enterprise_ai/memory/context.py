@@ -24,7 +24,9 @@ def build_context(
     turns: tuple[ConversationTurn, ...], *, maximum_topics: int, maximum_identifiers: int
 ) -> MemoryContext:
     references = [reference for turn in turns for reference in turn.evidence_references]
-    messages = " ".join(turn.user_message for turn in turns)
+    messages = " ".join(
+        text for turn in turns for text in (turn.user_message, turn.assistant_message)
+    )
     incidents = _INCIDENT.findall(messages)
     services = [service for service in _SERVICES if service.casefold() in messages.casefold()]
     return MemoryContext(

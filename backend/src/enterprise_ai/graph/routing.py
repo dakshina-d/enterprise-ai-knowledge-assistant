@@ -16,6 +16,22 @@ def classify(text: str) -> tuple[Intent, str]:
     if any(
         term in value
         for term in (
+            "calculate",
+            "python",
+            "spreadsheet",
+            "statistical analysis",
+            "group ",
+            "root cause",
+            "how many incidents",
+            "incident duration",
+            "incidents per month",
+            "severity distribution",
+        )
+    ):
+        return Intent.STRUCTURED_ANALYSIS, "tool_required"
+    if any(
+        term in value
+        for term in (
             "all incidents",
             "compare",
             "recurring root causes",
@@ -25,10 +41,6 @@ def classify(text: str) -> tuple[Intent, str]:
         )
     ):
         return Intent.CROSS_DOCUMENT_RESEARCH, "cross_document"
-    if any(
-        term in value for term in ("calculate", "python", "spreadsheet", "statistical analysis")
-    ):
-        return Intent.STRUCTURED_ANALYSIS, "tool_required"
     if any(term in value for term in ("employee directory", "service owner", "employee lookup")):
         return Intent.ENTERPRISE_TOOL_LOOKUP, "tool_required"
     if any(term in value for term in ("delete index", "admin operation", "reindex namespace")):
@@ -75,7 +87,7 @@ ROUTE_NODE = {
     Route.DENY: "deny_request",
     Route.FAILURE: "handle_failure",
     Route.RECURSIVE_RESEARCH: "unsupported",
-    Route.PYTHON_ANALYSIS: "unsupported",
+    Route.PYTHON_ANALYSIS: "python_analysis",
     Route.MCP_TOOL: "unsupported",
     Route.HUMAN_APPROVAL: "unsupported",
     Route.UNSUPPORTED: "unsupported",

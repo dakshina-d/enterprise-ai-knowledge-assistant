@@ -116,6 +116,11 @@ stores sanitized turns and authorized attribution—not evidence bodies—and su
 follow-ups with owner/role isolation. It is lost on restart and is not shared across workers. See
 [session-memory design](docs/session-memory-design.md) and the `conversation` CLI command.
 
+Restricted structured Python analysis is available to policy-authorized analysts and
+administrators. It executes only typed allowlisted aggregate operations over authorized committed
+incident rows—never caller-supplied Python. See
+[python-analysis design](docs/python-analysis-tool-design.md).
+
 ## Environment configuration
 
 Configuration is loaded from environment variables by `enterprise_ai.core.config.Settings`. Application settings include `APP_ENV`, `LOG_LEVEL`, `API_HOST`, `API_PORT`, and the documented `AUTH_*`/`DEMO_*` proof-of-concept variables. Future provider variable names are listed in `.env.example`; no provider integration is active.

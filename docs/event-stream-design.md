@@ -6,6 +6,8 @@ trace, and session IDs, monotonic per-invocation sequence numbers, and exactly o
 FastAPI SSE transport, reconnect/replay semantics, and UI rendering remain proposed below.
 Memory load, context-resolution, update, eviction, and failure events share this sequence and expose
 only safe counts/status—not prior messages, ownership records, or evidence bodies.
+Python-analysis events expose authorization outcome, tool lifecycle, and bounded result counts;
+they never expose dataset rows, root-cause text, parameters, or policy internals.
 
 Status: **The versioned public event envelope and allowlisted payload model are implemented; SSE transport remains planned.** The PoC will use authenticated Server-Sent Events (SSE) for one-way FastAPI-to-Streamlit delivery. SSE fits token and activity updates, supports event IDs and reconnection, works over ordinary HTTP, and is simpler than WebSockets when the client sends commands through normal POST requests.
 

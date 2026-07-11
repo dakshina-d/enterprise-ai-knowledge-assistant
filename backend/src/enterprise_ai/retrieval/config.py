@@ -74,6 +74,15 @@ class RetrievalSettings(BaseSettings):
     memory_max_context_identifiers: int = Field(default=30, ge=1, le=200)
     memory_followup_context_enabled: bool = True
     memory_redact_sensitive_patterns: bool = True
+    python_analysis_enabled: bool = True
+    python_analysis_max_rows: int = Field(default=1_000, ge=1, le=10_000)
+    python_analysis_max_groups: int = Field(default=100, ge=1, le=1_000)
+    python_analysis_max_result_items: int = Field(default=50, ge=1, le=500)
+    python_analysis_max_filter_values: int = Field(default=50, ge=1, le=500)
+    python_analysis_timeout_seconds: float = Field(default=5, gt=0, le=60)
+    python_analysis_max_text_field_characters: int = Field(default=2_000, ge=1, le=10_000)
+    python_analysis_max_distinct_values: int = Field(default=500, ge=1, le=5_000)
+    python_analysis_allow_partial_rows: bool = True
 
     @model_validator(mode="after")
     def validate_enabled(self) -> Self:

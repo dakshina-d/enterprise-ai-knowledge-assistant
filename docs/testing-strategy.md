@@ -5,6 +5,8 @@ Status: **Partially implemented.** Dense tests plus offline analyzer, BM25, spar
 Memory tests cover ownership, immutable snapshots, idempotency conflicts, sequences, TTL, eviction,
 concurrency, sanitization, structured context, follow-up resolution, lifecycle ordering, and repeated
 graph invocations within one runtime.
+Restricted-analysis tests cover role scope, corpus hashes/paths, taxonomy rules, deterministic
+aggregates and provenance, cancellation, graph routing, and static prohibited-primitive scanning.
 
 ## Test layers
 

@@ -17,10 +17,12 @@ flowchart LR
     S -->|knowledge + permitted| R[simple_retrieval] --> E[validate_evidence]
     S -->|not permitted| X[deny_request]
     S -->|planned route| U[unsupported]
+    S -->|structured + permitted| PA[python_analysis]
     D --> P[prepare_output]
     E --> P
     X --> P
     U --> P
+    PA --> P
     P --> UM[update_memory] --> F[finalize_execution] --> END
 ```
 

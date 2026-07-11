@@ -31,6 +31,7 @@ from enterprise_ai.models.graph import (
 from enterprise_ai.retrieval.config import RetrievalSettings
 from enterprise_ai.retrieval.exceptions import RetrievalError
 from enterprise_ai.security.authorization import AuthorizationService
+from enterprise_ai.tools.python_analysis.service import PythonAnalysisTool, plan_analysis
 
 
 def _node_events(state: GraphState, node: str, message: str) -> tuple[object, ...]:
@@ -54,6 +55,7 @@ def create_nodes(
     retriever: KnowledgeRetriever,
     authorization: AuthorizationService,
     memory: ConversationMemoryService,
+    analysis: PythonAnalysisTool,
 ) -> dict[str, object]:
     def guarded(
         node_name: str, node: Callable[[GraphState], Awaitable[dict[str, object]]]
@@ -393,13 +395,62 @@ def create_nodes(
 
     async def prepare_output(state: GraphState) -> dict[str, object]:
         response = state.get("response_text") or (
-            "Authorized evidence was retrieved and validated. "
+            state["analysis_result"].summary
+            if state.get("analysis_result") is not None
+            else "Authorized evidence was retrieved and validated. "
             "Generative answer synthesis is not implemented."
         )
         return {
             "response_text": response,
             "visited_nodes": ("prepare_output",),
             "activity_events": _node_events(state, "prepare_output", "Public output prepared."),
+        }
+
+    async def python_analysis(state: GraphState) -> dict[str, object]:
+        authorization_started = event(
+            state,
+            AgentEventType.TOOL_AUTHORIZATION_STARTED,
+            AgentEventStatus.STARTED,
+            "Python analysis authorization started.",
+            node="python_analysis",
+        )
+        analysis.require_authorized(state["principal"])
+        temporary = cast(GraphState, dict(state))
+        temporary["activity_events"] = (*state.get("activity_events", ()), authorization_started)
+        authorized = event(
+            temporary,
+            AgentEventType.TOOL_AUTHORIZED,
+            AgentEventStatus.COMPLETED,
+            "Python analysis authorized.",
+            node="python_analysis",
+        )
+        temporary["activity_events"] = (*temporary["activity_events"], authorized)
+        started = event(
+            temporary,
+            AgentEventType.TOOL_STARTED,
+            AgentEventStatus.STARTED,
+            "Structured Python analysis started.",
+            node="python_analysis",
+        )
+        request = plan_analysis(state["resolved_query"])
+        result = await analysis.execute(
+            state["principal"], request, request_id=state["request_id"], trace_id=state["trace_id"]
+        )
+        temporary["activity_events"] = (*temporary["activity_events"], started)
+        completed = event(
+            temporary,
+            AgentEventType.TOOL_COMPLETED,
+            AgentEventStatus.COMPLETED,
+            "Structured Python analysis completed.",
+            node="python_analysis",
+            payload=PublicAgentEventPayload(result_count=len(result.items)),
+        )
+        return {
+            "analysis_request": request,
+            "analysis_result": result,
+            "response_text": result.summary,
+            "activity_events": (authorization_started, authorized, started, completed),
+            "visited_nodes": ("python_analysis",),
         }
 
     async def update_memory(state: GraphState) -> dict[str, object]:
@@ -513,6 +564,7 @@ def create_nodes(
             context_resolved=state.get("context_used", False),
             turn_sequence=state.get("current_turn_sequence"),
             memory_update_status=state.get("memory_update_status", "disabled"),
+            analysis_result=state.get("analysis_result"),
         )
         return {
             "processing_status": status,
@@ -533,6 +585,7 @@ def create_nodes(
         "direct_response": guarded("direct_response", direct_response),
         "deny_request": guarded("deny_request", deny_request),
         "unsupported": guarded("unsupported", unsupported),
+        "python_analysis": guarded("python_analysis", python_analysis),
         "prepare_output": guarded("prepare_output", prepare_output),
         "update_memory": guarded("update_memory", update_memory),
         "handle_failure": handle_failure,

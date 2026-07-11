@@ -5,6 +5,9 @@ process-local session memory now run. Durable/distributed or semantic memory, to
 UI integration remain planned. Conversation memory is a replaceable store boundary distinct from
 the LangGraph checkpointer; see [session memory](session-memory-design.md).
 
+The restricted analysis boundary maps typed operations to trusted standard-library functions over
+manifest-authorized incident rows. It is not a code-execution sandbox.
+
 ## Architectural principles
 
 - Keep the modular monorepo and deploy the PoC as a small number of containers; do not create a microservice per agent.

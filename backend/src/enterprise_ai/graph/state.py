@@ -13,6 +13,7 @@ from enterprise_ai.models.graph import GraphError, Intent, Route, ValidationRepo
 from enterprise_ai.models.identity import AuthenticatedPrincipal
 from enterprise_ai.retrieval.filters import DenseQueryFilters
 from enterprise_ai.retrieval.hybrid.models import HybridEvidence
+from enterprise_ai.tools.python_analysis.models import AnalysisRequest, AnalysisResult
 
 
 class GraphState(TypedDict, total=False):
@@ -54,3 +55,5 @@ class GraphState(TypedDict, total=False):
     memory_update_status: str
     memory_eviction_count: int
     current_turn_sequence: int
+    analysis_request: AnalysisRequest
+    analysis_result: AnalysisResult
