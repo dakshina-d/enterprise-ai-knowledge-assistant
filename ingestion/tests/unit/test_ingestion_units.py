@@ -109,7 +109,18 @@ def test_manifest_disagreement_and_body_hash_mismatch_are_rejected(tmp_path: Pat
 
 @pytest.mark.parametrize(
     "source_file",
-    ["../outside.md", "C:/absolute.md", "data/security_fixtures/injection.md"],
+    [
+        "C:/absolute.md",
+        "C:\\absolute.md",
+        "C:relative.md",
+        "\\\\server\\share\\file.md",
+        "//server/share/file.md",
+        "/etc/passwd",
+        "../outside.md",
+        "folder/../../outside.md",
+        "data/security_fixtures/injection.md",
+        "data/sample_documents/GLOSSARY.md",
+    ],
 )
 def test_unsafe_manifest_paths_are_rejected(tmp_path: Path, source_file: str) -> None:
     manifest = tmp_path / "data/sample_documents/manifest.json"

@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
 import yaml
@@ -101,7 +101,17 @@ def load_manifest(config: IngestionConfig) -> tuple[ManifestSource, ...]:
 
 def _safe_source_path(root: Path, source_file: str) -> Path:
     relative = Path(source_file)
-    if relative.is_absolute() or ".." in relative.parts or "\\" in source_file:
+    posix_relative = PurePosixPath(source_file)
+    windows_relative = PureWindowsPath(source_file)
+    if (
+        relative.is_absolute()
+        or posix_relative.is_absolute()
+        or windows_relative.is_absolute()
+        or bool(windows_relative.drive)
+        or ".." in relative.parts
+        or ".." in windows_relative.parts
+        or "\\" in source_file
+    ):
         raise UnsafeSourcePathError("source manifest contains an unsafe path")
     if source_file.startswith("data/security_fixtures/") or source_file.endswith("GLOSSARY.md"):
         raise UnsafeSourcePathError("source manifest contains an excluded path")
