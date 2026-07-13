@@ -10,6 +10,7 @@ from enterprise_ai.graph.reducers import append_unique
 from enterprise_ai.graph.routing import classify, supervise
 from enterprise_ai.graph.runtime import GraphRuntime, SessionOwnershipError
 from enterprise_ai.graph.schemas import GraphInput
+from enterprise_ai.models.common import ProcessingStatus
 from enterprise_ai.models.events import AgentEventType
 from enterprise_ai.models.graph import Intent, Route
 from enterprise_ai.models.identity import UserRole
@@ -134,6 +135,22 @@ async def test_direct_graph_invocation_and_stream_contract() -> None:
 
 
 @pytest.mark.asyncio
+async def test_graph_denies_explicit_inaccessible_sensitivity_request() -> None:
+    output = await runtime().ainvoke(
+        graph_input().model_copy(
+            update={
+                "user_message": ("As a viewer, provide the restricted disaster-recovery topology.")
+            }
+        )
+    )
+
+    assert output.selected_route is Route.DENY
+    assert output.completion_status is ProcessingStatus.DENIED
+    assert not output.evidence
+    assert not output.citations
+
+
+@pytest.mark.asyncio
 async def test_session_checkpoint_cannot_cross_users() -> None:
     service = runtime()
     session_id = uuid4()
@@ -233,6 +250,6 @@ async def test_retrieval_deadline_becomes_typed_failure() -> None:
 
 def test_topology_descriptor_is_versioned() -> None:
     topology = describe_graph()
-    assert topology.graph_version == "1.1"
+    assert topology.graph_version == "1.2"
     assert topology.entry_point == "initialize_request"
     assert topology.terminal_nodes == ("finalize_execution",)

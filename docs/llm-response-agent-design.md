@@ -42,6 +42,6 @@ answer and verified attribution already present in graph evidence—not prompts,
 citations, provider objects, or reasoning.
 
 Unvalidated model tokens are intentionally not streamed. A future SSE layer may stream activity
-immediately and split only the final validated answer into bounded chunks. Recursive research, MCP,
+immediately and split only the final validated answer into bounded chunks. Recursive research reuses this service after final ledger ordering; typed analytical values are rendered deterministically and remain separate from document citations. MCP,
 human approval, LangSmith, a final prompt-injection classifier, and a full brand-validation layer
 remain unimplemented.

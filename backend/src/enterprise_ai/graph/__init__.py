@@ -1,3 +1,3 @@
 """Executable deterministic LangGraph orchestration foundation."""
 
-BASELINE_GRAPH_VERSION = "1.1"
+BASELINE_GRAPH_VERSION = "1.2"

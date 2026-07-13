@@ -17,8 +17,8 @@ class CompletionStatus(StrEnum):
 class HybridEvidence(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
     evidence: DenseEvidence
-    raw_dense_score: float | None = None
-    raw_sparse_score: float | None = None
+    raw_dense_score: Annotated[float, Field(allow_inf_nan=False)] | None = None
+    raw_sparse_score: Annotated[float, Field(ge=0, allow_inf_nan=False)] | None = None
     normalized_dense_score: Annotated[float, Field(ge=0, le=1)] = 0
     normalized_sparse_score: Annotated[float, Field(ge=0, le=1)] = 0
     hybrid_score: Annotated[float, Field(ge=0, le=1)]

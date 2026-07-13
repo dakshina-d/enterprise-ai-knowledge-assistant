@@ -103,6 +103,24 @@ class RetrievalSettings(BaseSettings):
     llm_max_citations: int = Field(default=20, ge=1, le=100)
     llm_citation_repair_attempts: int = Field(default=1, ge=0, le=2)
     llm_allow_deterministic_fallback: bool = True
+    research_enabled: bool = True
+    research_max_depth: int = Field(default=2, ge=0, le=5)
+    research_max_initial_tasks: int = Field(default=5, ge=1, le=20)
+    research_max_total_tasks: int = Field(default=12, ge=1, le=50)
+    research_max_child_tasks_per_worker: int = Field(default=2, ge=0, le=5)
+    research_max_parallel_workers: int = Field(default=4, ge=1, le=16)
+    research_max_retrieval_calls: int = Field(default=16, ge=1, le=100)
+    research_max_analysis_calls: int = Field(default=2, ge=0, le=20)
+    research_max_llm_calls: int = Field(default=6, ge=1, le=30)
+    research_max_evidence_items: int = Field(default=30, ge=1, le=100)
+    research_max_total_evidence_characters: int = Field(default=60_000, ge=1, le=500_000)
+    research_max_query_characters: int = Field(default=1_000, ge=1, le=4_000)
+    research_max_queries_per_task: int = Field(default=4, ge=1, le=20)
+    research_max_plan_characters: int = Field(default=12_000, ge=1, le=100_000)
+    research_max_execution_seconds: float = Field(default=60, gt=0, le=300)
+    research_worker_timeout_seconds: float = Field(default=15, gt=0, le=120)
+    research_planner_timeout_seconds: float = Field(default=15, gt=0, le=120)
+    research_allow_partial_results: bool = True
 
     @model_validator(mode="after")
     def validate_enabled(self) -> Self:

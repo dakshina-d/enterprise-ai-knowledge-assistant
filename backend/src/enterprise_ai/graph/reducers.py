@@ -4,6 +4,8 @@ from collections.abc import Sequence
 
 from enterprise_ai.models.events import AgentEvent
 
+MAX_RETAINED_ACTIVITY_EVENTS = 200
+
 
 def append_unique[ItemT](left: Sequence[ItemT], right: Sequence[ItemT]) -> tuple[ItemT, ...]:
     if not right:
@@ -26,5 +28,5 @@ def append_events(
 ) -> tuple[AgentEvent, ...]:
     """Reset event history when a new correlated invocation starts at sequence zero."""
     if right and right[0].sequence_number == 0:
-        return tuple(right)
-    return append_unique(left, right)
+        return tuple(right[-MAX_RETAINED_ACTIVITY_EVENTS:])
+    return append_unique(left, right)[-MAX_RETAINED_ACTIVITY_EVENTS:]

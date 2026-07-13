@@ -3,10 +3,28 @@
 import re
 
 from enterprise_ai.models.graph import Intent, Route
-from enterprise_ai.models.identity import AuthenticatedPrincipal, ToolPermission, UserRole
+from enterprise_ai.models.identity import (
+    AccessLevel,
+    AuthenticatedPrincipal,
+    ToolPermission,
+    UserRole,
+)
 from enterprise_ai.security.authorization import AuthorizationService
 
 GREETING = re.compile(r"^(hi|hello|hey|good (morning|afternoon|evening))[!. ]*$", re.I)
+
+
+def requests_inaccessible_access(
+    text: str,
+    principal: AuthenticatedPrincipal,
+    authorization: AuthorizationService,
+) -> bool:
+    """Reject explicit sensitivity requests that the authenticated role cannot access."""
+    value = text.casefold()
+    requested = {
+        level for level in AccessLevel if re.search(rf"\b{re.escape(level.value)}\b", value)
+    }
+    return bool(requested - authorization.allowed_access_levels(principal))
 
 
 def classify(text: str) -> tuple[Intent, str]:
@@ -86,7 +104,7 @@ ROUTE_NODE = {
     Route.DIRECT_RESPONSE: "direct_response",
     Route.DENY: "deny_request",
     Route.FAILURE: "handle_failure",
-    Route.RECURSIVE_RESEARCH: "unsupported",
+    Route.RECURSIVE_RESEARCH: "cross_document_research",
     Route.PYTHON_ANALYSIS: "python_analysis",
     Route.MCP_TOOL: "unsupported",
     Route.HUMAN_APPROVAL: "unsupported",

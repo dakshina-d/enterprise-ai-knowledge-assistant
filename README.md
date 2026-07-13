@@ -165,3 +165,14 @@ recursive research execution, durable memory, observability provider, browser st
 Python sandbox, MCP execution, or human approval workflow yet.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and [requirements traceability](docs/requirements-traceability.md) for implementation status.
+# Bounded recursive research
+
+Graph version 1.2 executes authorization-aware cross-document research with structured plans, bounded parallel workers, recursive gap investigation, deterministic evidence aggregation, coverage/conflict reporting, and the existing grounded citation pipeline. See [the design](docs/recursive-research-design.md). MCP, human approval, reranking, LangSmith, API/SSE, and UI integration remain out of scope.
+
+The credential-free final-pipeline benchmark runs all 12 committed questions through the compiled graph, offline BM25, deterministic fake planning/generation, final citation validation, and typed analysis provenance checks:
+
+```powershell
+py -3.12 -m enterprise_ai.research.cli evaluate
+```
+
+The command returns non-zero for citation, analysis-provenance, or authorization integrity failures. Honest partial, insufficient, authorization-blocked, and budget-exhausted outcomes remain valid safe results. See [the evaluation methodology](docs/research-evaluation.md) and [assignment traceability](docs/requirements-traceability.md).

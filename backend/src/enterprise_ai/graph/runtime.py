@@ -5,6 +5,8 @@ from collections.abc import AsyncIterator
 from typing import Any
 from uuid import UUID
 
+from pydantic import ValidationError
+
 from enterprise_ai.graph.schemas import GraphInput, GraphOutput, GraphStreamItem
 from enterprise_ai.llm.response_service import GroundedResponseService
 from enterprise_ai.memory.service import ConversationMemoryService
@@ -57,7 +59,7 @@ class GraphRuntime:
                 "request_id": str(graph_input.request_id),
                 "session_id": str(graph_input.session_id),
                 "user_role": graph_input.principal.identity.role.value,
-                "graph_version": "1.1",
+                "graph_version": "1.2",
             },
         }
 
@@ -112,6 +114,7 @@ class GraphRuntime:
         await self._claim_session(graph_input)
         output_emitted = False
         terminal_seen = False
+        expected_sequence = 0
         async with asyncio.timeout(self._settings.graph_timeout_seconds + 0.25):
             async for part in self._graph.astream(
                 self._initial_state(graph_input),
@@ -124,7 +127,18 @@ class GraphRuntime:
                 part_type = part.get("type")
                 data = part.get("data")
                 if part_type == "custom":
-                    public_event = AgentEvent.model_validate(data)
+                    try:
+                        public_event = AgentEvent.model_validate(data)
+                    except ValidationError:
+                        continue
+                    if (
+                        public_event.sequence_number != expected_sequence
+                        or public_event.request_id != graph_input.request_id
+                        or public_event.trace_id != graph_input.trace_id
+                        or public_event.session_id != graph_input.session_id
+                    ):
+                        continue
+                    expected_sequence += 1
                     terminal_seen = public_event.event_type in {
                         AgentEventType.RESPONSE_COMPLETED,
                         AgentEventType.RESPONSE_FAILED,

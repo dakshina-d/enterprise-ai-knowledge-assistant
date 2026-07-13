@@ -10,7 +10,7 @@ from uuid import UUID
 
 from enterprise_ai.graph.dependencies import KnowledgeRetriever
 from enterprise_ai.graph.events import event
-from enterprise_ai.graph.routing import classify, supervise
+from enterprise_ai.graph.routing import classify, requests_inaccessible_access, supervise
 from enterprise_ai.graph.schemas import GraphEvidenceAttribution, GraphOutput
 from enterprise_ai.graph.state import GraphState
 from enterprise_ai.llm.models import ResponseMode
@@ -20,7 +20,12 @@ from enterprise_ai.memory.exceptions import MemoryError
 from enterprise_ai.memory.models import MemoryContext
 from enterprise_ai.memory.service import ConversationMemoryService
 from enterprise_ai.models.common import ProcessingStatus
-from enterprise_ai.models.events import AgentEventStatus, AgentEventType, PublicAgentEventPayload
+from enterprise_ai.models.events import (
+    AgentEvent,
+    AgentEventStatus,
+    AgentEventType,
+    PublicAgentEventPayload,
+)
 from enterprise_ai.models.graph import (
     GraphError,
     Intent,
@@ -30,6 +35,8 @@ from enterprise_ai.models.graph import (
     ValidationReport,
     ValidationResult,
 )
+from enterprise_ai.research.models import ResearchRequest
+from enterprise_ai.research.service import ResearchService
 from enterprise_ai.retrieval.config import RetrievalSettings
 from enterprise_ai.retrieval.exceptions import RetrievalError
 from enterprise_ai.security.authorization import AuthorizationService
@@ -59,7 +66,10 @@ def create_nodes(
     memory: ConversationMemoryService,
     analysis: PythonAnalysisTool,
     responses: GroundedResponseService,
+    research_service: ResearchService | None = None,
 ) -> dict[str, object]:
+    research = research_service or ResearchService(settings, retriever, authorization, analysis)
+
     def guarded(
         node_name: str, node: Callable[[GraphState], Awaitable[dict[str, object]]]
     ) -> Callable[[GraphState], Awaitable[dict[str, object]]]:
@@ -234,7 +244,13 @@ def create_nodes(
         }
 
     async def supervisor(state: GraphState) -> dict[str, object]:
-        route = supervise(state["detected_intent"], state["principal"], authorization)
+        route = (
+            Route.DENY
+            if requests_inaccessible_access(
+                state["resolved_query"], state["principal"], authorization
+            )
+            else supervise(state["detected_intent"], state["principal"], authorization)
+        )
         route_event = event(
             state,
             AgentEventType.ROUTE_SELECTED,
@@ -475,6 +491,45 @@ def create_nodes(
                 "provider_status": "completed",
                 "deterministic_fallback_used": grounded.deterministic_fallback_used,
             }
+        elif state.get("research_result") is not None:
+            (
+                grounded,
+                draft,
+                validation,
+                repairs,
+                research_llm_calls,
+            ) = await responses.research_response(
+                state["original_query"],
+                state.get("retrieved_evidence", ()),
+                state["principal"],
+                state["research_result"],
+            )
+            update = {
+                "response_mode": ResponseMode.GROUNDED_RETRIEVAL,
+                "grounded_response": grounded,
+                "grounded_answer_draft": draft,
+                "citation_validation": validation,
+                "response_repair_count": repairs,
+                "response_text": grounded.answer_text,
+                "provider_status": "completed",
+                "deterministic_fallback_used": grounded.deterministic_fallback_used,
+                "research_result": state["research_result"].model_copy(
+                    update={
+                        "budget_usage": state["research_result"].budget_usage.model_copy(
+                            update={
+                                "llm_calls": (
+                                    state["research_result"].budget_usage.llm_calls
+                                    + research_llm_calls
+                                ),
+                                "exhausted": (
+                                    state["research_result"].budget_usage.exhausted
+                                    or research_llm_calls == 0
+                                ),
+                            }
+                        )
+                    }
+                ),
+            }
         else:
             grounded, draft, validation, repairs = await responses.retrieval_response(
                 state["original_query"], state.get("retrieved_evidence", ()), state["principal"]
@@ -506,7 +561,212 @@ def create_nodes(
         )
         return update
 
+    async def cross_document_research(state: GraphState) -> dict[str, object]:
+        if not settings.research_enabled:
+            return {
+                "failure": True,
+                "errors": (
+                    GraphError(
+                        code="research.disabled",
+                        safe_message="Research is disabled.",
+                        node="cross_document_research",
+                    ),
+                ),
+                "visited_nodes": ("cross_document_research",),
+            }
+        research_events: list[AgentEvent] = []
+        temporary = cast(GraphState, dict(state))
+
+        def emit(
+            kind: AgentEventType,
+            message: str,
+            payload: PublicAgentEventPayload,
+            status: AgentEventStatus = AgentEventStatus.COMPLETED,
+        ) -> None:
+            temporary["activity_events"] = (
+                *state.get("activity_events", ()),
+                *research_events,
+            )
+            research_events.append(
+                event(
+                    temporary,
+                    kind,
+                    status,
+                    message,
+                    node="cross_document_research",
+                    payload=payload,
+                )
+            )
+
+        empty_payload = PublicAgentEventPayload()
+        emit(
+            AgentEventType.RESEARCH_STARTED,
+            "Research started.",
+            empty_payload,
+            AgentEventStatus.STARTED,
+        )
+        emit(
+            AgentEventType.RESEARCH_PLANNING_STARTED,
+            "Research planning started.",
+            empty_payload,
+            AgentEventStatus.STARTED,
+        )
+        try:
+            result = await asyncio.wait_for(
+                research.run(
+                    ResearchRequest(
+                        question=state["resolved_query"],
+                        principal=state["principal"],
+                        request_id=state["request_id"],
+                        trace_id=state["trace_id"],
+                        session_id=state["session_id"],
+                    )
+                ),
+                timeout=min(
+                    settings.research_max_execution_seconds,
+                    max(0.1, (state["deadline"] - datetime.now(UTC)).total_seconds()),
+                ),
+            )
+        except Exception:
+            emit(
+                AgentEventType.RESEARCH_FAILED,
+                "Research failed safely.",
+                empty_payload,
+                AgentEventStatus.FAILED,
+            )
+            return {
+                "failure": True,
+                "errors": (
+                    GraphError(
+                        code="research.execution_failed",
+                        safe_message="Research failed safely.",
+                        node="cross_document_research",
+                    ),
+                ),
+                "visited_nodes": ("cross_document_research",),
+                "activity_events": tuple(research_events),
+            }
+        evidence = tuple(entry.evidence for entry in result.evidence_ledger.entries)
+        warnings = list(result.warnings)
+        warnings.extend(f"Research gap: {gap.dimension}" for gap in result.gaps)
+        warnings.extend(conflict.description for conflict in result.conflicts)
+        plan_payload = PublicAgentEventPayload(plan_id=result.plan.plan_id)
+        emit(
+            AgentEventType.RESEARCH_CATALOG_COMPLETED, "Authorized catalog completed.", plan_payload
+        )
+        emit(AgentEventType.RESEARCH_PLAN_CREATED, "Research plan created.", plan_payload)
+        emit(AgentEventType.RESEARCH_PLAN_VALIDATED, "Research plan validated.", plan_payload)
+        for worker_result in result.worker_results:
+            payload = PublicAgentEventPayload(
+                plan_id=result.plan.plan_id,
+                task_id=worker_result.task_id,
+                parent_task_id=worker_result.parent_task_id,
+                depth=worker_result.depth,
+                round_number=worker_result.depth,
+                evidence_count=len(worker_result.evidence),
+            )
+            emit(AgentEventType.RESEARCH_WORKER_DISPATCHED, "Research worker dispatched.", payload)
+            emit(
+                AgentEventType.RESEARCH_WORKER_STARTED,
+                "Research worker started.",
+                payload,
+                AgentEventStatus.STARTED,
+            )
+            emit(
+                AgentEventType.RESEARCH_RETRIEVAL_COMPLETED,
+                "Research retrieval completed.",
+                payload,
+            )
+            if worker_result.analysis_result is not None:
+                emit(
+                    AgentEventType.RESEARCH_ANALYSIS_COMPLETED,
+                    "Research analysis completed.",
+                    payload,
+                )
+            emit(
+                AgentEventType.RESEARCH_WORKER_FAILED
+                if worker_result.error_category
+                else AgentEventType.RESEARCH_WORKER_COMPLETED,
+                "Research worker failed safely."
+                if worker_result.error_category
+                else "Research worker completed.",
+                payload,
+                AgentEventStatus.FAILED
+                if worker_result.error_category
+                else AgentEventStatus.COMPLETED,
+            )
+        summary_payload = PublicAgentEventPayload(
+            plan_id=result.plan.plan_id,
+            worker_count=len(result.worker_results),
+            evidence_count=len(result.evidence_ledger.entries),
+            gap_count=len(result.gaps),
+            conflict_count=len(result.conflicts),
+        )
+        emit(AgentEventType.RESEARCH_ROUND_COMPLETED, "Research rounds completed.", summary_payload)
+        if any(item.depth for item in result.worker_results):
+            emit(
+                AgentEventType.RESEARCH_CHILD_TASKS_CREATED,
+                "Research child tasks completed.",
+                summary_payload,
+            )
+        emit(
+            AgentEventType.RESEARCH_AGGREGATION_COMPLETED,
+            "Research aggregation completed.",
+            summary_payload,
+        )
+        emit(
+            AgentEventType.RESEARCH_COVERAGE_ASSESSED,
+            "Research coverage assessed.",
+            summary_payload,
+        )
+        if result.budget_usage.exhausted:
+            emit(
+                AgentEventType.RESEARCH_BUDGET_EXHAUSTED,
+                "Research budget exhausted.",
+                summary_payload,
+                AgentEventStatus.WARNING,
+            )
+        partial_research = result.coverage.status.value in {
+            "partially_sufficient",
+            "insufficient",
+            "blocked_by_authorization",
+            "budget_exhausted",
+        }
+        failed_research = result.coverage.status.value == "failed"
+        if (result.warnings or result.gaps or partial_research) and not failed_research:
+            emit(
+                AgentEventType.RESEARCH_PARTIAL,
+                "Research completed with limitations.",
+                summary_payload,
+                AgentEventStatus.WARNING,
+            )
+        if failed_research:
+            emit(
+                AgentEventType.RESEARCH_FAILED,
+                "Research failed safely.",
+                summary_payload,
+                AgentEventStatus.FAILED,
+            )
+        elif not partial_research:
+            emit(AgentEventType.RESEARCH_COMPLETED, "Research completed.", summary_payload)
+        return {
+            "research_result": result,
+            "retrieved_evidence": evidence,
+            "retrieval_status": result.coverage.status.value,
+            "warnings": tuple(warnings),
+            "visited_nodes": ("cross_document_research",),
+            "activity_events": tuple(research_events),
+            "failure": failed_research,
+        }
+
     async def validate_response_citations(state: GraphState) -> dict[str, object]:
+        started = event(
+            state,
+            AgentEventType.CITATION_VALIDATION_STARTED,
+            AgentEventStatus.STARTED,
+            "Citation validation started.",
+            node="validate_citations",
+        )
         validation = state.get("citation_validation")
         valid = (
             validation is None
@@ -514,7 +774,10 @@ def create_nodes(
             or state["grounded_response"].deterministic_fallback_used
         )
         completed = event(
-            state,
+            cast(
+                GraphState,
+                {**state, "activity_events": (*state.get("activity_events", ()), started)},
+            ),
             AgentEventType.CITATION_VALIDATION_COMPLETED
             if valid
             else AgentEventType.CITATION_VALIDATION_FAILED,
@@ -524,7 +787,7 @@ def create_nodes(
         )
         return {
             "failure": not valid,
-            "activity_events": (completed,),
+            "activity_events": (started, completed),
             "visited_nodes": ("validate_citations",),
         }
 
@@ -609,7 +872,7 @@ def create_nodes(
             node="finalize_execution",
         )
         output = GraphOutput(
-            graph_version="1.1",
+            graph_version="1.2",
             request_id=state["request_id"],
             trace_id=state["trace_id"],
             session_id=state["session_id"],
@@ -676,6 +939,7 @@ def create_nodes(
         "deny_request": guarded("deny_request", deny_request),
         "unsupported": guarded("unsupported", unsupported),
         "python_analysis": guarded("python_analysis", python_analysis),
+        "cross_document_research": guarded("cross_document_research", cross_document_research),
         "generate_response": guarded("generate_response", generate_response),
         "validate_citations": guarded("validate_citations", validate_response_citations),
         "prepare_output": guarded("prepare_output", prepare_output),

@@ -72,4 +72,22 @@ Additional negative tests cover invalid IDs, oversized input, replayed idempoten
 
 ## Quality and evidence
 
+Research verification covers plan compilation, executable `Send` fan-out, reducer safety, atomic budgets, recursive termination, restricted analysis by role, evidence deduplication, structural conflicts, deterministic coverage, grounded citations, partial failures, and the committed 12-question offline evaluation. Evaluation reports retrieval and orchestration metrics but does not equate recall with answer correctness.
+
+Focused shared-budget tests cover exhaustion before synthesis, exhaustion before citation repair, invalid-citation suppression, concurrent atomic reservation, and per-request ledger isolation. Deterministic coverage is asserted to consume no LLM unit.
+
+Structured-conflict tests cover UTC-equivalent timestamps, malformed/naive values, invalid ranges, policy dates, ownership, teams, departments, mappings, authority preference, deterministic IDs, and authorization suppression. Plan-repair tests cover success, no budget, malicious plans, and an invalid repair.
+
+Analytical-output tests inject altered calculations, identifiers, scope, taxonomy, scripts, URLs, and policy-changing instructions and assert deterministic typed rendering. Insufficient-evidence tests cover bounded child depth, empty evidence, one-sided comparison, safe authorization blocking, and citation absence.
+
+Research event tests consume the compiled graph's public custom/value stream and cover terminal/output cardinality, child worker lifecycles, payload safety, monotonic sequences, event-ID uniqueness, correlation consistency, and concurrent invocation isolation.
+
+Compiled sufficient and failed streams additionally verify mutually exclusive research outcomes, one response terminal, one final output, valid citation-generation ordering, and no partial event on mandatory failure.
+
+Failure-stream tests cover planner timeout, total deadline, explicit task-budget exhaustion, and external stream cancellation through the compiled public runtime. They assert cleanup, safe payloads, singular terminals/outputs, and absence of post-termination operations.
+
+Event-state tests cover invalid schema projection, safe terminal continuation, retained-history eviction at 200 events, monotonic allocation after eviction, and absence of research event history/internal ledgers from conversation memory.
+
+Final-pipeline evaluation tests execute all 12 questions twice through the compiled graph and compare aggregate/per-question output. Security integrity failures are fatal while honest non-sufficient outcomes are accepted. A gated three-worker compiled fixture proves byte-equivalent normalized final plans, task/ledger ordering, budgets, provenance, conflicts, coverage, citations, final response and memory-safe turn across three completion permutations. No test uses credentials, network calls, long sleeps, or generated repository output.
+
 Required local gates remain `ruff format --check .`, `ruff check .`, `mypy backend/src frontend`, and `pytest`. Future CI adds coverage thresholds only where meaningful, OpenAPI/event snapshots with intentional review, dependency/security scanning, and Mermaid rendering. Demo evidence references test names, sanitized event captures, trace IDs, and evaluation reports—never claims a designed feature is operational before its tests pass.

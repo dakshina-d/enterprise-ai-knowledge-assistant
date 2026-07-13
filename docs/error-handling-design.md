@@ -47,4 +47,16 @@ Logs contain request/trace IDs, typed code, operation, attempt, duration, and sa
 
 Circuit breakers may be introduced after measurement; they must be per dependency and observable. Retries consume the original time/token/tool budget and use idempotency identifiers. One failed worker cannot mutate siblings or parent state; the reducer merges typed successful envelopes only.
 
+Research workers convert timeouts and dependency failures into typed safe results. With partial results enabled, authorized sibling evidence survives and coverage records missing dimensions. Authorization failures are never widened or retried without filters. Exhaustion prevents new dispatch and final synthesis reports partial or exhausted status.
+
+Once an application-level LLM call starts, its research budget unit is not refunded on timeout or cancellation. If no unit remains for synthesis or citation repair, no provider call starts and invalid drafts are replaced by deterministic evidence fallback or safe failure.
+
+Repairable research-plan validation failures may consume one additional LLM unit and are recompiled once. Non-repairable security violations fail immediately. A still-invalid repaired plan fails safely without a third call or worker dispatch.
+
+No evidence bypasses grounded generation: the deterministic fallback states that sufficient authorized evidence was unavailable and emits no citations. Partial and authorization-blocked coverage preserve only safe dimension names, never inaccessible source metadata.
+
+Research exceptions are converted inside the research graph node into a sanitized `research.failed` event and typed graph failure while external cancellation continues to propagate. Failed research never emits the partial or successful research terminal event.
+
+Planner component timeout and total research deadline are exercised separately. Both clean up blocked work, while cancellation of the public stream remains `CancelledError` and creates no false success/failure terminal or memory completion.
+
 Rate-limit store failures, invalid policies, corrupted state, lock-path failures, malformed trusted-proxy input, and non-finite clock/input values fail closed with a sanitized retryable `503`; enforcement is never silently bypassed. Cancellation propagates. Negative clock elapsed time is clamped to zero. Bounded cleanup failure is safely logged and does not fail a request whose atomic enforcement already succeeded.

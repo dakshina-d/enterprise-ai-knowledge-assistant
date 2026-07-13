@@ -28,6 +28,7 @@ dev = [
   "mypy>=1.14,<2.0",
   "pre-commit>=4.0,<5.0",
   "pytest>=8.3,<9.0",
+  "pytest-asyncio<2.0,>=0.24",
   "pytest-cov>=6.0,<7.0",
   "ruff>=0.9,<1.0",
   "types-PyYAML>=6.0,<7.0",
@@ -66,6 +67,7 @@ files = ["backend/src", "frontend", "ingestion/src", "scripts"]
 
 [tool.pytest.ini_options]
 addopts = "-q --strict-config --strict-markers"
+asyncio_mode = "auto"
 testpaths = ["backend/tests", "mcp_server/tests", "ingestion/tests", "tests"]
 pythonpath = ["backend/src", "ingestion/src"]
 markers = ["pinecone_live: explicitly enabled Pinecone integration tests"]

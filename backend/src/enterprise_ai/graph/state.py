@@ -17,6 +17,7 @@ from enterprise_ai.models.common import ProcessingStatus
 from enterprise_ai.models.events import AgentEvent
 from enterprise_ai.models.graph import GraphError, Intent, Route, ValidationReport
 from enterprise_ai.models.identity import AuthenticatedPrincipal
+from enterprise_ai.research.models import ResearchResult
 from enterprise_ai.retrieval.filters import DenseQueryFilters
 from enterprise_ai.retrieval.hybrid.models import HybridEvidence
 from enterprise_ai.tools.python_analysis.models import AnalysisRequest, AnalysisResult
@@ -70,3 +71,4 @@ class GraphState(TypedDict, total=False):
     response_repair_count: int
     provider_status: str
     deterministic_fallback_used: bool
+    research_result: ResearchResult

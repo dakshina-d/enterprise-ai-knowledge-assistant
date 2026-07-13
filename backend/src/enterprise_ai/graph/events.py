@@ -20,9 +20,11 @@ def event(
     node: str | None = None,
     payload: PublicAgentEventPayload | None = None,
 ) -> AgentEvent:
+    history = state.get("activity_events", ())
+    sequence_number = history[-1].sequence_number + 1 if history else 0
     item = AgentEvent(
         event_type=event_type,
-        sequence_number=len(state.get("activity_events", ())),
+        sequence_number=sequence_number,
         request_id=state["request_id"],
         session_id=state["session_id"],
         trace_id=state["trace_id"],

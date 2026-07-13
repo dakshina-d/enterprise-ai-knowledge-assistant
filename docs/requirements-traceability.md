@@ -31,10 +31,10 @@ Statuses are intentionally strict: **Implemented** means executable and verified
 | Grounded LLM responses and citations | Must | `enterprise_ai.llm`; [response design](llm-response-agent-design.md) | Provider, prompt, grounding, citation, repair, fallback, graph, and security tests | Implemented | Fake provider is default; optional OpenAI live test deferred without credentials |
 | Supervisor agent | Must | Graph/agents; [graph design](graph-design.md) | Table-driven intent/complexity routing tests | Planned | Future route event/trace |
 | Retrieval agent | Must | Agents/retrieval; [graph design](graph-design.md), [retrieval design](retrieval-design.md) | Grounded retrieval workflow tests | Planned | Future attributed answer |
-| Research agent | Must | Agents/graph; [graph design](graph-design.md), [ADR 0006](adr/0006-recursive-research-design.md) | Fan-out/fan-in and partial-worker tests | Planned | Future batch events |
+| Research agent | Must | `enterprise_ai.research`; [research design](recursive-research-design.md) | Send fan-out, reducer, budget and offline scenario tests | Implemented | Graph 1.2 |
 | Response agent | Must | Agents/guardrails; [graph design](graph-design.md) | Grounding, citation, response-policy tests | Planned | Future validated response |
-| RLM decomposition | Must | Recursive research; [graph design](graph-design.md) | Complex-query decomposition fixture tests | Planned | Future structured task plan, not chain-of-thought |
-| Recursive sub-analysis | Must | Graph; [ADR 0006](adr/0006-recursive-research-design.md) | Depth/concurrency/time/token budget tests | Planned | Future bounded batch trace |
+| RLM decomposition | Must | Recursive research; [graph design](graph-design.md) | Structured plan compiler tests | Implemented | Typed tasks, not chain-of-thought |
+| Recursive sub-analysis | Must | Research graph; [ADR 0006](adr/0006-recursive-research-design.md) | Depth, task and atomic budget tests | Implemented | Restricted typed Python operations only |
 | Hybrid dense and sparse retrieval | Must | Pinecone dense plus local BM25; [sparse/hybrid design](sparse-and-hybrid-retrieval-design.md), [ADR 0003](adr/0003-hybrid-retrieval-strategy.md) | Versioned sparse evaluation, normalization/fusion and authorization tests | Implemented | Offline sparse metrics; live hybrid requires credentials |
 | Pinecone namespaces | Must | Retrieval/ingestion; [dense retrieval design](dense-retrieval-design.md) | Single configured corpus namespace and gateway tests | Implemented | Live index inspection optional |
 | Metadata filtering | Must | Retrieval/RBAC; [dense retrieval design](dense-retrieval-design.md), [ADR 0005](adr/0005-rbac-enforcement-boundary.md) | Mandatory build/access/role filter plus post-query recheck tests | Implemented | Offline viewer/analyst/admin denial matrix |
@@ -56,6 +56,25 @@ Statuses are intentionally strict: **Implemented** means executable and verified
 | Token-bucket rate limiting | Must | API/rate-limit; [architecture](architecture.md), [ADR 0007](adr/0007-token-bucket-rate-limiting.md) | Configuration, deterministic refill, concurrency, isolation, proxy, cleanup, failure and 429 tests | Implemented | Login and `/auth/me` policy tests; distributed Redis remains planned |
 | Representative sample corpus | Must | `data/sample_documents`; [sample-data design](sample-data-design.md) | Generator check, independent validator, manifest/distribution/relationship tests | Implemented | 51 fictional documents and reproducible manifest |
 | Recursive-research evaluation dataset | Must | `data/evaluation`; [sample-data design](sample-data-design.md) | Question count, route/type coverage and reference-integrity tests | Implemented | 12 evidence-expectation questions; no model answers |
+
+## Recursive-research feature traceability
+
+| Assignment requirement | Implementation | Tests/evidence | Status | Limitation |
+| --- | --- | --- | --- | --- |
+| LangGraph multi-agent orchestration | `enterprise_ai.graph`, `enterprise_ai.research.service`, compiled `Send` worker graph | compiled-round and final-determinism tests | Complete for offline PoC | No durable distributed workers |
+| Supervisor/retrieval/research/response | Graph routing/nodes, research service/worker, grounded response service | graph, research, final evaluation tests | Complete for current scope | Deterministic classifiers/providers |
+| Recursive research/RLM | Fake structured planner, child proposals, bounded later rounds | depth, child, plan-repair tests | Complete for bounded PoC | Not unrestricted recursion |
+| Async retrieval/tools | Async offline adapter, worker and typed tool boundaries | concurrency, timeout, cancellation tests | Complete for offline path | No transport or remote tool delivery |
+| Python analysis | Restricted typed analysis service and provenance | analysis budget/guardrail/evaluation tests | Complete for supported operations | Fixed operation taxonomy |
+| Hybrid retrieval | Existing dense/sparse path; offline evaluation selects sparse adapter | sparse validation/evaluation and research benchmark | Partial | Final benchmark is BM25-only; no Pinecone network call |
+| Attribution/citations | Authorized evidence ledger, grounding map, validator, bounded repair/fallback | citation tests and 12-question final evaluation | Complete for deterministic structural contract | Not general semantic entailment |
+| Session memory | Bounded final turn and verified evidence references | memory and event-state tests | Complete for process-local PoC | No durable/distributed memory |
+| RBAC | Central permissions/access-level enforcement at route, retrieval, aggregation and citations | role/mutation/authorization tests | Complete for current roles | No external identity provider integration |
+| Graceful failure | Planner/worker/total deadlines, cancellation, budgets and deterministic fallback | timeout, cancellation, exhaustion and failure-event tests | Complete for offline PoC | Provider/service retry policy remains bounded |
+| Agent activity | `GraphRuntime.astream()` validated public events | compiled stream, serialization and state-bound tests | Partial | Post-fan-in worker order; FastAPI/SSE/UI pending |
+| LangSmith tracing | Not in this commit | None | Pending | Mandatory later assignment work |
+| MCP tool | Not in this commit | None | Pending | Mandatory later assignment work |
+| Streamlit UI | Not in this commit | None | Pending | Mandatory later assignment work |
 | Security test fixtures | Must | `data/security_fixtures`; [security design](security-design.md) | Isolation, separate manifest and exclusion tests | Implemented | 9 safe malicious-test-only fixtures |
 | LLM failure handling | Must | Graph/services; [error handling](error-handling-design.md) | Unavailable/timeout/retry/fallback fault tests | Planned | Future partial/failure event |
 | Vector-database failure handling | Must | Retrieval; [error handling](error-handling-design.md) | Transient/permanent retry and cancellation tests | Implemented | Offline fake-provider failures; endpoint fallback remains planned |

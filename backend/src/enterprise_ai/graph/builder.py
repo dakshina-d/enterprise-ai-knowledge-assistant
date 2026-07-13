@@ -15,6 +15,7 @@ from enterprise_ai.llm.dependencies import create_response_service
 from enterprise_ai.llm.response_service import GroundedResponseService
 from enterprise_ai.memory.dependencies import create_memory_service
 from enterprise_ai.memory.service import ConversationMemoryService
+from enterprise_ai.research.service import ResearchService
 from enterprise_ai.retrieval.config import RetrievalSettings
 from enterprise_ai.security.authorization import AuthorizationService
 from enterprise_ai.tools.python_analysis.service import PythonAnalysisTool
@@ -50,6 +51,7 @@ def build_graph(
     memory: ConversationMemoryService | None = None,
     analysis: PythonAnalysisTool | None = None,
     responses: GroundedResponseService | None = None,
+    research: ResearchService | None = None,
 ) -> Any:  # noqa: ANN401 - LangGraph's compiled generic is not a stable public contract.
     """Build a real asynchronous StateGraph with injected infrastructure."""
     graph = StateGraph(GraphState)
@@ -60,6 +62,7 @@ def build_graph(
         memory or create_memory_service(settings),
         analysis or PythonAnalysisTool(settings),
         responses or create_response_service(settings),
+        research,
     ).items():
         graph.add_node(name, cast(Any, node))
 
@@ -92,6 +95,11 @@ def build_graph(
     )
     graph.add_conditional_edges(
         "simple_retrieval",
+        _after_retrieval,
+        {name: name for name in ("handle_failure", "validate_evidence")},
+    )
+    graph.add_conditional_edges(
+        "cross_document_research",
         _after_retrieval,
         {name: name for name in ("handle_failure", "validate_evidence")},
     )
@@ -138,7 +146,7 @@ def build_graph(
 
 def describe_graph() -> GraphTopology:
     return GraphTopology(
-        graph_version="1.1",
+        graph_version="1.2",
         entry_point="initialize_request",
         nodes=(
             "initialize_request",
@@ -148,6 +156,7 @@ def describe_graph() -> GraphTopology:
             "classify_intent",
             "supervisor",
             "simple_retrieval",
+            "cross_document_research",
             "validate_evidence",
             "direct_response",
             "deny_request",
@@ -178,6 +187,8 @@ def describe_graph() -> GraphTopology:
             "classify_intent.failure": "handle_failure",
             "simple_retrieval.ok": "validate_evidence",
             "simple_retrieval.failure": "handle_failure",
+            "cross_document_research.ok": "validate_evidence",
+            "cross_document_research.failure": "handle_failure",
             "validate_evidence.ok": "generate_response",
             "validate_evidence.failure": "handle_failure",
             "direct_response.ok": "prepare_output",
@@ -204,9 +215,9 @@ def describe_graph() -> GraphTopology:
             "restricted structured Python analysis",
             "grounded structured response generation",
             "deterministic citation validation",
+            "bounded recursive cross-document research",
         ),
         planned_capabilities=(
-            "recursive research",
             "MCP tools",
             "durable checkpoints",
             "durable distributed conversation memory",

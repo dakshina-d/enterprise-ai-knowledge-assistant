@@ -201,3 +201,7 @@ flowchart TD
 - If sufficient evidence remains, failures produce `partial_success`; otherwise they produce `failed`. Authorization or policy rejection produces `denied`.
 - Terminal states are `success`, `partial_success`, `denied`, `failed`, and `cancelled`. Completion is emitted once.
 - Citation repair may regenerate once without new evidence. Evidence validation cannot be bypassed. Human approval pauses with an expiry and resumes from persisted public state.
+
+Graph 1.2 uses `START`, `StateGraph`, conditional edges, task-scoped `Send("research_worker", ...)`, an explicit worker-result reducer, and `END`. Aggregation validates child proposals and repeats dispatch within depth, task, retrieval, analysis, LLM, evidence, concurrency, timeout, and outer graph limits. Human approval remains unimplemented.
+
+Research coverage is a bounded deterministic Python node and uses no provider call. The LLM lifecycle is planning (one), synthesis (one when budget remains), and citation repair (one per bounded repair). All use the server-owned per-invocation maximum; coverage uses zero.

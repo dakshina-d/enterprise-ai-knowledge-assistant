@@ -39,6 +39,25 @@ class AgentEventType(StrEnum):
     TOOL_FAILED = "tool.failed"
     RESEARCH_BATCH_STARTED = "research.batch_started"
     RESEARCH_BATCH_COMPLETED = "research.batch_completed"
+    RESEARCH_STARTED = "research.started"
+    RESEARCH_CATALOG_COMPLETED = "research.catalog_completed"
+    RESEARCH_PLANNING_STARTED = "research.planning_started"
+    RESEARCH_PLAN_CREATED = "research.plan_created"
+    RESEARCH_PLAN_VALIDATED = "research.plan_validated"
+    RESEARCH_WORKER_DISPATCHED = "research.worker_dispatched"
+    RESEARCH_WORKER_STARTED = "research.worker_started"
+    RESEARCH_RETRIEVAL_COMPLETED = "research.retrieval_completed"
+    RESEARCH_ANALYSIS_COMPLETED = "research.analysis_completed"
+    RESEARCH_WORKER_COMPLETED = "research.worker_completed"
+    RESEARCH_WORKER_FAILED = "research.worker_failed"
+    RESEARCH_ROUND_COMPLETED = "research.round_completed"
+    RESEARCH_COVERAGE_ASSESSED = "research.coverage_assessed"
+    RESEARCH_CHILD_TASKS_CREATED = "research.child_tasks_created"
+    RESEARCH_AGGREGATION_COMPLETED = "research.aggregation_completed"
+    RESEARCH_PARTIAL = "research.partial"
+    RESEARCH_BUDGET_EXHAUSTED = "research.budget_exhausted"
+    RESEARCH_COMPLETED = "research.completed"
+    RESEARCH_FAILED = "research.failed"
     VALIDATION_COMPLETED = "validation.completed"
     MEMORY_UPDATED = "memory.updated"
     MEMORY_LOAD_STARTED = "memory.load_started"
@@ -89,6 +108,15 @@ class PublicAgentEventPayload(ContractModel):
     evidence_reference_count: Annotated[int | None, Field(ge=0)] = None
     context_used: bool | None = None
     evicted_turn_count: Annotated[int | None, Field(ge=0)] = None
+    plan_id: Annotated[str | None, Field(max_length=100)] = None
+    task_id: Annotated[str | None, Field(max_length=100)] = None
+    parent_task_id: Annotated[str | None, Field(max_length=100)] = None
+    round_number: Annotated[int | None, Field(ge=0, le=10)] = None
+    depth: Annotated[int | None, Field(ge=0, le=5)] = None
+    worker_count: Annotated[int | None, Field(ge=0)] = None
+    evidence_count: Annotated[int | None, Field(ge=0)] = None
+    gap_count: Annotated[int | None, Field(ge=0)] = None
+    conflict_count: Annotated[int | None, Field(ge=0)] = None
 
 
 class AgentEvent(ContractModel):
