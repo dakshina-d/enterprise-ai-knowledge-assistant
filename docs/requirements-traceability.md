@@ -43,7 +43,7 @@ Statuses are intentionally strict: **Implemented** means executable and verified
 | Knowledge search tool | Must | Tools/retrieval; [graph design](graph-design.md), [retrieval design](retrieval-design.md) | Authorization/schema/result contract tests | Planned | Future safe tool event |
 | MCP tool | Must | MCP server/client; [architecture](architecture.md), [error handling](error-handling-design.md) | MCP contract, allowlist, timeout, malformed-output tests | Planned | Future constrained call |
 | Python analysis tool | Must | Restricted runtime; [architecture](architecture.md), [testing strategy](testing-strategy.md) | Role, resource, network/secret, escape tests | Planned | Future isolated job evidence |
-| LangSmith traces | Must | Observability; [architecture](architecture.md), [testing strategy](testing-strategy.md) | Span/correlation/redaction verification | Planned | Future sanitized trace reference |
+| LangSmith traces | Must | Observability; [tracing design](langsmith-tracing-design.md), [testing strategy](testing-strategy.md) | Offline hierarchy, correlation, isolation, sanitization tests, and real remote smoke traces | Complete | Real external export, hierarchy, finalization, privacy, and denied-outcome metadata verified |
 | Prompt-injection protection | Must | Security/graph; [graph design](graph-design.md), [testing strategy](testing-strategy.md) | Direct/indirect adversarial evaluation | Planned | Future blocked-input case |
 | Input validation | Must | FastAPI/graph; [API contracts](api-contracts.md), [graph design](graph-design.md) | Boundary/size/schema fuzz and contract tests | Planned | Future safe 400/422 response |
 | Retrieved-content validation | Must | Retrieval/security; [retrieval design](retrieval-design.md) | Malicious-document and policy-invariance tests | Planned | Future quarantine event |
@@ -72,7 +72,7 @@ Statuses are intentionally strict: **Implemented** means executable and verified
 | RBAC | Central permissions/access-level enforcement at route, retrieval, aggregation and citations | role/mutation/authorization tests | Complete for current roles | No external identity provider integration |
 | Graceful failure | Planner/worker/total deadlines, cancellation, budgets and deterministic fallback | timeout, cancellation, exhaustion and failure-event tests | Complete for offline PoC | Provider/service retry policy remains bounded |
 | Agent activity | `GraphRuntime.astream()` validated public events | compiled stream, serialization and state-bound tests | Partial | Post-fan-in worker order; FastAPI/SSE/UI pending |
-| LangSmith tracing | Not in this commit | None | Pending | Mandatory later assignment work |
+| LangSmith tracing | Application-owned safe spans with optional LangSmith export | Unit, integration, and real remote smoke tests | Complete | Successful and authorization-denied traces remotely verified |
 | MCP tool | Not in this commit | None | Pending | Mandatory later assignment work |
 | Streamlit UI | Not in this commit | None | Pending | Mandatory later assignment work |
 | Security test fixtures | Must | `data/security_fixtures`; [security design](security-design.md) | Isolation, separate manifest and exclusion tests | Implemented | 9 safe malicious-test-only fixtures |

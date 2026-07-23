@@ -12,6 +12,7 @@ from enterprise_ai.graph.schemas import GraphInput
 from enterprise_ai.llm.dependencies import create_response_service
 from enterprise_ai.memory.dependencies import create_memory_service
 from enterprise_ai.models.identity import AuthenticatedPrincipal, UserRole
+from enterprise_ai.observability.tracing import FakeTraceRecorder, SafeTracer, create_tracer
 from enterprise_ai.retrieval.config import RetrievalSettings
 from enterprise_ai.retrieval.evaluation import assessment_principal
 from enterprise_ai.retrieval.sparse.retriever import SparseRetrievalService
@@ -21,7 +22,7 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Inspect or run the baseline LangGraph")
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("describe")
-    for command in ("run", "stream"):
+    for command in ("run", "stream", "trace-demo"):
         child = subparsers.add_parser(command)
         child.add_argument("message", nargs="?")
         child.add_argument("--query")
@@ -39,10 +40,11 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _runtime(settings: RetrievalSettings) -> GraphRuntime:
+def _runtime(settings: RetrievalSettings, tracer: SafeTracer | None = None) -> GraphRuntime:
     adapter = OfflineSparseAdapter(SparseRetrievalService(settings))
     memory = create_memory_service(settings)
-    responses = create_response_service(settings)
+    tracer = tracer or create_tracer(settings)
+    responses = create_response_service(settings, tracer)
     return GraphRuntime(
         build_graph(
             settings,
@@ -50,10 +52,12 @@ def _runtime(settings: RetrievalSettings) -> GraphRuntime:
             checkpointer=create_checkpointer(),
             memory=memory,
             responses=responses,
+            tracer=tracer,
         ),
         settings,
         memory,
         responses,
+        tracer,
     )
 
 
@@ -77,6 +81,18 @@ async def _run(arguments: argparse.Namespace) -> None:
     )
     runtime = _runtime(RetrievalSettings())
     try:
+        if arguments.command == "trace-demo":
+            recorder = FakeTraceRecorder()
+            await runtime.aclose()
+            runtime = _runtime(RetrievalSettings(), SafeTracer(recorder))
+            output = await runtime.ainvoke(graph_input)
+            roots = [record for record in recorder.records if record.parent_id is None]
+            print("tracing_enabled=true")
+            print(f"project={RetrievalSettings().langsmith_project}")
+            print(f"root_run={roots[0].name if roots else 'missing'}")
+            print(f"child_span_count={len(recorder.records) - len(roots)}")
+            print(f"final_status={output.completion_status.value}")
+            return
         if arguments.command == "run":
             print((await runtime.ainvoke(graph_input)).model_dump_json(indent=2))
             return

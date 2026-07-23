@@ -159,15 +159,21 @@ tests/        Reserved cross-component tests
 ## Current limitations
 
 The health responses are static process-level placeholders and do not check dependencies. The
-Streamlit UI does not call the backend and chat is disabled. Dense and sparse retrieval plus the
-baseline orchestration can be exercised from their CLIs, but there is no LLM response synthesis,
-recursive research execution, durable memory, observability provider, browser streaming endpoint,
-Python sandbox, MCP execution, or human approval workflow yet.
+Streamlit UI does not call the backend and chat is disabled. Dense and sparse retrieval, grounded
+response synthesis, recursive research, bounded session memory, restricted analysis, and optional
+LangSmith tracing can be exercised locally. Durable distributed memory, a browser streaming
+endpoint, MCP execution, and human approval remain unimplemented.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and [requirements traceability](docs/requirements-traceability.md) for implementation status.
 # Bounded recursive research
 
-Graph version 1.2 executes authorization-aware cross-document research with structured plans, bounded parallel workers, recursive gap investigation, deterministic evidence aggregation, coverage/conflict reporting, and the existing grounded citation pipeline. See [the design](docs/recursive-research-design.md). MCP, human approval, reranking, LangSmith, API/SSE, and UI integration remain out of scope.
+Graph version 1.2 executes authorization-aware cross-document research with structured plans, bounded parallel workers, recursive gap investigation, deterministic evidence aggregation, coverage/conflict reporting, and the existing grounded citation pipeline. See [the design](docs/recursive-research-design.md). MCP, human approval, reranking, API/SSE, and UI integration remain out of scope.
+
+### LangSmith observability
+
+Application-owned tracing is disabled by default and requires no credentials. It exports allowlisted identifiers, counts, statuses, and hierarchy—not user questions, prompts, evidence, model drafts, secrets, or exception text. See [the tracing design](docs/langsmith-tracing-design.md).
+
+Run an entirely offline trace check with `python -m enterprise_ai.graph.cli trace-demo --query "hello"`. For a real smoke test, set `LANGSMITH_TRACING=true`, provide `LANGSMITH_API_KEY` at runtime, set the project, and run the normal graph CLI. Never store the key in the repository.
 
 The credential-free final-pipeline benchmark runs all 12 committed questions through the compiled graph, offline BM25, deterministic fake planning/generation, final citation validation, and typed analysis provenance checks:
 

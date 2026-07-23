@@ -2,9 +2,10 @@
 
 Status: **A versioned LangGraph 1.x baseline is implemented.** It uses a real asynchronous
 `StateGraph`, typed reducer-aware state, deterministic classification and RBAC supervision,
-offline sparse retrieval, evidence validation, public events, bounded execution, and an explicit
-in-memory checkpointer plus separate bounded session conversational memory. The richer research,
-tool, generation, citation, long-term, and semantic-memory nodes below remain the target design.
+offline sparse retrieval, evidence validation, public events, bounded execution, recursive
+research, restricted analysis, grounded generation/citations, privacy-safe tracing, and an explicit
+in-memory checkpointer plus separate bounded session conversational memory. Long-term and semantic
+memory remain target designs.
 
 ## Implemented baseline topology
 
@@ -205,3 +206,6 @@ flowchart TD
 Graph 1.2 uses `START`, `StateGraph`, conditional edges, task-scoped `Send("research_worker", ...)`, an explicit worker-result reducer, and `END`. Aggregation validates child proposals and repeats dispatch within depth, task, retrieval, analysis, LLM, evidence, concurrency, timeout, and outer graph limits. Human approval remains unimplemented.
 
 Research coverage is a bounded deterministic Python node and uses no provider call. The LLM lifecycle is planning (one), synthesis (one when budget remains), and citation repair (one per bounded repair). All use the server-owned per-invocation maximum; coverage uses zero.
+## Trace integration
+
+`GraphRuntime` creates one `enterprise_ai_assistant` root span for invoke or stream. Selected application boundaries add stable child spans, while LangGraph invocation metadata remains safe and bounded. The same injected tracer flows into recursive research so task-local context survives concurrent `Send` fan-out without changing reducers, checkpoints, event order, or output contracts.

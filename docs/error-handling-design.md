@@ -1,6 +1,6 @@
 # Proposed Error-handling Design
 
-Status: **Partially implemented.** Dense and sparse/hybrid retrieval have typed validation, timeout, dependency, authorization, stale-artifact, score, and attribution failures. Hybrid can return an explicit safe partial result for one ordinary branch failure; authorization and integrity failures do not widen retrieval. The broader graph/LLM fallback design remains planned.
+Status: **Core paths implemented.** Retrieval, graph, research, analysis, generation, citation repair/fallback, memory, and trace export have bounded typed failure behavior. Hybrid can return an explicit safe partial result for one ordinary branch failure; authorization and integrity failures do not widen retrieval.
 
 Memory ownership and integrity errors fail closed. Disabled memory is stateless; non-security load
 failures continue with a warning, and post-response update failures report that memory was not
@@ -60,3 +60,6 @@ Research exceptions are converted inside the research graph node into a sanitize
 Planner component timeout and total research deadline are exercised separately. Both clean up blocked work, while cancellation of the public stream remains `CancelledError` and creates no false success/failure terminal or memory completion.
 
 Rate-limit store failures, invalid policies, corrupted state, lock-path failures, malformed trusted-proxy input, and non-finite clock/input values fail closed with a sanitized retryable `503`; enforcement is never silently bypassed. Cancellation propagates. Negative clock elapsed time is clamped to zero. Bounded cleanup failure is safely logged and does not fail a request whose atomic enforcement already succeeded.
+## Trace export failures
+
+Trace start, finish, and flush failures are logged as generic operational warnings and never replace graph output or public events. Application exceptions retain safe typed categories in traces without exception messages or stack traces. `CancelledError` is re-raised after marking the in-memory span cancelled.

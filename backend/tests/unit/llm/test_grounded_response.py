@@ -10,6 +10,7 @@ from enterprise_ai.llm.models import GroundedAnswerDraft, GroundedClaim
 from enterprise_ai.llm.response_service import GroundedResponseService
 from enterprise_ai.models.identity import AccessLevel, UserRole
 from enterprise_ai.models.retrieval import DocumentType
+from enterprise_ai.observability.tracing import FakeTraceRecorder, SafeTracer
 from enterprise_ai.retrieval.config import RetrievalSettings
 from enterprise_ai.retrieval.dense_retriever import DenseEvidence
 from enterprise_ai.retrieval.evaluation import assessment_principal
@@ -93,7 +94,8 @@ async def test_invented_citation_is_repaired_once_then_falls_back(tmp_path: obje
             ),
         )
     )
-    service = GroundedResponseService(provider, settings(tmp_path))
+    recorder = FakeTraceRecorder()
+    service = GroundedResponseService(provider, settings(tmp_path), SafeTracer(recorder))
     response, _, validation, repairs = await service.retrieval_response(
         "Question", (evidence(),), assessment_principal(UserRole.VIEWER)
     )
@@ -101,6 +103,12 @@ async def test_invented_citation_is_repaired_once_then_falls_back(tmp_path: obje
     assert response.deterministic_fallback_used
     assert "E999" not in response.answer_text
     assert len(provider.calls) == 2
+    assert [record.name for record in recorder.records] == [
+        "enterprise_ai.llm.generate",
+        "enterprise_ai.citation_repair",
+        "enterprise_ai.deterministic_fallback",
+    ]
+    assert all("Invalid draft" not in repr(record.metadata) for record in recorder.records)
 
 
 @pytest.mark.asyncio

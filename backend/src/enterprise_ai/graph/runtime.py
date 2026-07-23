@@ -5,6 +5,7 @@ from collections.abc import AsyncIterator
 from typing import Any
 from uuid import UUID
 
+from langsmith import tracing_context
 from pydantic import ValidationError
 
 from enterprise_ai.graph.schemas import GraphInput, GraphOutput, GraphStreamItem
@@ -13,6 +14,7 @@ from enterprise_ai.memory.service import ConversationMemoryService
 from enterprise_ai.models.events import AgentEvent, AgentEventType
 from enterprise_ai.models.graph import GraphError
 from enterprise_ai.models.identity import ToolPermission, UserRole
+from enterprise_ai.observability.tracing import SafeTracer, create_tracer
 from enterprise_ai.retrieval.config import RetrievalSettings
 
 
@@ -27,6 +29,7 @@ class GraphRuntime:
         settings: RetrievalSettings,
         memory: ConversationMemoryService | None = None,
         responses: GroundedResponseService | None = None,
+        tracer: SafeTracer | None = None,
     ) -> None:
         self._graph = graph
         self._settings = settings
@@ -34,6 +37,33 @@ class GraphRuntime:
         self._ownership_lock = asyncio.Lock()
         self._memory = memory
         self._responses = responses
+        self._tracer = tracer or create_tracer(settings)
+
+    def _trace_metadata(self, graph_input: GraphInput) -> dict[str, object]:
+        return {
+            "application_version": "0.1.0",
+            "graph_version": "1.2",
+            "environment": self._settings.app_env,
+            "user_role": graph_input.principal.identity.role,
+            "permission_count": len(graph_input.principal.permissions),
+            "request_id": graph_input.request_id,
+            "trace_id": graph_input.trace_id,
+            "session_id": graph_input.session_id,
+            "query_characters": len(graph_input.user_message),
+        }
+
+    @staticmethod
+    def _outcome_metadata(output: GraphOutput) -> dict[str, object]:
+        return {
+            "completion_status": output.completion_status,
+            "route": output.selected_route,
+            "evidence_count": len(output.evidence),
+            "citation_valid": all(
+                report.result.value != "failed" for report in output.validation_reports
+            ),
+            "deterministic_fallback_used": output.deterministic_fallback_used,
+            "insufficient_evidence": output.insufficient_evidence,
+        }
 
     async def _claim_session(self, graph_input: GraphInput) -> None:
         principal = graph_input.principal
@@ -98,11 +128,22 @@ class GraphRuntime:
 
     async def _execute(self, graph_input: GraphInput) -> dict[str, Any]:
         await self._claim_session(graph_input)
-        # A small outer grace lets the node-local deadline route through handle_failure.
-        async with asyncio.timeout(self._settings.graph_timeout_seconds + 0.25):
-            result = await self._graph.ainvoke(
-                self._initial_state(graph_input), config=self._config(graph_input)
-            )
+        async with self._tracer.span(
+            "enterprise_ai_assistant", "chain", self._trace_metadata(graph_input)
+        ) as span:
+            # A small outer grace lets the node-local deadline route through handle_failure.
+            async with asyncio.timeout(self._settings.graph_timeout_seconds + 0.25):
+                with tracing_context(enabled=False):
+                    result = await self._graph.ainvoke(
+                        self._initial_state(graph_input), config=self._config(graph_input)
+                    )
+            try:
+                output = GraphOutput.model_validate(result.get("final_output"))
+            except ValidationError:
+                pass
+            else:
+                if span is not None:
+                    span.update_metadata(self._outcome_metadata(output))
         return dict(result)
 
     async def ainvoke(self, graph_input: GraphInput) -> GraphOutput:
@@ -111,17 +152,26 @@ class GraphRuntime:
 
     async def astream(self, graph_input: GraphInput) -> AsyncIterator[GraphStreamItem]:
         """Parse LangGraph v2 custom/value stream parts into the public contract."""
+        async with self._tracer.span(
+            "enterprise_ai_assistant", "chain", self._trace_metadata(graph_input)
+        ) as span:
+            output_seen = False
+            async for item in self._astream_untraced(graph_input):
+                if item.output is not None:
+                    output_seen = True
+                    if span is not None:
+                        span.update_metadata(self._outcome_metadata(item.output))
+                yield item
+            if span is not None and not output_seen:
+                span.update_metadata({"completion_status": "partial_success"})
+
+    async def _astream_untraced(self, graph_input: GraphInput) -> AsyncIterator[GraphStreamItem]:
         await self._claim_session(graph_input)
         output_emitted = False
         terminal_seen = False
         expected_sequence = 0
         async with asyncio.timeout(self._settings.graph_timeout_seconds + 0.25):
-            async for part in self._graph.astream(
-                self._initial_state(graph_input),
-                config=self._config(graph_input),
-                stream_mode=["custom", "values"],
-                version="v2",
-            ):
+            async for part in self._graph_parts(graph_input):
                 if not isinstance(part, dict):
                     continue
                 part_type = part.get("type")
@@ -154,6 +204,17 @@ class GraphRuntime:
                     output_emitted = True
                     yield GraphStreamItem(output=GraphOutput.model_validate(data["final_output"]))
 
+    async def _graph_parts(self, graph_input: GraphInput) -> AsyncIterator[object]:
+        """Suppress automatic state capture while application-owned safe spans run."""
+        with tracing_context(enabled=False):
+            async for part in self._graph.astream(
+                self._initial_state(graph_input),
+                config=self._config(graph_input),
+                stream_mode=["custom", "values"],
+                version="v2",
+            ):
+                yield part
+
     async def inspect_state(self, graph_input: GraphInput) -> object:
         """Inspect the request-scoped checkpoint without exposing it in public output."""
         await self._claim_session(graph_input)
@@ -168,3 +229,4 @@ class GraphRuntime:
     async def aclose(self) -> None:
         if self._responses is not None:
             await self._responses.close()
+        await self._tracer.flush()

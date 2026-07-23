@@ -52,6 +52,16 @@ class RetrievalSettings(BaseSettings):
     hybrid_dense_timeout_seconds: float = Field(default=30, gt=0, le=300)
     hybrid_sparse_timeout_seconds: float = Field(default=5, gt=0, le=60)
     hybrid_allow_partial_results: bool = True
+    app_env: Literal["development", "test", "staging", "production"] = "development"
+    langsmith_tracing: bool = False
+    langsmith_api_key: SecretStr | None = None
+    langsmith_project: str = Field(
+        default="enterprise-ai-knowledge-assistant-dev", min_length=1, max_length=200
+    )
+    langsmith_endpoint: str = Field(
+        default="https://api.smith.langchain.com", min_length=1, max_length=500
+    )
+    langsmith_workspace_id: str | None = Field(default=None, max_length=200)
     graph_max_steps: int = Field(default=20, ge=1, le=100)
     graph_max_recursion_depth: int = Field(default=2, ge=0, le=3)
     graph_timeout_seconds: float = Field(default=30, gt=0, le=300)
@@ -136,7 +146,16 @@ class RetrievalSettings(BaseSettings):
             and (self.openai_api_key is None or not self.openai_api_key.get_secret_value())
         ):
             raise ValueError("OPENAI_API_KEY is required when the OpenAI LLM provider is enabled")
+        if self.langsmith_tracing and (
+            self.langsmith_api_key is None or not self.langsmith_api_key.get_secret_value()
+        ):
+            raise ValueError("LANGSMITH_API_KEY is required when LangSmith tracing is enabled")
         return self
+
+    def langsmith_api_key_value(self) -> str:
+        if self.langsmith_api_key is None:
+            raise RetrievalConfigurationError("LangSmith configuration is incomplete")
+        return self.langsmith_api_key.get_secret_value()
 
     def openai_api_key_value(self) -> str:
         if self.openai_api_key is None:

@@ -15,6 +15,7 @@ from enterprise_ai.llm.models import (
 from enterprise_ai.llm.prompts import analysis_request, grounded_request
 from enterprise_ai.llm.provider import LLMProvider
 from enterprise_ai.models.identity import AuthenticatedPrincipal
+from enterprise_ai.observability.tracing import SafeTracer
 from enterprise_ai.research.models import ResearchResult
 from enterprise_ai.retrieval.config import RetrievalSettings
 from enterprise_ai.retrieval.hybrid.models import HybridEvidence
@@ -24,9 +25,15 @@ _UNSAFE = re.compile(r"<\s*script|https?://", re.I)
 
 
 class GroundedResponseService:
-    def __init__(self, provider: LLMProvider, settings: RetrievalSettings) -> None:
+    def __init__(
+        self,
+        provider: LLMProvider,
+        settings: RetrievalSettings,
+        tracer: SafeTracer | None = None,
+    ) -> None:
         self.provider = provider
         self.settings = settings
+        self.tracer = tracer or SafeTracer()
 
     async def close(self) -> None:
         await self.provider.close()
@@ -59,7 +66,11 @@ class GroundedResponseService:
                 0,
             )
         if maximum_provider_calls is not None and maximum_provider_calls <= 0:
-            fallback = self._evidence_fallback(context)
+            async with self.tracer.span(
+                "enterprise_ai.deterministic_fallback",
+                metadata={"fallback_used": True, "evidence_count": len(context)},
+            ):
+                fallback = self._evidence_fallback(context)
             return (
                 fallback,
                 GroundedAnswerDraft(answer_summary=fallback.answer_text),
@@ -67,7 +78,12 @@ class GroundedResponseService:
                 0,
             )
         request = grounded_request(question, context, self.settings)
-        result = await self.provider.generate(request)
+        async with self.tracer.span(
+            "enterprise_ai.llm.generate",
+            "llm",
+            {"model": request.model, "llm_calls": 1},
+        ):
+            result = await self.provider.generate(request)
         draft = result.draft
         validation = validate_citations(
             draft,
@@ -94,7 +110,12 @@ class GroundedResponseService:
                 model=request.model,
                 maximum_output_tokens=request.maximum_output_tokens,
             )
-            draft = (await self.provider.generate(repair)).draft
+            async with self.tracer.span(
+                "enterprise_ai.citation_repair",
+                "llm",
+                {"model": repair.model, "llm_calls": repairs + 1},
+            ):
+                draft = (await self.provider.generate(repair)).draft
             validation = validate_citations(
                 draft,
                 context,
@@ -103,11 +124,21 @@ class GroundedResponseService:
                 manifest_path=self.settings.ingestion_manifest_path,
             )
         if not validation.valid:
-            return self._evidence_fallback(context), draft, validation, repairs
+            async with self.tracer.span(
+                "enterprise_ai.deterministic_fallback",
+                metadata={"fallback_used": True, "citation_valid": False},
+            ):
+                fallback = self._evidence_fallback(context)
+            return fallback, draft, validation, repairs
         answer = render_draft(draft)
         if _UNSAFE.search(answer):
+            async with self.tracer.span(
+                "enterprise_ai.deterministic_fallback",
+                metadata={"fallback_used": True, "citation_valid": False},
+            ):
+                fallback = self._evidence_fallback(context)
             return (
-                self._evidence_fallback(context),
+                fallback,
                 draft,
                 CitationValidationResult(valid=False, errors=("unsafe output content",)),
                 repairs,
@@ -128,7 +159,12 @@ class GroundedResponseService:
 
     async def analysis_response(self, question: str, analysis: AnalysisResult) -> GroundedResponse:
         request = analysis_request(question, analysis, self.settings)
-        result = await self.provider.generate(request)
+        async with self.tracer.span(
+            "enterprise_ai.llm.generate",
+            "llm",
+            {"model": request.model, "llm_calls": 1},
+        ):
+            result = await self.provider.generate(request)
         # Typed calculations are rendered deterministically to prevent numerical drift.
         return GroundedResponse(
             answer_text=analysis.summary[: self.settings.llm_max_answer_characters],

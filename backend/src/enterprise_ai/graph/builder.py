@@ -15,6 +15,7 @@ from enterprise_ai.llm.dependencies import create_response_service
 from enterprise_ai.llm.response_service import GroundedResponseService
 from enterprise_ai.memory.dependencies import create_memory_service
 from enterprise_ai.memory.service import ConversationMemoryService
+from enterprise_ai.observability.tracing import SafeTracer, create_tracer
 from enterprise_ai.research.service import ResearchService
 from enterprise_ai.retrieval.config import RetrievalSettings
 from enterprise_ai.security.authorization import AuthorizationService
@@ -52,17 +53,20 @@ def build_graph(
     analysis: PythonAnalysisTool | None = None,
     responses: GroundedResponseService | None = None,
     research: ResearchService | None = None,
+    tracer: SafeTracer | None = None,
 ) -> Any:  # noqa: ANN401 - LangGraph's compiled generic is not a stable public contract.
     """Build a real asynchronous StateGraph with injected infrastructure."""
     graph = StateGraph(GraphState)
+    effective_tracer = tracer or create_tracer(settings)
     for name, node in create_nodes(
         settings,
         retriever,
         authorization or AuthorizationService(),
         memory or create_memory_service(settings),
         analysis or PythonAnalysisTool(settings),
-        responses or create_response_service(settings),
+        responses or create_response_service(settings, effective_tracer),
         research,
+        effective_tracer,
     ).items():
         graph.add_node(name, cast(Any, node))
 

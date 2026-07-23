@@ -35,6 +35,7 @@ from enterprise_ai.models.graph import (
     ValidationReport,
     ValidationResult,
 )
+from enterprise_ai.observability.tracing import RunType, SafeTracer
 from enterprise_ai.research.models import ResearchRequest
 from enterprise_ai.research.service import ResearchService
 from enterprise_ai.retrieval.config import RetrievalSettings
@@ -67,8 +68,12 @@ def create_nodes(
     analysis: PythonAnalysisTool,
     responses: GroundedResponseService,
     research_service: ResearchService | None = None,
+    tracer: SafeTracer | None = None,
 ) -> dict[str, object]:
-    research = research_service or ResearchService(settings, retriever, authorization, analysis)
+    traces = tracer or SafeTracer()
+    research = research_service or ResearchService(
+        settings, retriever, authorization, analysis, tracer=traces
+    )
 
     def guarded(
         node_name: str, node: Callable[[GraphState], Awaitable[dict[str, object]]]
@@ -88,8 +93,50 @@ def create_nodes(
                     ),
                     "visited_nodes": (node_name,),
                 }
+            trace_names: dict[str, tuple[str, RunType]] = {
+                "supervisor": ("enterprise_ai.supervisor", "chain"),
+                "simple_retrieval": ("enterprise_ai.retrieval", "retriever"),
+                "cross_document_research": ("enterprise_ai.research", "chain"),
+                "python_analysis": ("enterprise_ai.python_analysis", "tool"),
+                "generate_response": ("enterprise_ai.response", "chain"),
+                "validate_citations": ("enterprise_ai.citation_validation", "chain"),
+                "update_memory": ("enterprise_ai.memory", "chain"),
+            }
             try:
-                update = await node(state)
+                name, run_type = trace_names.get(node_name, ("", "chain"))
+                metadata = {
+                    "request_id": state.get("request_id"),
+                    "trace_id": state.get("trace_id"),
+                    "session_id": state.get("session_id"),
+                    "user_role": state["principal"].identity.role,
+                    "route": state.get("selected_route"),
+                    "top_k": state.get("requested_top_k"),
+                    "filter_present": bool(state.get("retrieval_filters")),
+                }
+                if name:
+                    async with traces.span(name, run_type, metadata) as span:
+                        update = await node(state)
+                        if span is not None:
+                            retrieved = update.get("retrieved_evidence", ())
+                            completion_status = update.get("processing_status")
+                            if (
+                                node_name == "supervisor"
+                                and update.get("selected_route") is Route.DENY
+                            ):
+                                completion_status = ProcessingStatus.DENIED
+                            enrichment = {
+                                "route": update.get("selected_route"),
+                                "evidence_count": (
+                                    len(retrieved) if isinstance(retrieved, tuple) else 0
+                                ),
+                                "excluded_count": update.get("excluded_evidence_count"),
+                                "citation_valid": not bool(update.get("failure")),
+                            }
+                            if completion_status is not None:
+                                enrichment["completion_status"] = completion_status
+                            span.update_metadata(enrichment)
+                else:
+                    update = await node(state)
                 update.setdefault("execution_step_count", state.get("execution_step_count", 0) + 1)
                 return update
             except Exception:

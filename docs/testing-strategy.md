@@ -45,6 +45,8 @@ behavior on every operating system.
 | Streaming | Ordering, monotonic sequence, reconnect/replay, heartbeat, one terminal event, redaction, slow/disconnected client. | SSE parser contract and API integration tests. |
 | End-to-end | Login, session, multi-turn question, retrieval, authorized tool, streamed completion, feedback. | Clean PoC deployment with generated data. |
 | LangSmith trace | Required span names, correlation IDs, route/tool/error attributes, no sensitive content. | Mock exporter in CI; selected real-project smoke test. |
+
+Observability tests inject the application recorder rather than mocking graph business logic. They verify disabled mode, allowlisted metadata, parent relationships, concurrent context isolation, cancellation propagation, transport failure isolation, and normalized graph-output equivalence. Network access and credentials are never required in CI.
 | Manual demo | Positive role flows, denied actions, malicious document, partial dependency failure, bounded research. | Scripted checklist with saved non-sensitive evidence. |
 
 Use fakes for LLM behavior rather than asserting exact generated prose. Freeze clocks/randomness for token-bucket/backoff tests. Integration resources use unique namespaces and cleanup. Evaluation thresholds and corpus versions are committed alongside results.

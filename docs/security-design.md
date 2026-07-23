@@ -1,6 +1,6 @@
 # Initial Security Design
 
-The PoC authentication, RBAC/rate limiting, ingestion, dense retrieval, and local sparse/hybrid security boundaries are implemented. Sparse candidates are authorized before scoring; both branches use the same principal and narrowing filters; attribution must agree before fusion. Query text is never parsed as filter syntax. LLM and tool execution remain unimplemented.
+The PoC authentication, RBAC/rate limiting, ingestion, retrieval, grounded generation, restricted analysis, recursive research, and privacy-safe tracing boundaries are implemented. Sparse candidates are authorized before scoring; both branches use the same principal and narrowing filters; attribution must agree before fusion. Query text is never parsed as filter syntax.
 
 Session memory binds user ID, role, permissions, and a policy fingerprint. Policy changes require a
 new session. Only sanitized public turns and authorized attribution references are retained; no
@@ -86,3 +86,6 @@ Deterministic coverage cannot be overridden by model output. LLM-budget exhausti
 Structured facts have bounded names and values, preserve safe attribution, normalize aware timestamps to UTC, and are reauthorized before conflict creation. Planner repair is limited to one benign correction; security-boundary violations never receive repair and repaired plans cannot bypass compiler limits.
 
 The analytical response boundary ignores provider-authored calculations and renders trusted typed results deterministically. Script, URL, tool, role, scope, identifier, taxonomy, and count alterations therefore cannot reach the response or memory. Insufficient-evidence output reveals no inaccessible titles, IDs, or counts.
+## Observability boundary
+
+Trace payloads are constructed from a closed allowlist of bounded scalar metadata. Raw queries, evidence, prompts, provider responses, authorization headers, credentials, user records, and exception representations are excluded. Authorization remains inside retrieval and research services; tracing receives only post-policy counts and statuses and cannot substitute evidence or alter a decision.

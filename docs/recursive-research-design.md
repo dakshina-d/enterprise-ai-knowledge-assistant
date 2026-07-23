@@ -14,7 +14,7 @@ The offline `evaluate` command runs the committed 12-question set through the co
 
 Coverage is deterministic application-owned Python. It consumes zero LLM calls, cannot initiate tools or retrieval, and runs inside the total research deadline. The shared per-invocation LLM allowance counts initial planning, final synthesis, and each application-level citation repair; started calls remain consumed after timeout or cancellation. Exhaustion before synthesis or repair selects a deterministic authorized-evidence fallback instead of exposing an unvalidated draft.
 
-Current limitations: conflict and coverage checks are conservative and primarily structural; complete semantic contradiction detection is not claimed. Durable distributed workers, MCP, human approval, reranking, LangSmith, FastAPI chat transport, SSE, Streamlit, and long-term memory are not implemented.
+Current limitations: conflict and coverage checks are conservative and primarily structural; complete semantic contradiction detection is not claimed. Research plan, worker, aggregation, conflict, and coverage boundaries now emit safe spans when tracing is enabled. Durable distributed workers, MCP, human approval, reranking, FastAPI chat transport, SSE, Streamlit, and long-term memory are not implemented.
 
 Structured conflicts use an explicit enum of incident timestamps/duration, policy dates, owners, departments, teams, and component/service mappings. Aware timestamps normalize to UTC; naive or malformed values and invalid incident ranges fail validation. Facts are authorization-filtered before comparison, and approved/active metadata wins preference without hiding authorized disagreements. This is deterministic structured comparison, not general semantic entity resolution.
 

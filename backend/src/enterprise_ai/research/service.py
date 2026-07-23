@@ -8,6 +8,7 @@ from langgraph.graph import END, START, StateGraph
 
 from enterprise_ai.graph.dependencies import KnowledgeRetriever
 from enterprise_ai.models.identity import AuthenticatedPrincipal
+from enterprise_ai.observability.tracing import SafeTracer
 from enterprise_ai.research.aggregation import aggregate_evidence
 from enterprise_ai.research.budgets import BudgetLedger
 from enterprise_ai.research.collection_catalog import CollectionCatalogService
@@ -48,6 +49,7 @@ class ResearchService:
         authorization: AuthorizationService,
         analysis: PythonAnalysisTool | None = None,
         worker_factory: Callable[[BudgetLedger], WorkerExecutor] | None = None,
+        tracer: SafeTracer | None = None,
     ) -> None:
         self.settings = settings
         self.retriever = retriever
@@ -56,6 +58,7 @@ class ResearchService:
         self.catalogs = CollectionCatalogService(settings, authorization)
         self.planner = FakeResearchPlanner()
         self.worker_factory = worker_factory
+        self.tracer = tracer or SafeTracer()
 
     async def plan(self, question: str, principal: AuthenticatedPrincipal) -> ResearchPlan:
         catalog = self.catalogs.build(principal)
@@ -74,7 +77,13 @@ class ResearchService:
         ledger = BudgetLedger(budget)
         if not await ledger.consume("llm_calls"):
             raise RuntimeError("research planning budget unavailable")
-        plan = await self._plan_with_repair(request.question, request.principal, ledger)
+        async with self.tracer.span(
+            "enterprise_ai.research.plan",
+            metadata={"planner_version": "1", "user_role": request.principal.identity.role},
+        ) as plan_span:
+            plan = await self._plan_with_repair(request.question, request.principal, ledger)
+            if plan_span is not None:
+                plan_span.update_metadata({"root_task_count": len(plan.tasks)})
         semaphore = asyncio.Semaphore(self.settings.research_max_parallel_workers)
         worker: WorkerExecutor = (
             self.worker_factory(ledger)
@@ -98,61 +107,86 @@ class ResearchService:
 
         async def execute(state: ResearchGraphState) -> dict[str, object]:
             task = cast(ResearchTask, state["research_task"])  # type: ignore[typeddict-item]
-            async with semaphore:
-                result = await worker.execute(
-                    ResearchWorkerInput(
-                        principal=state["principal"],
-                        task=task,
-                        request_id=cast(Any, state["request_id"]),
-                        trace_id=cast(Any, state["trace_id"]),
-                        session_id=cast(Any, state["session_id"]),
+            async with self.tracer.span(
+                "enterprise_ai.research.worker",
+                metadata={
+                    "task_id": task.task_id,
+                    "parent_task_id": task.parent_task_id,
+                    "depth": task.depth,
+                    "round": state.get("round_number", 0),
+                },
+            ) as worker_span:
+                async with semaphore:
+                    result = await worker.execute(
+                        ResearchWorkerInput(
+                            principal=state["principal"],
+                            task=task,
+                            request_id=cast(Any, state["request_id"]),
+                            trace_id=cast(Any, state["trace_id"]),
+                            session_id=cast(Any, state["session_id"]),
+                        )
                     )
-                )
+                if worker_span is not None:
+                    worker_span.update_metadata(
+                        {
+                            "task_status": result.status.value,
+                            "coverage_status": result.coverage_status.value,
+                            "evidence_count": len(result.evidence),
+                            "retrieval_calls": result.retrieval_calls,
+                            "analysis_calls": result.analysis_calls,
+                            "child_task_count": len(result.child_task_proposals),
+                        }
+                    )
             return {"worker_results": (result,)}
 
         async def aggregate(state: ResearchGraphState) -> dict[str, object]:
-            processed = set(state.get("processed_task_ids", ()))
-            current = tuple(
-                sorted(
-                    (
-                        item
-                        for item in state.get("worker_results", ())
-                        if item.task_id not in processed
-                    ),
-                    key=lambda item: item.task_id,
-                )
-            )
-            known = {
-                self._equivalence(task) for task in (*plan.tasks, *state.get("pending_tasks", ()))
-            }
-            children: list[ResearchTask] = []
-            for result in current:
-                processed.add(result.task_id)
-                for index, proposal in enumerate(
-                    result.child_task_proposals[
-                        : self.settings.research_max_child_tasks_per_worker
-                    ],
-                    1,
-                ):
-                    if result.depth >= self.settings.research_max_depth:
-                        continue
-                    child = ResearchTask(
-                        task_id=f"{result.task_id}.C{index:02d}",
-                        parent_task_id=result.task_id,
-                        depth=result.depth + 1,
-                        task_type=proposal.task_type,
-                        research_question=proposal.research_question,
-                        search=ResearchSearchStrategy(
-                            queries=proposal.queries, filters=DenseQueryFilters()
+            async with self.tracer.span(
+                "enterprise_ai.research.aggregate",
+                metadata={"round": state.get("round_number", 0)},
+            ):
+                processed = set(state.get("processed_task_ids", ()))
+                current = tuple(
+                    sorted(
+                        (
+                            item
+                            for item in state.get("worker_results", ())
+                            if item.task_id not in processed
                         ),
-                        priority=25,
-                        completion_criteria=("Find authorized evidence for the gap",),
+                        key=lambda item: item.task_id,
                     )
-                    key = self._equivalence(child)
-                    if key in known or not await ledger.consume("tasks"):
-                        continue
-                    known.add(key)
-                    children.append(child)
+                )
+                known = {
+                    self._equivalence(task)
+                    for task in (*plan.tasks, *state.get("pending_tasks", ()))
+                }
+                children: list[ResearchTask] = []
+                for result in current:
+                    processed.add(result.task_id)
+                    for index, proposal in enumerate(
+                        result.child_task_proposals[
+                            : self.settings.research_max_child_tasks_per_worker
+                        ],
+                        1,
+                    ):
+                        if result.depth >= self.settings.research_max_depth:
+                            continue
+                        child = ResearchTask(
+                            task_id=f"{result.task_id}.C{index:02d}",
+                            parent_task_id=result.task_id,
+                            depth=result.depth + 1,
+                            task_type=proposal.task_type,
+                            research_question=proposal.research_question,
+                            search=ResearchSearchStrategy(
+                                queries=proposal.queries, filters=DenseQueryFilters()
+                            ),
+                            priority=25,
+                            completion_criteria=("Find authorized evidence for the gap",),
+                        )
+                        key = self._equivalence(child)
+                        if key in known or not await ledger.consume("tasks"):
+                            continue
+                        known.add(key)
+                        children.append(child)
             return {
                 "pending_tasks": tuple(sorted(children, key=lambda item: item.task_id)),
                 "processed_task_ids": tuple(sorted(processed)),
@@ -163,23 +197,44 @@ class ResearchService:
             stable_results = tuple(
                 sorted(state.get("worker_results", ()), key=lambda item: item.task_id)
             )
-            evidence = aggregate_evidence(
-                stable_results,
-                maximum_items=budget.maximum_evidence_items,
-                maximum_characters=budget.maximum_evidence_characters,
-                expected_build_fingerprint=plan.authorized_collection_summary.build_fingerprint,
-                principal=request.principal,
-                authorization=self.authorization,
-            )
+            async with self.tracer.span("enterprise_ai.evidence_aggregation"):
+                evidence = aggregate_evidence(
+                    stable_results,
+                    maximum_items=budget.maximum_evidence_items,
+                    maximum_characters=budget.maximum_evidence_characters,
+                    expected_build_fingerprint=(
+                        plan.authorized_collection_summary.build_fingerprint
+                    ),
+                    principal=request.principal,
+                    authorization=self.authorization,
+                )
             usage = await ledger.usage()
-            conflicts = detect_conflicts(evidence)
-            coverage = assess_coverage(
-                plan,
-                stable_results,
-                len(evidence.entries),
-                conflicts,
-                budget_exhausted=usage.exhausted,
-            )
+            async with self.tracer.span("enterprise_ai.conflict_analysis"):
+                conflicts = detect_conflicts(evidence)
+            async with self.tracer.span(
+                "enterprise_ai.coverage",
+                metadata={
+                    "evidence_count": len(evidence.entries),
+                    "budget_exhausted": usage.exhausted,
+                },
+            ) as coverage_span:
+                coverage = assess_coverage(
+                    plan,
+                    stable_results,
+                    len(evidence.entries),
+                    conflicts,
+                    budget_exhausted=usage.exhausted,
+                )
+                if coverage_span is not None:
+                    coverage_span.update_metadata(
+                        {
+                            "coverage_status": coverage.status.value,
+                            "conflict_count": len(conflicts),
+                            "retrieval_calls": usage.retrieval_calls,
+                            "analysis_calls": usage.analysis_calls,
+                            "llm_calls": usage.llm_calls,
+                        }
+                    )
             if not self.settings.research_allow_partial_results and any(
                 item.error_category for item in stable_results
             ):
