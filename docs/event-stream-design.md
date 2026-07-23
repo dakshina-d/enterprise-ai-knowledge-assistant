@@ -11,7 +11,7 @@ they never expose dataset rows, root-cause text, parameters, or policy internals
 Generation, citation-validation, repair, and fallback activity is emitted before one terminal event;
 unvalidated provider tokens and drafts are never streamed.
 
-Status: **The versioned public event envelope and allowlisted payload model are implemented; SSE transport remains planned.** The PoC will use authenticated Server-Sent Events (SSE) for one-way FastAPI-to-Streamlit delivery. SSE fits token and activity updates, supports event IDs and reconnection, works over ordinary HTTP, and is simpler than WebSockets when the client sends commands through normal POST requests.
+Status: **The versioned public event envelope, allowlisted payload model, and native FastAPI POST SSE transport are implemented; Streamlit consumption and durable replay remain planned.** SSE fits token and activity updates, works over ordinary HTTP, and is simpler than WebSockets when the client sends commands through normal POST requests.
 
 ## Versioned public envelope
 
@@ -71,7 +71,7 @@ Worker payloads include task ID, parent task ID where applicable, depth, and rou
 
 The public runtime consumes LangGraph v2 custom/value streams. Custom events are validated as `AgentEvent`; a final value is projected exactly once, only after one terminal response event. Sequence allocation starts at zero per invocation, remains monotonic through research fan-out, and concurrent invocations use independent counters and event IDs. Graph update history is not separately projected as public events, preventing duplication.
 
-Research start and planning-start events are emitted before the awaited research operation, so timeout/failure streams remain truthful. Outcome events are mutually exclusive: sufficient emits `research.completed`, partial/insufficient emits `research.partial`, and failed emits `research.failed`. The current delivery boundary is `GraphRuntime.astream()`; no external sink exists, and transport delivery failures remain deferred to future API/SSE work.
+Research start and planning-start events are emitted before the awaited research operation, so timeout/failure streams remain truthful. Outcome events are mutually exclusive: sufficient emits `research.completed`, partial/insufficient emits `research.partial`, and failed emits `research.failed`. `POST /api/v1/chat/stream` now projects `GraphRuntime.astream()` through native SSE, folds the terminal graph event with the one final output, and closes the iterator on disconnect. Durable replay remains deferred.
 
 Planner timeout and total-deadline streams retain pre-failure lifecycle events, emit one sanitized research failure, and end with one failed response/output. External consumer cancellation propagates without inventing a terminal event. Budget exhaustion emits one bounded budget event; if no usable evidence survives, later evidence validation may select the failed response terminal.
 

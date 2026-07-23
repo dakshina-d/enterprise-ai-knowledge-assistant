@@ -8,7 +8,7 @@ An enterprise-grade technical-assessment foundation for a future conversational 
 
 Implemented: modular repository scaffolding, reusable validated domain/API contracts, proof-of-concept authentication, deterministic RBAC and rate limiting, health endpoints, a deterministic 51-document synthetic corpus, offline ingestion, and optional Pinecone dense indexing/retrieval with offline-tested security filters.
 
-Implemented runtime capabilities now include LangGraph orchestration, local BM25 and hybrid retrieval, bounded research, grounded responses, restricted Python analysis, session memory, privacy-safe LangSmith tracing, and three authorized read-only MCP enterprise-data tools. Reranking, FastAPI/SSE chat delivery, Streamlit integration, HITL, and business workflows remain planned.
+Implemented runtime capabilities now include LangGraph orchestration, local BM25 and hybrid retrieval, bounded research, grounded responses, restricted Python analysis, session memory, privacy-safe LangSmith tracing, three authorized read-only MCP enterprise-data tools, and authenticated JSON/SSE chat delivery. Reranking, Streamlit integration, HITL, and business workflows remain planned.
 
 The repository includes a deterministic 51-document synthetic corpus for the fictional Lanka Horizon Commercial Bank. All people, incidents, systems, dates, metrics, and identifiers are synthetic and do not describe any real financial institution.
 
@@ -42,7 +42,10 @@ uvicorn enterprise_ai.main:app --factory --reload
 streamlit run frontend/streamlit_app.py
 ```
 
-FastAPI serves `GET /health/live` and `GET /health/ready`. Interactive API documentation is available at `/docs`.
+FastAPI serves health, authentication, `POST /api/v1/chat`, and authenticated native-SSE
+`POST /api/v1/chat/stream` endpoints. Interactive API documentation is available at `/docs`.
+Run it with `uvicorn enterprise_ai.main:app --factory --host 127.0.0.1 --port 8000`; see
+[the chat/SSE design](docs/fastapi-chat-sse-design.md) for safe curl examples.
 
 ## Proof-of-concept authentication
 
@@ -172,7 +175,7 @@ endpoint and human approval remain unimplemented. MCP execution is local-only an
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and [requirements traceability](docs/requirements-traceability.md) for implementation status.
 # Bounded recursive research
 
-Graph version 1.2 executes authorization-aware cross-document research and deterministic MCP enterprise-data routing alongside the grounded citation pipeline. See [the research design](docs/recursive-research-design.md) and [MCP design](docs/mcp-enterprise-tools-design.md). Human approval, reranking, API/SSE, and UI integration remain out of scope.
+Graph version 1.2 executes authorization-aware cross-document research and deterministic MCP enterprise-data routing alongside the grounded citation pipeline. See [the research design](docs/recursive-research-design.md) and [MCP design](docs/mcp-enterprise-tools-design.md). The API now exposes that runtime through JSON and SSE without duplicating graph execution. Human approval, reranking, and UI integration remain out of scope.
 
 ### LangSmith observability
 

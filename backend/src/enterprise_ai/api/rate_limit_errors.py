@@ -72,15 +72,7 @@ async def rate_limit_unavailable_handler(
 
 
 def _correlation(request: Request) -> tuple[UUID, UUID | None]:
-    return _identifier(request.headers.get("X-Request-ID")) or uuid4(), _identifier(
-        request.headers.get("X-Trace-ID")
+    return (
+        getattr(request.state, "request_id", uuid4()),
+        getattr(request.state, "trace_id", None),
     )
-
-
-def _identifier(value: str | None) -> UUID | None:
-    if value is None:
-        return None
-    try:
-        return UUID(value)
-    except ValueError:
-        return None

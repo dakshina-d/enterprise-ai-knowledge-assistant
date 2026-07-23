@@ -1,6 +1,6 @@
 # Proposed API Contracts
 
-Status: **Shared schemas, health endpoints, PoC login, bearer-token validation, and `/auth/me` are implemented; assistant runtime endpoints remain planned.** JSON APIs use `/api/v1`, UTC timestamps, UUID identifiers, and a consistent error body. Authentication uses short-lived HS256 bearer access tokens for the PoC. Role values are `viewer`, `analyst`, and `administrator`.
+Status: **Health, PoC authentication, authenticated JSON chat, and native POST SSE chat are implemented.** JSON APIs use `/api/v1`, UTC timestamps, UUID identifiers, and a consistent error body. Authentication uses short-lived HS256 bearer access tokens for the PoC. Role values are `viewer`, `analyst`, and `administrator`.
 
 The implemented Pydantic contracts live under `enterprise_ai.models`. They are immutable, reject unknown fields, require timezone-aware datetimes, and bound public text/payload sizes. Metadata and permission-check endpoints are deliberately absent: policy verification is performed directly against backend services in tests rather than exposed over HTTP.
 
@@ -28,10 +28,8 @@ Never include stack traces, secrets, raw prompts, authorization-policy internals
 | `GET /health/ready` | Dependency readiness. | None | Public | Safe GET; currently placeholder readiness. |
 | `POST /api/v1/auth/login` | Verify a configured PoC identity and issue a bearer token. | None | Valid configured demo identity | Anonymous-fingerprint login bucket; no streaming. Implemented when auth is enabled. |
 | `GET /api/v1/auth/me` | Return the safe current principal profile. | Bearer token | All roles | Safe GET; no streaming. Implemented when auth is enabled. |
-| `POST /api/v1/chat/sessions` | Create an owned conversation session. | Required | All roles | Idempotency key recommended; no streaming. |
-| `POST /api/v1/chat/sessions/{session_id}/messages` | Validate and accept one user turn. | Required; session owner | All roles, with route/tool restrictions | Idempotency key required; returns acceptance, tokens stream separately. |
-| `GET /api/v1/chat/sessions/{session_id}` | Read authorized session and completed turns. | Required; session owner/admin policy | All roles | Safe GET; no streaming. |
-| `GET /api/v1/chat/sessions/{session_id}/events` | Stream safe events for an authorized request/session. | Required; session owner | All roles | SSE; supports `Last-Event-ID`. |
+| `POST /api/v1/chat` | Execute one graph turn and return validated output. | Required; session owner on reuse | All roles, with graph/tool restrictions | Implemented JSON response; process-local request idempotency is graph/memory scoped. |
+| `POST /api/v1/chat/stream` | Execute one graph turn and stream safe activity plus one final output. | Required; session owner on reuse | All roles, with graph/tool restrictions | Implemented native SSE over POST; durable replay is not implemented. |
 | `POST /api/v1/feedback` | Record feedback against an owned response. | Required | All roles | Idempotency key recommended; no streaming. |
 
 Administrative ingestion endpoints are deferred. Offline CLI/job ingestion avoids exposing a high-risk upload/index mutation surface in the PoC. If remote administration becomes necessary, it requires a separate ADR, administrator-only policy, malware/file validation, audit trail, asynchronous jobs, and explicit idempotency.

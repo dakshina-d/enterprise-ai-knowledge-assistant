@@ -98,3 +98,9 @@ Event-state tests cover invalid schema projection, safe terminal continuation, r
 Final-pipeline evaluation tests execute all 12 questions twice through the compiled graph and compare aggregate/per-question output. Security integrity failures are fatal while honest non-sufficient outcomes are accepted. A gated three-worker compiled fixture proves byte-equivalent normalized final plans, task/ledger ordering, budgets, provenance, conflicts, coverage, citations, final response and memory-safe turn across three completion permutations. No test uses credentials, network calls, long sleeps, or generated repository output.
 
 Required local gates remain `ruff format --check .`, `ruff check .`, `mypy backend/src frontend`, and `pytest`. Future CI adds coverage thresholds only where meaningful, OpenAPI/event snapshots with intentional review, dependency/security scanning, and Mermaid rendering. Demo evidence references test names, sanitized event captures, trace IDs, and evaluation reports—never claims a designed feature is operational before its tests pass.
+
+The implemented chat delivery suite adds strict request-schema and injection tests,
+authentication-before-execution and shared-quota checks, runtime lifespan verification, JSON
+correlation/session checks, native SSE headers and parsing, monotonic unique envelopes, one final
+terminal output, safe stream errors, and disconnect-driven iterator closure. The MyPy gate now
+uses `mypy backend/src frontend ingestion/src scripts`.

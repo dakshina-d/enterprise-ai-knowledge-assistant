@@ -2,6 +2,12 @@
 
 Status: **Core paths implemented.** Retrieval, graph, research, analysis, generation, citation repair/fallback, memory, and trace export have bounded typed failure behavior. Hybrid can return an explicit safe partial result for one ordinary branch failure; authorization and integrity failures do not widen retrieval.
 
+The chat API maps validation, authentication, quota, session ownership, timeout, dependency, and
+unexpected failures to safe request-ID-bearing JSON errors before SSE begins. After headers are
+sent, it emits at most one sanitized `stream.error` and never both error and completion. SDK
+messages, exception types, stack traces, queries, evidence, credentials, and internal paths remain
+private. See [FastAPI chat and SSE design](fastapi-chat-sse-design.md).
+
 Memory ownership and integrity errors fail closed. Disabled memory is stateless; non-security load
 failures continue with a warning, and post-response update failures report that memory was not
 saved without exposing stored content.

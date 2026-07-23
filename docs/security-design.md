@@ -83,6 +83,12 @@ Policy names, capacity, refill, and cost are server configuration. Clients and L
 
 The valid corpus contains fictional documents only and is scanned for private-key markers, common API-key/token forms, password assignments, non-placeholder email domains, public-looking IPv4 addresses, and a small real-bank denylist. Nine intentionally malicious but non-executable fixtures are isolated under `data/security_fixtures/`, use a separate manifest, and are excluded from valid ingestion. The scan is lightweight test-data hygiene, not a substitute for production DLP, malware scanning, or legal review. All retrieved content will still be treated as untrusted when retrieval is implemented.
 
+Authenticated chat derives identity only from the verified Bearer token. Its strict body excludes
+roles, permissions, trace IDs, routes, tools, namespaces, and retrieval policy. JSON and SSE share
+the existing atomic per-user quota and graph/session authorization. CORS uses exact configured
+origins; wildcard credentialed origins are invalid. HTTP logs and SSE errors exclude bodies,
+tokens, evidence, tool results, prompts, and exception text.
+
 The ingestion parser treats the valid manifest as an allowlist, bounds paths, rejects symlinks/traversal and fixture/glossary paths, verifies body hashes and exact metadata agreement, and uses a duplicate-key-rejecting safe YAML loader. Markdown and fenced code remain inert data. Managed artifacts are validated before a transactional directory swap. These local controls do not replace production malware scanning, DLP, tenant-aware job authorization, encrypted storage, or audit retention.
 
 Research enforces authorization before catalog construction, every retrieval, restricted analysis, aggregation, and citation validation. The compiler rejects authorization/build overrides, arbitrary tools or Python, URLs, paths, cycles, unknown dependencies, and resource violations. Workers receive task-scoped state; models cannot select roles, tools, budgets, namespaces, or graph structure.

@@ -24,6 +24,8 @@ def get_authentication_service(request: Request) -> AuthenticationService:
 
 
 def get_token_service(request: Request) -> TokenService:
+    if not hasattr(request.app.state, "token_service"):
+        raise AuthenticationRequiredError()
     return cast(TokenService, request.app.state.token_service)
 
 

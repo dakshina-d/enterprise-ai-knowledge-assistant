@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     api_host: str = "127.0.0.1"
     api_port: int = Field(default=8000, ge=1, le=65535)
+    api_allowed_origins: tuple[str, ...] = (
+        "http://127.0.0.1:8501",
+        "http://localhost:8501",
+    )
+    api_sse_ping_seconds: float = Field(default=15.0, ge=1.0, le=60.0)
     auth_enabled: bool = False
     auth_token_secret: SecretStr | None = None
     auth_token_algorithm: Literal["HS256"] = "HS256"  # noqa: S105 - algorithm identifier
@@ -53,6 +58,11 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_authentication_configuration(self) -> Self:
+        if not self.api_allowed_origins or any(
+            origin == "*" or not origin.startswith(("http://", "https://")) or origin.endswith("/")
+            for origin in self.api_allowed_origins
+        ):
+            raise ValueError("API origins must be exact HTTP origins without trailing slashes")
         if not self.auth_enabled:
             return self
         required_secrets = (

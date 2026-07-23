@@ -215,3 +215,8 @@ Research coverage is a bounded deterministic Python node and uses no provider ca
 ## Trace integration
 
 `GraphRuntime` creates one `enterprise_ai_assistant` root span for invoke or stream. Selected application boundaries add stable child spans, while LangGraph invocation metadata remains safe and bounded. The same injected tracer flows into recursive research so task-local context survives concurrent `Send` fan-out without changing reducers, checkpoints, event order, or output contracts.
+
+The HTTP adapter creates `GraphInput` with server-owned correlation identifiers, the token-derived
+principal, and an effective session identifier. JSON calls use `ainvoke()` once and SSE calls use
+`astream()` once. FastAPI lifespan owns runtime construction and shutdown, so request handlers do
+not rebuild or close graph dependencies.

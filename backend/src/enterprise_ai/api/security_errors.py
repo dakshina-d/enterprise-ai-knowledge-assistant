@@ -1,7 +1,7 @@
 """Safe HTTP translation for authentication and authorization errors."""
 
 import logging
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
@@ -13,8 +13,8 @@ logger = logging.getLogger(__name__)
 
 
 async def security_error_handler(request: Request, error: SecurityError) -> JSONResponse:
-    request_id = _safe_identifier(request.headers.get("X-Request-ID"))
-    trace_id = _optional_identifier(request.headers.get("X-Trace-ID"))
+    request_id = getattr(request.state, "request_id", uuid4())
+    trace_id = getattr(request.state, "trace_id", None)
     logger.warning(
         "security_request_denied",
         extra={
@@ -37,16 +37,3 @@ async def security_error_handler(request: Request, error: SecurityError) -> JSON
         content={"error": response.model_dump(mode="json")},
         headers=headers,
     )
-
-
-def _safe_identifier(value: str | None) -> UUID:
-    return _optional_identifier(value) or uuid4()
-
-
-def _optional_identifier(value: str | None) -> UUID | None:
-    if value is None:
-        return None
-    try:
-        return UUID(value)
-    except ValueError:
-        return None
