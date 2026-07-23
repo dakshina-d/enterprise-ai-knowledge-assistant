@@ -1,6 +1,7 @@
 # FastAPI Chat and SSE Design
 
-Status: **Implemented.** The Streamlit client and Activity Panel remain planned.
+Status: **Implemented.** The Streamlit POST-SSE client and Activity Panel are implemented separately
+in [the frontend design](streamlit-chat-ui-design.md).
 
 ## Endpoints and contracts
 

@@ -8,7 +8,7 @@ An enterprise-grade technical-assessment foundation for a future conversational 
 
 Implemented: modular repository scaffolding, reusable validated domain/API contracts, proof-of-concept authentication, deterministic RBAC and rate limiting, health endpoints, a deterministic 51-document synthetic corpus, offline ingestion, and optional Pinecone dense indexing/retrieval with offline-tested security filters.
 
-Implemented runtime capabilities now include LangGraph orchestration, local BM25 and hybrid retrieval, bounded research, grounded responses, restricted Python analysis, session memory, privacy-safe LangSmith tracing, three authorized read-only MCP enterprise-data tools, and authenticated JSON/SSE chat delivery. Reranking, Streamlit integration, HITL, and business workflows remain planned.
+Implemented runtime capabilities now include LangGraph orchestration, local BM25 and hybrid retrieval, bounded research, grounded responses, restricted Python analysis, session memory, privacy-safe LangSmith tracing, three authorized read-only MCP enterprise-data tools, authenticated JSON/SSE chat delivery, and an authenticated Streamlit chat and live Agent Activity Panel. Reranking, HITL, and business workflows remain planned.
 
 The repository includes a deterministic 51-document synthetic corpus for the fictional Lanka Horizon Commercial Bank. All people, incidents, systems, dates, metrics, and identifiers are synthetic and do not describe any real financial institution.
 
@@ -46,6 +46,12 @@ FastAPI serves health, authentication, `POST /api/v1/chat`, and authenticated na
 `POST /api/v1/chat/stream` endpoints. Interactive API documentation is available at `/docs`.
 Run it with `uvicorn enterprise_ai.main:app --factory --host 127.0.0.1 --port 8000`; see
 [the chat/SSE design](docs/fastapi-chat-sse-design.md) for safe curl examples.
+
+Streamlit logs in through the configured PoC authentication endpoint, keeps its bearer token only
+in per-session state, consumes the JSON POST stream incrementally, and renders validated responses,
+citations, provenance, and safe activity. The API origin defaults to `http://127.0.0.1:8000` and can
+be set with `FRONTEND_API_BASE_URL`. See the
+[Streamlit UI design](docs/streamlit-chat-ui-design.md).
 
 ## Proof-of-concept authentication
 
@@ -167,15 +173,16 @@ tests/        Reserved cross-component tests
 ## Current limitations
 
 The health responses are static process-level placeholders and do not check dependencies. The
-Streamlit UI does not call the backend and chat is disabled. Dense and sparse retrieval, grounded
-response synthesis, recursive research, bounded session memory, restricted analysis, and optional
-LangSmith tracing can be exercised locally. Durable distributed memory, a browser streaming
-endpoint and human approval remain unimplemented. MCP execution is local-only and read-only.
+Streamlit UI is implemented against the native POST SSE endpoint, but durable stream replay,
+cross-device history, refresh tokens, and an enterprise identity provider are not. Dense and sparse
+retrieval, grounded response synthesis, recursive research, bounded session memory, restricted
+analysis, and optional LangSmith tracing can be exercised locally. Durable distributed memory and
+human approval remain unimplemented. MCP execution is local-only and read-only.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and [requirements traceability](docs/requirements-traceability.md) for implementation status.
 # Bounded recursive research
 
-Graph version 1.2 executes authorization-aware cross-document research and deterministic MCP enterprise-data routing alongside the grounded citation pipeline. See [the research design](docs/recursive-research-design.md) and [MCP design](docs/mcp-enterprise-tools-design.md). The API now exposes that runtime through JSON and SSE without duplicating graph execution. Human approval, reranking, and UI integration remain out of scope.
+Graph version 1.2 executes authorization-aware cross-document research and deterministic MCP enterprise-data routing alongside the grounded citation pipeline. See [the research design](docs/recursive-research-design.md) and [MCP design](docs/mcp-enterprise-tools-design.md). The API exposes that runtime through JSON and SSE without duplicating graph execution, and Streamlit consumes the public event/output contracts. Human approval and reranking remain out of scope.
 
 ### LangSmith observability
 

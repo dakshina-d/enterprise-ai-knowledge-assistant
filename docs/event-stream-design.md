@@ -3,7 +3,8 @@
 The baseline graph now creates versioned, allowlisted `AgentEvent` models with correlated request,
 trace, and session IDs, monotonic per-invocation sequence numbers, and exactly one terminal event.
 `enterprise_ai.graph.cli stream` exposes the safe typed async stream for offline inspection.
-FastAPI SSE transport, reconnect/replay semantics, and UI rendering remain proposed below.
+FastAPI SSE transport and Streamlit UI rendering are implemented. Durable reconnect/replay remains
+proposed below.
 Memory load, context-resolution, update, eviction, and failure events share this sequence and expose
 only safe counts/status—not prior messages, ownership records, or evidence bodies.
 Python-analysis events expose authorization outcome, tool lifecycle, and bounded result counts;
@@ -11,7 +12,10 @@ they never expose dataset rows, root-cause text, parameters, or policy internals
 Generation, citation-validation, repair, and fallback activity is emitted before one terminal event;
 unvalidated provider tokens and drafts are never streamed.
 
-Status: **The versioned public event envelope, allowlisted payload model, and native FastAPI POST SSE transport are implemented; Streamlit consumption and durable replay remain planned.** SSE fits token and activity updates, works over ordinary HTTP, and is simpler than WebSockets when the client sends commands through normal POST requests.
+Status: **The versioned public event envelope, allowlisted payload model, native FastAPI POST SSE
+transport, and validated Streamlit consumption are implemented; durable replay remains planned.**
+The UI incrementally validates sequence, correlation, unique IDs, and exactly one terminal event
+before accepting a final response.
 
 ## Versioned public envelope
 

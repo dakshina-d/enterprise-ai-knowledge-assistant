@@ -34,6 +34,12 @@ Never include stack traces, secrets, raw prompts, authorization-policy internals
 
 Administrative ingestion endpoints are deferred. Offline CLI/job ingestion avoids exposing a high-risk upload/index mutation surface in the PoC. If remote administration becomes necessary, it requires a separate ADR, administrator-only policy, malware/file validation, audit trail, asynchronous jobs, and explicit idempotency.
 
+The implemented Streamlit client uses only `POST /api/v1/auth/login` and
+`POST /api/v1/chat/stream`. Its chat JSON contains `message` and optional `session_id`; identity,
+role, permissions, route, tool, namespace, and correlation IDs remain server-derived. The client
+validates every SSE envelope and the final `GraphOutput`; see
+[the frontend design](streamlit-chat-ui-design.md).
+
 ## Endpoint details
 
 ### `GET /health/live`

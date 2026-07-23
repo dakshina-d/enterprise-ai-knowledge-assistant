@@ -89,6 +89,13 @@ the existing atomic per-user quota and graph/session authorization. CORS uses ex
 origins; wildcard credentialed origins are invalid. HTTP logs and SSE errors exclude bodies,
 tokens, evidence, tool results, prompts, and exception text.
 
+The Streamlit client retains the token only in its current `st.session_state`, sends it only in the
+Authorization header, and clears all user/session presentation data on logout or chat 401. Passwords
+are masked and never stored. No user-specific data is cached, no backend URL is user-controlled,
+and untrusted messages/output use Streamlit's normal escaped rendering without unsafe HTML. Public
+activity and provenance use closed-field projections rather than raw event, graph, tool, or HTTP
+payloads.
+
 The ingestion parser treats the valid manifest as an allowlist, bounds paths, rejects symlinks/traversal and fixture/glossary paths, verifies body hashes and exact metadata agreement, and uses a duplicate-key-rejecting safe YAML loader. Markdown and fenced code remain inert data. Managed artifacts are validated before a transactional directory swap. These local controls do not replace production malware scanning, DLP, tenant-aware job authorization, encrypted storage, or audit retention.
 
 Research enforces authorization before catalog construction, every retrieval, restricted analysis, aggregation, and citation validation. The compiler rejects authorization/build overrides, arbitrary tools or Python, URLs, paths, cycles, unknown dependencies, and resource violations. Workers receive task-scoped state; models cannot select roles, tools, budgets, namespaces, or graph structure.

@@ -1,9 +1,10 @@
 # Proposed Architecture
 
-Status: **Partially implemented.** Foundations, retrieval, baseline graph orchestration, and bounded
-process-local session memory now run. Durable/distributed or semantic memory, tools, LLM, SSE, and
-UI integration remain planned. Conversation memory is a replaceable store boundary distinct from
-the LangGraph checkpointer; see [session memory](session-memory-design.md).
+Status: **Partially implemented.** Foundations, retrieval, graph orchestration, grounded generation,
+MCP and restricted analysis, bounded process-local memory, FastAPI JSON/SSE delivery, and the
+Streamlit UI now run. Durable/distributed or semantic memory, human approval, and reranking remain
+planned. Conversation memory is a replaceable store boundary distinct from the LangGraph
+checkpointer; see [session memory](session-memory-design.md).
 
 The restricted analysis boundary maps typed operations to trusted standard-library functions over
 manifest-authorized incident rows. It is not a code-execution sandbox.
@@ -76,7 +77,7 @@ flowchart TB
 
 The Streamlit container owns presentation only. FastAPI owns schemas, identity, authorization, budgets, graph execution, event projection, and error mapping. LangGraph coordinates agent roles; agents do not become independently deployed services. The MCP server is separate only where its tool boundary or lifecycle requires it.
 
-## Request lifecycle (proposed)
+## Implemented interactive request lifecycle
 
 ```mermaid
 sequenceDiagram
@@ -84,20 +85,20 @@ sequenceDiagram
     participant A as FastAPI
     participant G as LangGraph
     participant D as Dependencies
-    U->>A: POST message (synchronous acceptance)
+    U->>A: POST /api/v1/chat/stream (Bearer + JSON)
     A->>A: Authenticate, rate-limit, validate
-    A-->>U: 202 request_id and events_url
-    U->>A: GET event stream (SSE)
     A->>G: Start async graph
     G->>D: Async retrieval, LLM, and authorized tools
     D-->>G: Evidence and bounded results
-    G-->>A: Safe lifecycle and token events
-    A-->>U: SSE status, tool, retrieval, and token events
+    G-->>A: Safe lifecycle events
+    A-->>U: Incremental SSE activity envelopes
     G->>G: Validate evidence, citations, and output
     A-->>U: response.completed or response.failed
 ```
 
-Health and session reads are synchronous HTTP operations. Message processing is asynchronous after acceptance. Tokens and safe agent activity are streaming operations. Ingestion is offline and never runs in the interactive request path.
+Login and health calls are ordinary HTTP operations. The chat POST remains open while asynchronous
+graph work emits safe activity and one final output. Unvalidated model tokens are not streamed.
+Ingestion is offline and never runs in the interactive request path.
 
 ## Trust boundaries (proposed)
 
@@ -150,4 +151,10 @@ Authentication middleware establishes identity; RBAC maps identity to roles and 
 
 Detailed contracts are in [graph design](graph-design.md), [retrieval design](retrieval-design.md), [API contracts](api-contracts.md), [event stream design](event-stream-design.md), [chat/SSE design](fastapi-chat-sse-design.md), and [error handling](error-handling-design.md).
 
-Graph 1.2 implements bounded research and a constrained MCP route as a compiled `StateGraph`. MCP service data crosses a local official-SDK client/server boundary and is converted immediately into application-owned models; the host authorizes before opening the in-memory transport. FastAPI lifespan now owns one shared runtime exposed through authenticated JSON and native POST SSE endpoints. Durable distributed workers, remote MCP transport/OAuth, human approval, reranking, and Streamlit are not implemented.
+Graph 1.2 implements bounded research and a constrained MCP route as a compiled `StateGraph`. MCP
+service data crosses a local official-SDK client/server boundary and is converted immediately into
+application-owned models; the host authorizes before opening the in-memory transport. FastAPI
+lifespan owns one shared runtime exposed through authenticated JSON and native POST SSE endpoints.
+Streamlit owns only authentication presentation, multi-turn display, incremental public-event
+validation, and safe answer/activity rendering. Durable distributed workers, remote MCP
+transport/OAuth, human approval, and reranking are not implemented.

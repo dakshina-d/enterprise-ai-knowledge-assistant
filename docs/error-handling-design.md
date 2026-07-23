@@ -8,6 +8,13 @@ sent, it emits at most one sanitized `stream.error` and never both error and com
 messages, exception types, stack traces, queries, evidence, credentials, and internal paths remain
 private. See [FastAPI chat and SSE design](fastapi-chat-sse-design.md).
 
+The Streamlit boundary maps pre-stream HTTP statuses to bounded user messages, honors a validated
+numeric `Retry-After`, clears authentication on 401, and never automatically replays a chat turn.
+Incremental parser, correlation, ordering, missing-terminal, interruption, and invalid-final-output
+failures retain the submitted user message and safe activity but do not create an assistant answer.
+Both the HTTP client and response are context-managed in success and failure paths. See
+[the frontend design](streamlit-chat-ui-design.md).
+
 Memory ownership and integrity errors fail closed. Disabled memory is stateless; non-security load
 failures continue with a warning, and post-response update failures report that memory was not
 saved without exposing stored content.

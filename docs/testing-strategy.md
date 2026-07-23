@@ -104,3 +104,10 @@ authentication-before-execution and shared-quota checks, runtime lifespan verifi
 correlation/session checks, native SSE headers and parsing, monotonic unique envelopes, one final
 terminal output, safe stream errors, and disconnect-driven iterator closure. The MyPy gate now
 uses `mypy backend/src frontend ingestion/src scripts`.
+
+The offline frontend suite adds configuration validation; login success, rejection, unavailability,
+and malformed-response cases; request field/header checks; fragmented UTF-8 and multiline SSE;
+keepalive, size, ordering, correlation, uniqueness, terminal, and cleanup invariants; idempotent
+completion and bounded session state; safe activity projection; and Streamlit login/authenticated
+layout, message, source, activity, error, and logout smoke checks. Mock transports and public typed
+fixtures require no backend, browser, network, token, or credential.
