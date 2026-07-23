@@ -53,6 +53,12 @@ citation validation; model-generated filenames, line numbers, URLs, and policy c
 
 Unknown tools default to denial and have no inferred permission. Tool parameters cannot alter this mapping.
 
+The MCP host rechecks `mcp_tools` before client construction, discovery, or invocation. Only three
+read-only service-data methods are exposed; role, permissions, arbitrary tool names, URLs, paths,
+shell syntax, and unexpected properties cannot be tool arguments. Local in-memory/stdio transport
+uses the authenticated host as its security boundary and does not claim OAuth. All records are
+fictional.
+
 No permission-check HTTP endpoint is exposed. The previously drafted assessment-only route was removed; role and permission behavior is verified directly through the authorization service and integration tests assert the old path returns `404` for anonymous, viewer, analyst, and administrator callers.
 
 ### Retrieval access policy

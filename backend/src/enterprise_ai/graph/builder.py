@@ -13,6 +13,7 @@ from enterprise_ai.graph.schemas import GraphTopology
 from enterprise_ai.graph.state import GraphState
 from enterprise_ai.llm.dependencies import create_response_service
 from enterprise_ai.llm.response_service import GroundedResponseService
+from enterprise_ai.mcp_tools.service import MCPEnterpriseService
 from enterprise_ai.memory.dependencies import create_memory_service
 from enterprise_ai.memory.service import ConversationMemoryService
 from enterprise_ai.observability.tracing import SafeTracer, create_tracer
@@ -53,6 +54,7 @@ def build_graph(
     analysis: PythonAnalysisTool | None = None,
     responses: GroundedResponseService | None = None,
     research: ResearchService | None = None,
+    mcp_service: MCPEnterpriseService | None = None,
     tracer: SafeTracer | None = None,
 ) -> Any:  # noqa: ANN401 - LangGraph's compiled generic is not a stable public contract.
     """Build a real asynchronous StateGraph with injected infrastructure."""
@@ -65,6 +67,11 @@ def build_graph(
         memory or create_memory_service(settings),
         analysis or PythonAnalysisTool(settings),
         responses or create_response_service(settings, effective_tracer),
+        mcp_service
+        or MCPEnterpriseService(
+            authorization or AuthorizationService(),
+            tracer=effective_tracer,
+        ),
         research,
         effective_tracer,
     ).items():
@@ -118,6 +125,11 @@ def build_graph(
         {name: name for name in ("handle_failure", "generate_response")},
     )
     graph.add_conditional_edges(
+        "execute_mcp_tool",
+        _after_operation("prepare_output"),
+        {name: name for name in ("handle_failure", "prepare_output")},
+    )
+    graph.add_conditional_edges(
         "generate_response",
         _after_operation("validate_citations"),
         {name: name for name in ("handle_failure", "validate_citations")},
@@ -166,6 +178,7 @@ def describe_graph() -> GraphTopology:
             "deny_request",
             "unsupported",
             "python_analysis",
+            "execute_mcp_tool",
             "generate_response",
             "validate_citations",
             "prepare_output",
@@ -200,6 +213,8 @@ def describe_graph() -> GraphTopology:
             "unsupported.ok": "prepare_output",
             "python_analysis.ok": "generate_response",
             "python_analysis.failure": "handle_failure",
+            "execute_mcp_tool.ok": "prepare_output",
+            "execute_mcp_tool.failure": "handle_failure",
             "generate_response.ok": "validate_citations",
             "generate_response.failure": "handle_failure",
             "validate_citations.ok": "prepare_output",
@@ -220,9 +235,9 @@ def describe_graph() -> GraphTopology:
             "grounded structured response generation",
             "deterministic citation validation",
             "bounded recursive cross-document research",
+            "authorized read-only MCP enterprise data tools",
         ),
         planned_capabilities=(
-            "MCP tools",
             "durable checkpoints",
             "durable distributed conversation memory",
         ),

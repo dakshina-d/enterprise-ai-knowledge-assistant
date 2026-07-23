@@ -46,6 +46,11 @@ behavior on every operating system.
 | End-to-end | Login, session, multi-turn question, retrieval, authorized tool, streamed completion, feedback. | Clean PoC deployment with generated data. |
 | LangSmith trace | Required span names, correlation IDs, route/tool/error attributes, no sensitive content. | Mock exporter in CI; selected real-project smoke test. |
 
+MCP tests use the official SDK's connected in-memory client/server streams rather than direct tool
+function calls. They cover discovery and result schemas, authorization-before-session creation,
+malicious selectors, timeout, cancellation, concurrency, graph events/provenance, trace redaction,
+and deterministic shutdown.
+
 Observability tests inject the application recorder rather than mocking graph business logic. They verify disabled mode, allowlisted metadata, parent relationships, concurrent context isolation, cancellation propagation, transport failure isolation, and normalized graph-output equivalence. Network access and credentials are never required in CI.
 | Manual demo | Positive role flows, denied actions, malicious document, partial dependency failure, bounded research. | Scripted checklist with saved non-sensitive evidence. |
 

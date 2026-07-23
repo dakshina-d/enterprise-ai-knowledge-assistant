@@ -36,8 +36,8 @@ Logs contain request/trace IDs, typed code, operation, attempt, duration, and sa
 | LLM timeout | Cancel call, one retry with remaining deadline and reduced budget; never duplicate streamed text without sequence reset policy. | Partial or failed. |
 | Pinecone unavailable | Retry twice; no unauthorized alternate corpus; tools may continue only if independent and useful. | Partial with “knowledge search unavailable,” or failed. |
 | Pinecone timeout | Cancel, one retry with smaller candidate count if within policy/deadline. | Partial or failed. |
-| MCP unavailable | Retry discovery/call once if idempotent; continue with retrieval/other results. | Usually partial; failed if MCP was essential. |
-| MCP timeout | Cancel remote call; no blind retry of non-idempotent tool; retain successful sibling results. | Partial or failed. |
+| MCP unavailable | Translate local protocol/transport failure without unrestricted fallback or raw SDK details. | Failed when MCP was the selected essential route. |
+| MCP timeout | Cancel the bounded read-only operation; do not retry automatically. | Failed safely; caller cancellation remains distinct and propagates. |
 | Python-analysis failure | Terminate isolated job, record sanitized stderr category only; do not run on host as fallback. | Partial or failed. |
 | Invalid tool parameters | Reject before execution; allow one structured correction only if policy permits. | Denied for policy breach, otherwise failed subtask. |
 | Citation-validation failure | One draft repair using the same evidence; never invent or retrieve merely to validate after streaming final text. | Success after repair or failed/partial without unsupported claims. |

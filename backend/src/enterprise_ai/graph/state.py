@@ -12,6 +12,7 @@ from enterprise_ai.llm.models import (
     GroundedResponse,
     ResponseMode,
 )
+from enterprise_ai.mcp_tools.models import MCPExecutionResult
 from enterprise_ai.memory.models import MemoryContext
 from enterprise_ai.models.common import ProcessingStatus
 from enterprise_ai.models.events import AgentEvent
@@ -72,3 +73,4 @@ class GraphState(TypedDict, total=False):
     provider_status: str
     deterministic_fallback_used: bool
     research_result: ResearchResult
+    mcp_execution: MCPExecutionResult

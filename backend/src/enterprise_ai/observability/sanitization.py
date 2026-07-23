@@ -47,6 +47,13 @@ SAFE_KEYS = frozenset(
         "maximum_depth",
         "provider",
         "attempt",
+        "server_name",
+        "tool_name",
+        "result_status",
+        "result_count",
+        "timeout_category",
+        "protocol_version",
+        "transport_type",
     }
 )
 

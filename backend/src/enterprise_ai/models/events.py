@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import Field, field_validator
 
@@ -37,6 +37,11 @@ class AgentEventType(StrEnum):
     TOOL_STARTED = "tool.started"
     TOOL_COMPLETED = "tool.completed"
     TOOL_FAILED = "tool.failed"
+    MCP_STARTED = "mcp.started"
+    MCP_TOOL_SELECTED = "mcp.tool_selected"
+    MCP_COMPLETED = "mcp.completed"
+    MCP_DENIED = "mcp.denied"
+    MCP_FAILED = "mcp.failed"
     RESEARCH_BATCH_STARTED = "research.batch_started"
     RESEARCH_BATCH_COMPLETED = "research.batch_completed"
     RESEARCH_STARTED = "research.started"
@@ -117,6 +122,14 @@ class PublicAgentEventPayload(ContractModel):
     evidence_count: Annotated[int | None, Field(ge=0)] = None
     gap_count: Annotated[int | None, Field(ge=0)] = None
     conflict_count: Annotated[int | None, Field(ge=0)] = None
+    mcp_tool_name: Annotated[
+        str | None,
+        Field(pattern=r"^(get_service_profile|get_operational_metrics|get_change_windows)$"),
+    ] = None
+    server_identifier: Annotated[
+        str | None, Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$", max_length=100)
+    ] = None
+    duration_category: Literal["fast", "bounded", "timeout"] | None = None
 
 
 class AgentEvent(ContractModel):

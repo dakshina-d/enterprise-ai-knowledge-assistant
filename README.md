@@ -8,7 +8,7 @@ An enterprise-grade technical-assessment foundation for a future conversational 
 
 Implemented: modular repository scaffolding, reusable validated domain/API contracts, proof-of-concept authentication, deterministic RBAC and rate limiting, health endpoints, a deterministic 51-document synthetic corpus, offline ingestion, and optional Pinecone dense indexing/retrieval with offline-tested security filters.
 
-Implemented retrieval now includes local BM25 sparse search and transparent weighted dense–sparse hybrid fusion. Planned—not implemented: reranking, LangGraph agents, LLM answer generation, MCP/Python tool execution, conversational memory, streaming, guardrails, and business workflows.
+Implemented runtime capabilities now include LangGraph orchestration, local BM25 and hybrid retrieval, bounded research, grounded responses, restricted Python analysis, session memory, privacy-safe LangSmith tracing, and three authorized read-only MCP enterprise-data tools. Reranking, FastAPI/SSE chat delivery, Streamlit integration, HITL, and business workflows remain planned.
 
 The repository includes a deterministic 51-document synthetic corpus for the fictional Lanka Horizon Commercial Bank. All people, incidents, systems, dates, metrics, and identifiers are synthetic and do not describe any real financial institution.
 
@@ -132,6 +132,11 @@ administrators. It executes only typed allowlisted aggregate operations over aut
 incident rows—never caller-supplied Python. See
 [python-analysis design](docs/python-analysis-tool-design.md).
 
+Fictional enterprise service profiles, operational metrics, and change windows are available to
+analysts and administrators through an official-SDK MCP protocol path. Viewer requests are denied
+before server startup or discovery. See
+[MCP enterprise tools design](docs/mcp-enterprise-tools-design.md).
+
 Grounded response generation now uses an application-owned provider abstraction, typed drafts, and
 deterministic current-context citation validation. Offline development defaults to the fake
 provider; OpenAI Responses API mode is explicit and enforces `store=false`. See
@@ -149,7 +154,7 @@ Never commit `.env`, API keys, credentials, or production configuration. Use a s
 backend/      FastAPI application and backend tests
 frontend/     Streamlit presentation layer
 ingestion/    Offline deterministic parsing and chunking component
-mcp_server/   Reserved constrained MCP component
+backend/src/enterprise_ai/mcp_tools/   Constrained MCP server/client and typed tools
 data/         Non-sensitive sample documents
 docs/         Architecture, security, decisions, and assessment evidence
 scripts/      Automation entry points
@@ -162,12 +167,12 @@ The health responses are static process-level placeholders and do not check depe
 Streamlit UI does not call the backend and chat is disabled. Dense and sparse retrieval, grounded
 response synthesis, recursive research, bounded session memory, restricted analysis, and optional
 LangSmith tracing can be exercised locally. Durable distributed memory, a browser streaming
-endpoint, MCP execution, and human approval remain unimplemented.
+endpoint and human approval remain unimplemented. MCP execution is local-only and read-only.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and [requirements traceability](docs/requirements-traceability.md) for implementation status.
 # Bounded recursive research
 
-Graph version 1.2 executes authorization-aware cross-document research with structured plans, bounded parallel workers, recursive gap investigation, deterministic evidence aggregation, coverage/conflict reporting, and the existing grounded citation pipeline. See [the design](docs/recursive-research-design.md). MCP, human approval, reranking, API/SSE, and UI integration remain out of scope.
+Graph version 1.2 executes authorization-aware cross-document research and deterministic MCP enterprise-data routing alongside the grounded citation pipeline. See [the research design](docs/recursive-research-design.md) and [MCP design](docs/mcp-enterprise-tools-design.md). Human approval, reranking, API/SSE, and UI integration remain out of scope.
 
 ### LangSmith observability
 

@@ -15,6 +15,14 @@ from enterprise_ai.graph.schemas import GraphEvidenceAttribution, GraphOutput
 from enterprise_ai.graph.state import GraphState
 from enterprise_ai.llm.models import ResponseMode
 from enterprise_ai.llm.response_service import GroundedResponseService
+from enterprise_ai.mcp_tools.client import result_count
+from enterprise_ai.mcp_tools.errors import (
+    MCPAuthorizationError,
+    MCPEnterpriseError,
+    MCPInputError,
+)
+from enterprise_ai.mcp_tools.models import SERVER_NAME
+from enterprise_ai.mcp_tools.service import MCPEnterpriseService, select_mcp_tool
 from enterprise_ai.memory.context import resolve_followup
 from enterprise_ai.memory.exceptions import MemoryError
 from enterprise_ai.memory.models import MemoryContext
@@ -67,6 +75,7 @@ def create_nodes(
     memory: ConversationMemoryService,
     analysis: PythonAnalysisTool,
     responses: GroundedResponseService,
+    mcp_service: MCPEnterpriseService,
     research_service: ResearchService | None = None,
     tracer: SafeTracer | None = None,
 ) -> dict[str, object]:
@@ -519,6 +528,126 @@ def create_nodes(
             "visited_nodes": ("python_analysis",),
         }
 
+    async def execute_mcp_tool(state: GraphState) -> dict[str, object]:
+        try:
+            selection = select_mcp_tool(state["resolved_query"])
+        except MCPInputError:
+            failed = event(
+                state,
+                AgentEventType.MCP_FAILED,
+                AgentEventStatus.WARNING,
+                "Enterprise data request needs one exact supported service and operation.",
+                node="execute_mcp_tool",
+                payload=PublicAgentEventPayload(
+                    route=Route.MCP_TOOL,
+                    server_identifier=SERVER_NAME,
+                ),
+            )
+            return {
+                "processing_status": ProcessingStatus.PARTIAL_SUCCESS,
+                "response_text": (
+                    "Provide one exact fictional service name and request its profile, metrics, "
+                    "or change windows."
+                ),
+                "activity_events": (failed,),
+                "visited_nodes": ("execute_mcp_tool",),
+            }
+        selected_payload = PublicAgentEventPayload(
+            route=Route.MCP_TOOL,
+            mcp_tool_name=selection.tool_name,
+            server_identifier=SERVER_NAME,
+        )
+        started = event(
+            state,
+            AgentEventType.MCP_STARTED,
+            AgentEventStatus.STARTED,
+            "Authorized enterprise data operation started.",
+            node="execute_mcp_tool",
+            payload=selected_payload,
+        )
+        temporary = cast(GraphState, dict(state))
+        temporary["activity_events"] = (*state.get("activity_events", ()), started)
+        selected = event(
+            temporary,
+            AgentEventType.MCP_TOOL_SELECTED,
+            AgentEventStatus.COMPLETED,
+            "A read-only enterprise data tool was selected.",
+            node="execute_mcp_tool",
+            payload=selected_payload,
+        )
+        try:
+            execution = await mcp_service.execute(state["principal"], selection)
+        except MCPAuthorizationError:
+            temporary["activity_events"] = (
+                *state.get("activity_events", ()),
+                started,
+                selected,
+            )
+            denied = event(
+                temporary,
+                AgentEventType.MCP_DENIED,
+                AgentEventStatus.DENIED,
+                "Enterprise data operation denied.",
+                node="execute_mcp_tool",
+                payload=selected_payload,
+            )
+            return {
+                "processing_status": ProcessingStatus.DENIED,
+                "response_text": "Your role does not permit this operation.",
+                "activity_events": (started, selected, denied),
+                "visited_nodes": ("execute_mcp_tool",),
+            }
+        except MCPEnterpriseError:
+            temporary["activity_events"] = (
+                *state.get("activity_events", ()),
+                started,
+                selected,
+            )
+            failed = event(
+                temporary,
+                AgentEventType.MCP_FAILED,
+                AgentEventStatus.FAILED,
+                "Enterprise data operation failed safely.",
+                node="execute_mcp_tool",
+                payload=selected_payload,
+            )
+            return {
+                "failure": True,
+                "errors": (
+                    GraphError(
+                        code="mcp.operation_failed",
+                        safe_message="Enterprise data operation failed safely.",
+                        node="execute_mcp_tool",
+                    ),
+                ),
+                "activity_events": (started, selected, failed),
+                "visited_nodes": ("execute_mcp_tool",),
+            }
+        temporary["activity_events"] = (
+            *state.get("activity_events", ()),
+            started,
+            selected,
+        )
+        completed = event(
+            temporary,
+            AgentEventType.MCP_COMPLETED,
+            AgentEventStatus.COMPLETED,
+            "Enterprise data operation completed.",
+            node="execute_mcp_tool",
+            payload=selected_payload.model_copy(
+                update={
+                    "result_count": result_count(execution.result),
+                    "duration_category": "bounded",
+                }
+            ),
+        )
+        return {
+            "mcp_execution": execution,
+            "response_text": execution.response_text,
+            "activity_events": (started, selected, completed),
+            "visited_nodes": ("execute_mcp_tool",),
+        }
+
     async def generate_response(state: GraphState) -> dict[str, object]:
         started = event(
             state,
@@ -965,6 +1094,10 @@ def create_nodes(
                 if state.get("grounded_response")
                 else False
             ),
+            mcp_result=state.get("mcp_execution"),
+            mcp_provenance=(
+                state["mcp_execution"].provenance if state.get("mcp_execution") else None
+            ),
         )
         return {
             "processing_status": status,
@@ -986,6 +1119,7 @@ def create_nodes(
         "deny_request": guarded("deny_request", deny_request),
         "unsupported": guarded("unsupported", unsupported),
         "python_analysis": guarded("python_analysis", python_analysis),
+        "execute_mcp_tool": guarded("execute_mcp_tool", execute_mcp_tool),
         "cross_document_research": guarded("cross_document_research", cross_document_research),
         "generate_response": guarded("generate_response", generate_response),
         "validate_citations": guarded("validate_citations", validate_response_citations),

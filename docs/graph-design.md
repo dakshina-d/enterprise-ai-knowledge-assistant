@@ -163,6 +163,12 @@ Recursive research differs from top-k RAG by creating multiple explicit subquest
 
 ## Tool authorization path
 
+The implemented MCP branch deterministically selects service profile, operational metrics, or
+change windows. Viewers route to denial before the MCP node. Allowed calls are revalidated by
+`MCPEnterpriseService`, use typed arguments/results, then proceed directly to output preparation;
+document evidence and citation validation are not involved. See
+[MCP enterprise tools design](mcp-enterprise-tools-design.md).
+
 ```mermaid
 flowchart TD
     T[Proposed tool request] --> S[Validate argument schema]

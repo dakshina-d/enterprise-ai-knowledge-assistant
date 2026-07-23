@@ -7,6 +7,7 @@ from uuid import UUID
 from pydantic import Field, field_validator, model_validator
 
 from enterprise_ai.llm.models import VerifiedCitation
+from enterprise_ai.mcp_tools.models import MCPExecutionResult, MCPProvenance
 from enterprise_ai.models.common import ContractModel, ProcessingStatus, utc_now
 from enterprise_ai.models.events import AgentEvent
 from enterprise_ai.models.graph import Intent, PublicAgentStatus, Route, ValidationReport
@@ -89,6 +90,8 @@ class GraphOutput(ContractModel):
     response_model: str | None = None
     deterministic_fallback_used: bool = False
     insufficient_evidence: bool = False
+    mcp_result: MCPExecutionResult | None = None
+    mcp_provenance: MCPProvenance | None = None
 
 
 class GraphStreamItem(ContractModel):

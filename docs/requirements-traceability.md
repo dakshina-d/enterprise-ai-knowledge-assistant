@@ -23,7 +23,7 @@ Statuses are intentionally strict: **Implemented** means executable and verified
 | FastAPI | Must | Backend; [API contracts](api-contracts.md) | OpenAPI/endpoint integration and startup tests | Planned | Health-only baseline currently runs |
 | Async APIs | Must | Backend/graph; [architecture](architecture.md), [API contracts](api-contracts.md) | Concurrent request and cancellation tests | Planned | Future concurrency test report |
 | Async retrieval | Must | Retrieval; [dense retrieval design](dense-retrieval-design.md) | Offline async provider, timeout, retry, cancellation, and query tests | Implemented | Fake-provider evidence; live execution requires credentials |
-| Async tool execution | Must | Graph/tools; [graph design](graph-design.md) | Parallel tool, timeout, and isolation tests | Planned | Future sanitized tool events |
+| Async tool execution | Must | Graph/tools; [graph design](graph-design.md) | Parallel tool, timeout, and isolation tests | Partial | MCP and restricted Python paths implemented; broader tools planned |
 | Structured logging | Must | Observability; [error handling](error-handling-design.md), [testing strategy](testing-strategy.md) | Schema, correlation, redaction, failure capture tests | Planned | JSON foundation only |
 | LangGraph | Must | `enterprise_ai.graph`; [graph design](graph-design.md), [ADR 0002](adr/0002-langgraph-as-orchestrator.md) | Graph compile, invariant, route, isolation, stream, and terminal-state tests | Implemented | Async baseline graph and offline CLI; advanced nodes explicitly unsupported |
 | Session conversational memory | Must | `enterprise_ai.memory`; [session memory](session-memory-design.md) | Bounds, TTL, ownership, idempotency, sanitization, concurrency, context, and multi-turn tests | Implemented | Process-local only; durable/distributed and semantic memory remain planned |
@@ -41,7 +41,7 @@ Statuses are intentionally strict: **Implemented** means executable and verified
 | Document attribution | Must | Evidence models; [retrieval design](retrieval-design.md) | Provenance completeness and claim-mapping tests | Planned | Future source-linked response |
 | Session memory | Must | Memory/graph; [graph design](graph-design.md), [testing strategy](testing-strategy.md) | Multi-turn, ownership, bounded-context tests | Planned | Future session replay |
 | Knowledge search tool | Must | Tools/retrieval; [graph design](graph-design.md), [retrieval design](retrieval-design.md) | Authorization/schema/result contract tests | Planned | Future safe tool event |
-| MCP tool | Must | MCP server/client; [architecture](architecture.md), [error handling](error-handling-design.md) | MCP contract, allowlist, timeout, malformed-output tests | Planned | Future constrained call |
+| MCP tool | Must | `enterprise_ai.mcp_tools`; [MCP design](mcp-enterprise-tools-design.md) | Real protocol contract, allowlist, RBAC, timeout, cancellation, security, graph, event, and tracing tests | Implemented | Three local read-only fictional enterprise tools |
 | Python analysis tool | Must | Restricted runtime; [architecture](architecture.md), [testing strategy](testing-strategy.md) | Role, resource, network/secret, escape tests | Planned | Future isolated job evidence |
 | LangSmith traces | Must | Observability; [tracing design](langsmith-tracing-design.md), [testing strategy](testing-strategy.md) | Offline hierarchy, correlation, isolation, sanitization tests, and real remote smoke traces | Complete | Real external export, hierarchy, finalization, privacy, and denied-outcome metadata verified |
 | Prompt-injection protection | Must | Security/graph; [graph design](graph-design.md), [testing strategy](testing-strategy.md) | Direct/indirect adversarial evaluation | Planned | Future blocked-input case |
@@ -73,13 +73,13 @@ Statuses are intentionally strict: **Implemented** means executable and verified
 | Graceful failure | Planner/worker/total deadlines, cancellation, budgets and deterministic fallback | timeout, cancellation, exhaustion and failure-event tests | Complete for offline PoC | Provider/service retry policy remains bounded |
 | Agent activity | `GraphRuntime.astream()` validated public events | compiled stream, serialization and state-bound tests | Partial | Post-fan-in worker order; FastAPI/SSE/UI pending |
 | LangSmith tracing | Application-owned safe spans with optional LangSmith export | Unit, integration, and real remote smoke tests | Complete | Successful and authorization-denied traces remotely verified |
-| MCP tool | Not in this commit | None | Pending | Mandatory later assignment work |
+| MCP tool | Official-SDK server/client, typed service models, deterministic graph node | Unit and graph integration suites | Complete for local read-only PoC | No remote transport or OAuth |
 | Streamlit UI | Not in this commit | None | Pending | Mandatory later assignment work |
 | Security test fixtures | Must | `data/security_fixtures`; [security design](security-design.md) | Isolation, separate manifest and exclusion tests | Implemented | 9 safe malicious-test-only fixtures |
 | LLM failure handling | Must | Graph/services; [error handling](error-handling-design.md) | Unavailable/timeout/retry/fallback fault tests | Planned | Future partial/failure event |
 | Vector-database failure handling | Must | Retrieval; [error handling](error-handling-design.md) | Transient/permanent retry and cancellation tests | Implemented | Offline fake-provider failures; endpoint fallback remains planned |
-| MCP failure handling | Must | MCP/tools; [error handling](error-handling-design.md) | Unavailable/timeout/idempotency tests | Planned | Future partial result |
-| Tool timeout handling | Must | Tools/graph; [error handling](error-handling-design.md) | Cancellation, deadline, sibling-isolation tests | Planned | Future timeout event |
+| MCP failure handling | Must | MCP/tools; [error handling](error-handling-design.md) | Unavailable, malformed protocol, timeout, and isolation tests | Implemented | Safe failure; no automatic retry |
+| Tool timeout handling | Must | Tools/graph; [error handling](error-handling-design.md) | Cancellation, timeout, and isolation tests | Implemented for MCP/Python | Broader provider policies remain planned |
 | Invalid-request handling | Must | API; [API contracts](api-contracts.md), [error handling](error-handling-design.md) | Error-envelope/schema/idempotency tests | Planned | Future structured error |
 | Human-in-the-loop bonus | Bonus | Graph/UI; [graph design](graph-design.md), [roadmap](implementation-roadmap.md) | Pause/resume/deny/expiry tests | Planned | Future approval checkpoint |
 | Reranking bonus | Bonus | Retrieval; [retrieval design](retrieval-design.md) | Blind comparative quality/latency evaluation | Planned | Future metrics comparison |
