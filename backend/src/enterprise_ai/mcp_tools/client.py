@@ -47,7 +47,9 @@ class MCPEnterpriseClient:
                 read_timeout_seconds=timedelta(seconds=self._timeout_seconds),
             ) as session:
                 result = await session.list_tools()
-                return tuple(tool.name for tool in result.tools)
+                discovered = tuple(tool.name for tool in result.tools)
+                _validate_discovered_tools(discovered)
+                return discovered
 
         return await self._bounded(operation())
 
@@ -77,8 +79,7 @@ class MCPEnterpriseClient:
                 read_timeout_seconds=timedelta(seconds=self._timeout_seconds),
             ) as session:
                 discovered = tuple(tool.name for tool in (await session.list_tools()).tools)
-                if discovered != TOOL_NAMES:
-                    raise MCPProtocolError("MCP discovery contract mismatch")
+                _validate_discovered_tools(discovered)
                 result = await session.call_tool(
                     tool_name,
                     arguments=arguments.model_dump(mode="json", exclude_none=True),
@@ -112,6 +113,12 @@ class MCPEnterpriseClient:
 def result_count(result: MCPToolResult) -> int:
     """Return a safe structural count without exposing result values."""
     return len(result.windows) if isinstance(result, ChangeWindowResult) else 1
+
+
+def _validate_discovered_tools(discovered: tuple[str, ...]) -> None:
+    """Require exactly the allowlisted tools without depending on server ordering."""
+    if len(discovered) != len(TOOL_NAMES) or frozenset(discovered) != frozenset(TOOL_NAMES):
+        raise MCPProtocolError("MCP discovery contract mismatch")
 
 
 def _find_typed_error(error: BaseException) -> MCPEnterpriseError | None:
