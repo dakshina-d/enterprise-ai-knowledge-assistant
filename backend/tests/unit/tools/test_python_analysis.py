@@ -11,7 +11,11 @@ from enterprise_ai.retrieval.config import RetrievalSettings
 from enterprise_ai.retrieval.evaluation import assessment_principal
 from enterprise_ai.tools.python_analysis.datasets import load_authorized_incidents
 from enterprise_ai.tools.python_analysis.engine import execute_analysis
-from enterprise_ai.tools.python_analysis.exceptions import AnalysisAuthorizationError
+from enterprise_ai.tools.python_analysis.exceptions import (
+    AnalysisAuthorizationError,
+    AnalysisLimitError,
+    AnalysisValidationError,
+)
 from enterprise_ai.tools.python_analysis.models import (
     AnalysisFilters,
     AnalysisOperation,
@@ -43,6 +47,8 @@ def test_planner_is_typed_and_deterministic() -> None:
     assert first == plan_analysis(query)
     assert first.operation is AnalysisOperation.RECURRING_ROOT_CAUSES
     assert first.filters.departments == ("payments",)
+    with pytest.raises(AnalysisValidationError):
+        plan_analysis("Run arbitrary code")
 
 
 def test_viewer_denied_before_dataset_construction() -> None:
@@ -105,6 +111,40 @@ async def test_tool_cancellation_propagates(monkeypatch: pytest.MonkeyPatch) -> 
     task.cancel()
     with pytest.raises(asyncio.CancelledError):
         await task
+
+
+@pytest.mark.asyncio
+async def test_tool_timeout_and_filter_bounds_fail_without_a_result(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    bounded = PythonAnalysisTool(
+        RetrievalSettings(
+            python_analysis_timeout_seconds=0.01,
+            python_analysis_max_filter_values=1,
+        )
+    )
+    with pytest.raises(AnalysisLimitError):
+        await bounded.execute(
+            assessment_principal(UserRole.ANALYST),
+            AnalysisRequest(
+                operation=AnalysisOperation.COUNT_RECORDS,
+                filters=AnalysisFilters(departments=("payments", "operations")),
+            ),
+            request_id=uuid4(),
+            trace_id=uuid4(),
+        )
+
+    async def blocked(*args: object, **kwargs: object) -> object:
+        await asyncio.Event().wait()
+
+    monkeypatch.setattr(asyncio, "to_thread", blocked)
+    with pytest.raises(TimeoutError):
+        await bounded.execute(
+            assessment_principal(UserRole.ANALYST),
+            AnalysisRequest(operation=AnalysisOperation.COUNT_RECORDS),
+            request_id=uuid4(),
+            trace_id=uuid4(),
+        )
 
 
 def test_package_contains_no_arbitrary_execution_primitives() -> None:

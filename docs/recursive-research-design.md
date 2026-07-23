@@ -14,7 +14,11 @@ The offline `evaluate` command runs the committed 12-question set through the co
 
 Coverage is deterministic application-owned Python. It consumes zero LLM calls, cannot initiate tools or retrieval, and runs inside the total research deadline. The shared per-invocation LLM allowance counts initial planning, final synthesis, and each application-level citation repair; started calls remain consumed after timeout or cancellation. Exhaustion before synthesis or repair selects a deterministic authorized-evidence fallback instead of exposing an unvalidated draft.
 
-Current limitations: conflict and coverage checks are conservative and primarily structural; complete semantic contradiction detection is not claimed. Research plan, worker, aggregation, conflict, and coverage boundaries now emit safe spans when tracing is enabled. Durable distributed workers, MCP, human approval, reranking, FastAPI chat transport, SSE, Streamlit, and long-term memory are not implemented.
+Current limitations: conflict and coverage checks are conservative and primarily structural;
+complete semantic contradiction detection is not claimed. Research plan, worker, aggregation,
+conflict, and coverage boundaries emit safe spans when tracing is enabled. MCP, FastAPI JSON/SSE,
+and Streamlit integration are implemented. Durable distributed workers, human approval,
+reranking, durable long-term memory, and persistent feedback are not implemented.
 
 Structured conflicts use an explicit enum of incident timestamps/duration, policy dates, owners, departments, teams, and component/service mappings. Aware timestamps normalize to UTC; naive or malformed values and invalid incident ranges fail validation. Facts are authorization-filtered before comparison, and approved/active metadata wins preference without hiding authorized disagreements. This is deterministic structured comparison, not general semantic entity resolution.
 
@@ -22,7 +26,10 @@ The planner receives at most one repair attempt for benign validation failures s
 
 Analytical prose is always rendered from the typed Python result; provider prose cannot change counts, categories, identifiers, row scope, taxonomy, algorithm, operation, or formula. Empty evidence skips normal generation and produces a deterministic insufficient-authorized-evidence response with no citations. One-sided and authorization-blocked research remains partial or insufficient without revealing inaccessible metadata.
 
-Compiled-graph stream tests exercise the same `GraphRuntime.astream()` bridge used by future transports. They assert one terminal response, one final output, monotonic invocation-local sequences, unique event IDs, consistent correlation IDs, task/depth/round worker payloads, and safe allowlisted metadata.
+Compiled-graph stream tests exercise the same `GraphRuntime.astream()` bridge used by the
+implemented FastAPI SSE transport. They assert one terminal response, one final output, monotonic
+invocation-local sequences, unique event IDs, consistent correlation IDs, task/depth/round worker
+payloads, and safe allowlisted metadata.
 
 The live event stream is transient and is not copied into conversation memory. Checkpointed activity history is bounded to the newest 200 validated events; conversation memory retains only the bounded final turn and verified reference contract.
 

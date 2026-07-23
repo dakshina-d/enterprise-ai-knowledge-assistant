@@ -1,6 +1,7 @@
 """Bounded async runtime around the compiled baseline graph."""
 
 import asyncio
+import logging
 from collections.abc import AsyncIterator
 from typing import Any
 from uuid import UUID
@@ -16,6 +17,8 @@ from enterprise_ai.models.graph import GraphError
 from enterprise_ai.models.identity import ToolPermission, UserRole
 from enterprise_ai.observability.tracing import SafeTracer, create_tracer
 from enterprise_ai.retrieval.config import RetrievalSettings
+
+logger = logging.getLogger(__name__)
 
 
 class SessionOwnershipError(PermissionError):
@@ -147,8 +150,22 @@ class GraphRuntime:
         return dict(result)
 
     async def ainvoke(self, graph_input: GraphInput) -> GraphOutput:
-        state = await self._execute(graph_input)
-        return GraphOutput.model_validate(state["final_output"])
+        try:
+            state = await self._execute(graph_input)
+            output = GraphOutput.model_validate(state["final_output"])
+        except asyncio.CancelledError:
+            self._log_outcome(graph_input, outcome="cancelled", cancelled=True)
+            raise
+        except Exception:
+            self._log_outcome(graph_input, outcome="failed", dependency_category="graph")
+            raise
+        self._log_outcome(
+            graph_input,
+            outcome="completed",
+            route=output.selected_route.value,
+            completion_status=output.completion_status.value,
+        )
+        return output
 
     async def astream(self, graph_input: GraphInput) -> AsyncIterator[GraphStreamItem]:
         """Parse LangGraph v2 custom/value stream parts into the public contract."""
@@ -161,6 +178,12 @@ class GraphRuntime:
                     output_seen = True
                     if span is not None:
                         span.update_metadata(self._outcome_metadata(item.output))
+                    self._log_outcome(
+                        graph_input,
+                        outcome="completed",
+                        route=item.output.selected_route.value,
+                        completion_status=item.output.completion_status.value,
+                    )
                 yield item
             if span is not None and not output_seen:
                 span.update_metadata({"completion_status": "partial_success"})
@@ -230,3 +253,28 @@ class GraphRuntime:
         if self._responses is not None:
             await self._responses.close()
         await self._tracer.flush()
+
+    @staticmethod
+    def _log_outcome(
+        graph_input: GraphInput,
+        *,
+        outcome: str,
+        route: str | None = None,
+        completion_status: str | None = None,
+        dependency_category: str | None = None,
+        cancelled: bool = False,
+    ) -> None:
+        logger.info(
+            "graph_request_outcome",
+            extra={
+                "request_id": str(graph_input.request_id),
+                "trace_id": str(graph_input.trace_id),
+                "session_id": str(graph_input.session_id),
+                "role": graph_input.principal.identity.role.value,
+                "route": route,
+                "completion_status": completion_status,
+                "dependency_category": dependency_category,
+                "outcome": outcome,
+                "cancelled": cancelled,
+            },
+        )

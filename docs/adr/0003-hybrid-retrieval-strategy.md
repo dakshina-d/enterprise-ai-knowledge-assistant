@@ -1,6 +1,6 @@
 # ADR 0003: Weighted Hybrid Retrieval for the PoC
 
-- Status: Accepted (design decision; implementation planned)
+- Status: Accepted (bounded PoC implementation complete; reranking excluded)
 - Date: 2026-07-10
 
 ## Context

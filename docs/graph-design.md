@@ -17,7 +17,7 @@ flowchart LR
     S -->|conversation| D[direct_response]
     S -->|knowledge + permitted| R[simple_retrieval] --> E[validate_evidence]
     S -->|not permitted| X[deny_request]
-    S -->|planned route| U[unsupported]
+    S -->|unsupported or security-rejected| U[unsupported]
     S -->|structured + permitted| PA[python_analysis]
     R --> E[validate_evidence] --> G[generate_response] --> CV[validate_citations]
     D --> P[prepare_output]
@@ -99,7 +99,7 @@ Identity, authorization scope, original input, and budgets are write-protected a
 | `human_approval` | Pause risky configured operations for explicit approval. | action summary/policy | approval, denial, or expiry |
 | `handle_failure` | Map typed errors to retry, partial, denied, or failed outcome. | errors, retry counts, evidence | status, public error, next route |
 
-## Main graph (proposed)
+## Main graph
 
 ```mermaid
 flowchart TD

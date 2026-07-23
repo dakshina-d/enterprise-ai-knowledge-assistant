@@ -1,6 +1,7 @@
 """Native FastAPI SSE adaptation for the public graph stream."""
 
 import asyncio
+import logging
 from collections.abc import AsyncGenerator, AsyncIterator
 from contextlib import suppress
 from typing import cast
@@ -19,6 +20,7 @@ TERMINAL_EVENTS = {
     AgentEventType.RESPONSE_COMPLETED,
     AgentEventType.RESPONSE_FAILED,
 }
+logger = logging.getLogger(__name__)
 
 
 async def chat_event_stream(
@@ -97,6 +99,18 @@ async def chat_event_stream(
                     agent_event=terminal_event,
                     response=item.output,
                 )
+                logger.info(
+                    "chat_stream_completed",
+                    extra={
+                        "request_id": str(graph_input.request_id),
+                        "trace_id": str(graph_input.trace_id),
+                        "session_id": str(graph_input.session_id),
+                        "role": graph_input.principal.identity.role.value,
+                        "route": item.output.selected_route.value,
+                        "completion_status": item.output.completion_status.value,
+                        "outcome": "completed",
+                    },
+                )
                 return
         yield message(
             "stream.error",
@@ -106,10 +120,33 @@ async def chat_event_stream(
             ),
         )
     except asyncio.CancelledError:
+        logger.info(
+            "chat_stream_cancelled",
+            extra={
+                "request_id": str(graph_input.request_id),
+                "trace_id": str(graph_input.trace_id),
+                "session_id": str(graph_input.session_id),
+                "role": graph_input.principal.identity.role.value,
+                "outcome": "cancelled",
+                "cancelled": True,
+                "disconnected": True,
+            },
+        )
         raise
     except Exception as error:
         if exception_status(error) == 500:
             log_unexpected(request)
+        logger.warning(
+            "chat_stream_failed",
+            extra={
+                "request_id": str(graph_input.request_id),
+                "trace_id": str(graph_input.trace_id),
+                "session_id": str(graph_input.session_id),
+                "role": graph_input.principal.identity.role.value,
+                "dependency_category": "graph",
+                "outcome": "failed",
+            },
+        )
         yield message("stream.error", error=public_error(request, error))
     finally:
         if pending is not None and not pending.done():

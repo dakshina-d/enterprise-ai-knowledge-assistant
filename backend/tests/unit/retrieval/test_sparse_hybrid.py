@@ -9,14 +9,21 @@ import pytest
 from enterprise_ai.models.identity import AccessLevel, UserRole
 from enterprise_ai.models.retrieval import DocumentType
 from enterprise_ai.retrieval.config import RetrievalSettings
-from enterprise_ai.retrieval.dense_retriever import DenseEvidence
+from enterprise_ai.retrieval.dense_retriever import DenseEvidence, DenseRetrievalResult
 from enterprise_ai.retrieval.evaluation import assessment_principal
+from enterprise_ai.retrieval.exceptions import RetrievalDependencyError
 from enterprise_ai.retrieval.hybrid.fusion import fuse
+from enterprise_ai.retrieval.hybrid.models import CompletionStatus
 from enterprise_ai.retrieval.hybrid.normalization import normalize_scores
+from enterprise_ai.retrieval.hybrid.retriever import HybridRetrievalService
 from enterprise_ai.retrieval.sparse.analyzer import analyze
 from enterprise_ai.retrieval.sparse.artifacts import build_sparse, check_sparse, validate_sparse
 from enterprise_ai.retrieval.sparse.bm25 import score_corpus
-from enterprise_ai.retrieval.sparse.retriever import SparseEvidence, SparseRetrievalService
+from enterprise_ai.retrieval.sparse.retriever import (
+    SparseEvidence,
+    SparseRetrievalResult,
+    SparseRetrievalService,
+)
 from enterprise_ai_ingestion.config import default_config
 from enterprise_ai_ingestion.pipeline import IngestionPipeline
 
@@ -155,3 +162,67 @@ def test_normalization_and_hybrid_fusion_preserve_raw_scores_and_order() -> None
     assert len({item.evidence.chunk_id for item in result}) == 2
     assert all(0 <= item.hybrid_score <= 1 for item in result)
     assert any(item.raw_dense_score == -0.5 and item.raw_sparse_score == 4.0 for item in result)
+
+
+class RetrievalBranch:
+    def __init__(self, result: object) -> None:
+        self.result = result
+
+    async def retrieve(self, *_args: object, **_kwargs: object) -> object:
+        if isinstance(self.result, BaseException):
+            raise self.result
+        return self.result
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(("failed", "expected_mode"), [("dense", "sparse"), ("sparse", "dense")])
+async def test_hybrid_returns_only_safe_partial_branch(
+    failed: str,
+    expected_mode: str,
+) -> None:
+    item = _dense("00000000-0000-0000-0000-000000000001", 0.8)
+    dense: object = DenseRetrievalResult(
+        evidence=(item,),
+        total_provider_matches=1,
+        dropped_unauthorized=0,
+        malformed_results=0,
+    )
+    sparse: object = SparseRetrievalResult(evidence=(_sparse(item, 2.0),), total_candidates=1)
+    if failed == "dense":
+        dense = RuntimeError("raw dense provider detail")
+    else:
+        sparse = RuntimeError("raw sparse provider detail")
+    service = HybridRetrievalService(
+        RetrievalSettings(),
+        RetrievalBranch(dense),  # type: ignore[arg-type]
+        RetrievalBranch(sparse),  # type: ignore[arg-type]
+    )
+
+    result = await service.retrieve(
+        assessment_principal(UserRole.VIEWER),
+        "safe query",
+    )
+
+    assert result.completion_status is CompletionStatus.PARTIAL_SUCCESS
+    assert result.failed_branches == (failed,)
+    assert all(expected_mode in candidate.retrieval_modes for candidate in result.evidence)
+    assert "provider detail" not in repr(result)
+
+
+@pytest.mark.asyncio
+async def test_hybrid_complete_failure_and_cancellation_are_not_hidden() -> None:
+    service = HybridRetrievalService(
+        RetrievalSettings(),
+        RetrievalBranch(RuntimeError("raw dense detail")),  # type: ignore[arg-type]
+        RetrievalBranch(RuntimeError("raw sparse detail")),  # type: ignore[arg-type]
+    )
+    with pytest.raises(RetrievalDependencyError, match="failed safely"):
+        await service.retrieve(assessment_principal(UserRole.VIEWER), "safe query")
+
+    cancelled = HybridRetrievalService(
+        RetrievalSettings(),
+        RetrievalBranch(asyncio.CancelledError()),  # type: ignore[arg-type]
+        RetrievalBranch(RuntimeError("raw sparse detail")),  # type: ignore[arg-type]
+    )
+    with pytest.raises(asyncio.CancelledError):
+        await cancelled.retrieve(assessment_principal(UserRole.VIEWER), "safe query")

@@ -1,6 +1,9 @@
-# Proposed Testing Strategy
+# Testing Strategy
 
-Status: **Partially implemented.** Dense tests plus offline analyzer, BM25, sparse artifact/fingerprint, exact identifier, RBAC, normalization, fusion, attribution, deterministic ordering, and partial-result tests run now. Live Pinecone remains explicit and opt-in. Reranking, graph/tools, streaming, and end-to-end assistant tests remain planned.
+Status: **Implemented for the bounded offline PoC.** Unit, integration, contract, security,
+retrieval-quality, graph, failure-injection, streaming, API, frontend, and assessment role suites
+run without provider credentials. Live Pinecone/OpenAI and current remote LangSmith export remain
+explicit manual checks; reranking is out of scope.
 
 Memory tests cover ownership, immutable snapshots, idempotency conflicts, sequences, TTL, eviction,
 concurrency, sanitization, structured context, follow-up resolution, lifecycle ordering, and repeated
@@ -43,7 +46,7 @@ behavior on every operating system.
 | Graph routing | State invariants, route table, retries, budgets, fan-out reducers, terminal states. | Property/table-driven tests in CI. |
 | Failure injection | LLM/Pinecone/MCP/memory timeouts, malformed results, partial workers, disconnects. | Deterministic fake adapters plus selected integration faults. |
 | Streaming | Ordering, monotonic sequence, reconnect/replay, heartbeat, one terminal event, redaction, slow/disconnected client. | SSE parser contract and API integration tests. |
-| End-to-end | Login, session, multi-turn question, retrieval, authorized tool, streamed completion, feedback. | Clean PoC deployment with generated data. |
+| End-to-end | Login, session, multi-turn question, retrieval, authorized tool, streamed completion. | Offline API/role acceptance fixtures; no feedback feature claimed. |
 | LangSmith trace | Required span names, correlation IDs, route/tool/error attributes, no sensitive content. | Mock exporter in CI; selected real-project smoke test. |
 
 MCP tests use the official SDK's connected in-memory client/server streams rather than direct tool
@@ -97,7 +100,11 @@ Event-state tests cover invalid schema projection, safe terminal continuation, r
 
 Final-pipeline evaluation tests execute all 12 questions twice through the compiled graph and compare aggregate/per-question output. Security integrity failures are fatal while honest non-sufficient outcomes are accepted. A gated three-worker compiled fixture proves byte-equivalent normalized final plans, task/ledger ordering, budgets, provenance, conflicts, coverage, citations, final response and memory-safe turn across three completion permutations. No test uses credentials, network calls, long sleeps, or generated repository output.
 
-Required local gates remain `ruff format --check .`, `ruff check .`, `mypy backend/src frontend`, and `pytest`. Future CI adds coverage thresholds only where meaningful, OpenAPI/event snapshots with intentional review, dependency/security scanning, and Mermaid rendering. Demo evidence references test names, sanitized event captures, trace IDs, and evaluation reports—never claims a designed feature is operational before its tests pass.
+Required local gates are `ruff format --check .`, `ruff check .`,
+`mypy backend/src frontend ingestion/src scripts`, and `pytest`. Future CI may add coverage
+thresholds only where meaningful, dependency/security scanning, and Mermaid rendering. Demo
+evidence references test names, sanitized event captures, trace IDs, and evaluation reports—never
+claims a designed feature is operational before its tests pass.
 
 The implemented chat delivery suite adds strict request-schema and injection tests,
 authentication-before-execution and shared-quota checks, runtime lifespan verification, JSON

@@ -12,8 +12,8 @@ citation validation; model-generated filenames, line numbers, URLs, and policy c
 
 | Threat | Intended controls |
 |---|---|
-| Prompt injection | Separate instructions from user data, validate input, constrain graph transitions, and apply output guardrails. |
-| Indirect prompt injection in documents | Treat retrieved text as untrusted, preserve provenance, detect instruction-like content, and prevent it from changing tool policy. |
+| Prompt injection | Deterministically reject bounded direct attack patterns, separate instructions from user data, constrain graph transitions, and apply output guardrails. |
+| Indirect prompt injection in documents | Treat retrieved text as untrusted, reject instruction-bearing evidence before model context, preserve provenance, and prevent it from changing tool policy. |
 | Data exfiltration | Enforce least privilege, namespace and metadata filters, response filtering, egress controls, and audit events. |
 | Unauthorized retrieval | Apply backend RBAC before querying and enforce tenant/role filters in every retrieval request. |
 | Tool misuse | Allowlist tools and arguments, authorize each call, use timeouts and budgets, and record auditable outcomes. |
@@ -81,7 +81,13 @@ Policy names, capacity, refill, and cost are server configuration. Clients and L
 
 ## Synthetic-data safety boundary
 
-The valid corpus contains fictional documents only and is scanned for private-key markers, common API-key/token forms, password assignments, non-placeholder email domains, public-looking IPv4 addresses, and a small real-bank denylist. Nine intentionally malicious but non-executable fixtures are isolated under `data/security_fixtures/`, use a separate manifest, and are excluded from valid ingestion. The scan is lightweight test-data hygiene, not a substitute for production DLP, malware scanning, or legal review. All retrieved content will still be treated as untrusted when retrieval is implemented.
+The valid corpus contains fictional documents only and is scanned for private-key markers, common
+API-key/token forms, password assignments, non-placeholder email domains, public-looking IPv4
+addresses, and a small real-bank denylist. Nine intentionally malicious but non-executable
+fixtures are isolated under `data/security_fixtures/`, use a separate manifest, and are excluded
+from valid ingestion. The scan is lightweight test-data hygiene, not a substitute for production
+DLP, malware scanning, or legal review. Implemented retrieval treats all returned content as
+untrusted, reauthorizes it locally, and excludes instruction-bearing evidence from model context.
 
 Authenticated chat derives identity only from the verified Bearer token. Its strict body excludes
 roles, permissions, trace IDs, routes, tools, namespaces, and retrieval policy. JSON and SSE share

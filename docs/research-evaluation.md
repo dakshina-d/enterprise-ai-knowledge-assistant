@@ -12,4 +12,9 @@ Citation-validation pass rate is `validly cited final factual claims / final fac
 
 The command exits non-zero for authorization violations, unauthorized/stale/unknown/invalid accepted citations, or unsupported analytical claims. Partial, insufficient, authorization-blocked and budget-exhausted answers do not fail merely for being honest. The deterministic CI provider is stable. A three-worker compiled fixture exercises completion orders `T02,T03,T01`, `T01,T02,T03`, and `T03,T01,T02`; only runtime IDs, timestamps and durations are normalization candidates, while plan, tasks, budgets, result/ledger order, provenance, analysis, conflicts, coverage, citations, final response and memory-safe turn remain substantive comparison fields.
 
-Limitations: the benchmark uses offline BM25 rather than Pinecone; fake generation produces deliberately minimal grounded prose; structural citation validation is not universal semantic fact checking; public worker events remain deterministic post-fan-in projections; FastAPI/SSE delivery, MCP, human approval, reranking and Streamlit remain pending. Real LangSmith export was manually verified using a temporary user-provided credential that was removed after testing.
+Limitations: the benchmark uses offline BM25 rather than Pinecone; fake generation produces
+deliberately minimal grounded prose; structural citation validation is not universal semantic fact
+checking; public worker events remain deterministic post-fan-in projections. FastAPI/SSE delivery,
+MCP, and Streamlit are implemented outside this benchmark. Human approval and reranking remain out
+of scope. Real LangSmith export was manually verified using a temporary user-provided credential
+that was removed after testing.

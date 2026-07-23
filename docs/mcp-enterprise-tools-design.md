@@ -43,4 +43,8 @@ python -m enterprise_ai.mcp_tools.cli call --role viewer --tool get_service_prof
 python -m enterprise_ai.graph.cli run --role analyst --query "Who owns the payment-gateway service?"
 ```
 
-Tests use the real SDK protocol in memory and cover contracts, authorization, malicious input, timeout, cancellation, concurrency, routing, events, provenance, tracing, and failure isolation. The dataset is intentionally static. Remote MCP deployment, OAuth, model-selected arbitrary tools, write tools, fuzzy matching, FastAPI/SSE, and Streamlit are not implemented.
+Tests use the real SDK protocol in memory and cover contracts, authorization, malicious input,
+timeout, cancellation, concurrency, routing, events, provenance, tracing, and failure isolation.
+The graph, FastAPI JSON/SSE, and Streamlit activity/provenance paths are implemented. The dataset
+is intentionally static. Remote MCP deployment, OAuth, model-selected arbitrary tools, write
+tools, and fuzzy matching are not implemented.

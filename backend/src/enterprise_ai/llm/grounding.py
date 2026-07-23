@@ -3,6 +3,7 @@
 from enterprise_ai.llm.models import EvidenceContextItem
 from enterprise_ai.retrieval.config import RetrievalSettings
 from enterprise_ai.retrieval.hybrid.models import HybridEvidence
+from enterprise_ai.security.guardrails import contains_untrusted_instruction
 
 
 def build_evidence_context(
@@ -16,6 +17,8 @@ def build_evidence_context(
     )
     for index, item in enumerate(ordered[: settings.llm_max_evidence_items], start=1):
         source = item.evidence
+        if contains_untrusted_instruction(source.text):
+            continue
         if remaining <= 0:
             break
         text = source.text[: min(settings.llm_max_evidence_item_characters, remaining)]

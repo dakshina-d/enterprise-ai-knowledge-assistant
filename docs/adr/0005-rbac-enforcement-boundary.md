@@ -1,6 +1,6 @@
 # ADR 0005: Backend RBAC Enforcement Boundary
 
-- Status: Accepted (foundation implemented; downstream enforcement integrations planned)
+- Status: Accepted (bounded PoC enforcement integrations complete)
 - Date: 2026-07-10
 
 ## Context

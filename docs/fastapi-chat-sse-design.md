@@ -88,5 +88,5 @@ curl -N -X POST http://127.0.0.1:8000/api/v1/chat/stream \
 
 Known limitations are process-local quotas, checkpoints, session ownership, and memory; there is
 no durable SSE replay or transport idempotency key. Multi-worker deployment requires shared atomic
-quota/session/checkpoint infrastructure. Streamlit integration is intentionally not part of this
-phase.
+quota/session/checkpoint infrastructure. The implemented Streamlit client consumes this endpoint;
+proxy buffering and timeout behavior still require deployment-specific manual validation.

@@ -1,6 +1,10 @@
 # Proposed Retrieval Design
 
-Status: **Ingestion, Pinecone dense retrieval, deterministic local BM25 sparse retrieval, mandatory RBAC filtering, and transparent weighted hybrid fusion are implemented. Reranking remains planned.** Retrieved provider metadata, local sparse artifacts, and documents are untrusted data. See [dense retrieval design](dense-retrieval-design.md) and [sparse/hybrid design](sparse-and-hybrid-retrieval-design.md).
+Status: **Ingestion, Pinecone dense retrieval, deterministic local BM25 sparse retrieval, mandatory
+RBAC filtering, and transparent weighted hybrid fusion are implemented. Bonus reranking is not
+implemented.** Retrieved provider metadata, local sparse artifacts, and documents are untrusted
+data. See [dense retrieval design](dense-retrieval-design.md) and
+[sparse/hybrid design](sparse-and-hybrid-retrieval-design.md).
 
 ## Offline ingestion
 
@@ -20,7 +24,13 @@ flowchart LR
 
 The source dataset contains 51 Markdown documents with YAML front matter and SHA-256 body hashes. The manifest is provider neutral and contains no vectors or Pinecone fields. Security fixtures and the glossary are outside the allowlisted inputs. Implemented stages through content hashing emit deterministic JSONL records described in [ingestion design](ingestion-design.md); embedding and upsert remain proposed.
 
-Parsing rejects non-allowlisted, malformed, hash-mismatched, traversing, and symlinked inputs. Normalization preserves structure and source lines while removing unstable formatting. Structure-aware chunks use configurable approximate-token limits and bounded overlap. Deterministic hashes, UUIDv5 identifiers, and a build fingerprint support drift detection and future indexing. Dense embeddings, sparse term weights, deletion reconciliation, and batch upsert are not implemented.
+Parsing rejects non-allowlisted, malformed, hash-mismatched, traversing, and symlinked inputs.
+Normalization preserves structure and source lines while removing unstable formatting.
+Structure-aware chunks use configurable approximate-token limits and bounded overlap.
+Deterministic hashes, UUIDv5 identifiers, and a build fingerprint support drift detection. Local
+sparse term weights/artifacts and optional dense embedding, batch upsert, namespace querying, and
+stale-vector deletion reconciliation are implemented; live Pinecone execution remains explicit and
+credential-dependent.
 
 ## Metadata schema
 

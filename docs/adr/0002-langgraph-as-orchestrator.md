@@ -1,6 +1,6 @@
 # ADR 0002: LangGraph as the Orchestrator
 
-- Status: Accepted (design decision; implementation planned)
+- Status: Accepted (bounded PoC implementation complete)
 - Date: 2026-07-10
 
 ## Context

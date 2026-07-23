@@ -1,6 +1,6 @@
 """Grounded generation, bounded citation repair, rendering, and fallback."""
 
-import re
+import asyncio
 
 from enterprise_ai.llm.citation_validator import citation_from_context, validate_citations
 from enterprise_ai.llm.grounding import build_evidence_context
@@ -10,6 +10,7 @@ from enterprise_ai.llm.models import (
     GroundedAnswerDraft,
     GroundedResponse,
     LLMGenerationRequest,
+    LLMGenerationResult,
     ResponseMode,
 )
 from enterprise_ai.llm.prompts import analysis_request, grounded_request
@@ -19,9 +20,8 @@ from enterprise_ai.observability.tracing import SafeTracer
 from enterprise_ai.research.models import ResearchResult
 from enterprise_ai.retrieval.config import RetrievalSettings
 from enterprise_ai.retrieval.hybrid.models import HybridEvidence
+from enterprise_ai.security.guardrails import response_policy_violations
 from enterprise_ai.tools.python_analysis.models import AnalysisResult
-
-_UNSAFE = re.compile(r"<\s*script|https?://", re.I)
 
 
 class GroundedResponseService:
@@ -83,7 +83,20 @@ class GroundedResponseService:
             "llm",
             {"model": request.model, "llm_calls": 1},
         ):
-            result = await self.provider.generate(request)
+            try:
+                result = await self._generate(request)
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                if not self.settings.llm_allow_deterministic_fallback:
+                    raise
+                fallback = self._evidence_fallback(context)
+                return (
+                    fallback,
+                    GroundedAnswerDraft(answer_summary=fallback.answer_text),
+                    CitationValidationResult(valid=True, citations=fallback.citations),
+                    0,
+                )
         draft = result.draft
         validation = validate_citations(
             draft,
@@ -115,7 +128,13 @@ class GroundedResponseService:
                 "llm",
                 {"model": repair.model, "llm_calls": repairs + 1},
             ):
-                draft = (await self.provider.generate(repair)).draft
+                try:
+                    draft = (await self._generate(repair)).draft
+                except asyncio.CancelledError:
+                    raise
+                except Exception:
+                    fallback = self._evidence_fallback(context)
+                    return fallback, draft, validation, repairs
             validation = validate_citations(
                 draft,
                 context,
@@ -131,7 +150,8 @@ class GroundedResponseService:
                 fallback = self._evidence_fallback(context)
             return fallback, draft, validation, repairs
         answer = render_draft(draft)
-        if _UNSAFE.search(answer):
+        violations = response_policy_violations(answer)
+        if violations:
             async with self.tracer.span(
                 "enterprise_ai.deterministic_fallback",
                 metadata={"fallback_used": True, "citation_valid": False},
@@ -140,7 +160,10 @@ class GroundedResponseService:
             return (
                 fallback,
                 draft,
-                CitationValidationResult(valid=False, errors=("unsafe output content",)),
+                CitationValidationResult(
+                    valid=False,
+                    errors=tuple(f"response policy: {code}" for code in violations),
+                ),
                 repairs,
             )
         return (
@@ -164,7 +187,20 @@ class GroundedResponseService:
             "llm",
             {"model": request.model, "llm_calls": 1},
         ):
-            result = await self.provider.generate(request)
+            try:
+                result = await self._generate(request)
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                if not self.settings.llm_allow_deterministic_fallback:
+                    raise
+                return GroundedResponse(
+                    answer_text=analysis.summary[: self.settings.llm_max_answer_characters],
+                    provider="deterministic",
+                    model="none",
+                    prompt_version="1.0",
+                    deterministic_fallback_used=True,
+                )
         # Typed calculations are rendered deterministically to prevent numerical drift.
         return GroundedResponse(
             answer_text=analysis.summary[: self.settings.llm_max_answer_characters],
@@ -234,6 +270,11 @@ class GroundedResponseService:
             prompt_version="1.0",
             deterministic_fallback_used=True,
         )
+
+    async def _generate(self, request: LLMGenerationRequest) -> LLMGenerationResult:
+        async with asyncio.timeout(self.settings.openai_response_timeout_seconds):
+            result = await self.provider.generate(request)
+        return LLMGenerationResult.model_validate(result)
 
 
 def render_draft(draft: GroundedAnswerDraft) -> str:

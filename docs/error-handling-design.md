@@ -22,6 +22,10 @@ Restricted-analysis authorization, validation, dataset-integrity, limit, timeout
 failures are sanitized and never fall back to broader data or arbitrary execution.
 Provider failures use bounded retry classes. Invalid citations receive one bounded same-context
 repair and then a safe deterministic fallback; permanent authorization/attribution failures do not retry.
+The response service also applies a hard per-call timeout and validates the provider result against
+the typed generation schema. Unavailable, timed-out, malformed, or failed repair calls use an
+authorized evidence-only fallback when configured; otherwise the graph emits one sanitized failed
+terminal result and does not record the failed turn as completed memory.
 
 ## Taxonomy and default policy
 
@@ -40,6 +44,11 @@ repair and then a safe deterministic fallback; permanent authorization/attributi
 | Internal | No automatic whole-graph replay | 0 | Safe generic response | `failed`; generic message and correlated exception log. |
 
 Logs contain request/trace IDs, typed code, operation, attempt, duration, and sanitized dependency metadata. Traces mark retries and fallbacks. Raw prompts, evidence text, secrets, credentials, stack traces in UI, and private reasoning are prohibited.
+
+HTTP, stream, and graph outcome logs use an allowlist of correlation, route, status, dependency,
+duration, role, cancellation, and disconnect fields. The JSON formatter ignores exception payloads
+and unapproved `extra` fields and redacts credential patterns and internal paths in the fixed event
+name.
 
 ## Failure matrix
 

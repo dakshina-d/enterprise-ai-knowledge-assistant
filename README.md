@@ -2,19 +2,19 @@
 
 [![Repository CI](https://github.com/dakshina-d/enterprise-ai-knowledge-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/dakshina-d/enterprise-ai-knowledge-assistant/actions/workflows/ci.yml)
 
-An enterprise-grade technical-assessment foundation for a future conversational knowledge assistant.
+A bounded, executable technical-assessment proof of concept for an enterprise knowledge assistant.
 
 ## Current status
 
 Implemented: modular repository scaffolding, reusable validated domain/API contracts, proof-of-concept authentication, deterministic RBAC and rate limiting, health endpoints, a deterministic 51-document synthetic corpus, offline ingestion, and optional Pinecone dense indexing/retrieval with offline-tested security filters.
 
-Implemented runtime capabilities now include LangGraph orchestration, local BM25 and hybrid retrieval, bounded research, grounded responses, restricted Python analysis, session memory, privacy-safe LangSmith tracing, three authorized read-only MCP enterprise-data tools, authenticated JSON/SSE chat delivery, and an authenticated Streamlit chat and live Agent Activity Panel. Reranking, HITL, and business workflows remain planned.
+Implemented runtime capabilities now include LangGraph orchestration, local BM25 and hybrid retrieval, bounded research, grounded responses, restricted Python analysis, session memory, privacy-safe LangSmith tracing, three authorized read-only MCP enterprise-data tools, authenticated JSON/SSE chat delivery, and an authenticated Streamlit chat and live Agent Activity Panel. Deterministic prompt/evidence and response guardrails, privacy-safe structured HTTP/graph logs, and dependency-failure containment are covered by offline acceptance tests. Reranking, HITL, and business workflows remain out of scope.
 
 The repository includes a deterministic 51-document synthetic corpus for the fictional Lanka Horizon Commercial Bank. All people, incidents, systems, dates, metrics, and identifiers are synthetic and do not describe any real financial institution.
 
-## Proposed architecture
+## Architecture
 
-The planned system separates the Streamlit experience, FastAPI orchestration API, ingestion pipeline, and constrained MCP server. Future backend modules reserve boundaries for agents, graph orchestration, hybrid retrieval, tools, memory, security, observability, models, and services. See [docs/architecture.md](docs/architecture.md).
+The system separates the Streamlit experience, FastAPI orchestration API, ingestion pipeline, and constrained local MCP server. Implemented modules provide agents, graph orchestration, hybrid retrieval, tools, memory, security, observability, models, and services. External providers and distributed production infrastructure remain optional or out of scope. See [docs/architecture.md](docs/architecture.md).
 
 Pinecone is disabled by default and never runs during API startup. After configuring `.env`, use the explicit `enterprise_ai.retrieval.cli` bootstrap, index, check, query, and evaluation commands documented in [dense retrieval design](docs/dense-retrieval-design.md).
 
@@ -67,7 +67,7 @@ The configured viewer, analyst, and administrator users are assessment-only. The
 
 ## Proof-of-concept rate limiting
 
-Rate limiting is enabled by default; set `RATE_LIMIT_ENABLED=false` only as an explicit local/test choice. Login uses an anonymous network fingerprint bucket (capacity 5, refill 1/30 token per second, cost 1); `/api/v1/auth/me` uses a backend-derived user-ID bucket (capacity 30, refill 0.5 token per second, cost 1). An expensive policy contract (capacity 10, refill 1/15 token per second, cost 2) is reserved for future AI/tool routes and is not attached today.
+Rate limiting is enabled by default; set `RATE_LIMIT_ENABLED=false` only as an explicit local/test choice. Login uses an anonymous network fingerprint bucket (capacity 5, refill 1/30 token per second, cost 1); `/api/v1/auth/me` and chat use a backend-derived user-ID bucket (capacity 30, refill 0.5 token per second, cost 1). An expensive policy contract (capacity 10, refill 1/15 token per second, cost 2) remains an unattached extension point.
 
 Allowed responses include `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset`; reset is seconds until the current request cost is available and is `0` when allowed. Denials return `429`, the same informational headers, and `Retry-After` in whole seconds. Health endpoints remain unthrottled for orchestrator probes.
 
@@ -78,7 +78,7 @@ The in-memory limiter is concurrency-safe only within one process, resets on res
 ```bash
 ruff format --check .
 ruff check .
-mypy backend/src frontend
+mypy backend/src frontend ingestion/src scripts
 pytest
 pre-commit run --all-files
 ```
@@ -129,7 +129,7 @@ py -3.12 -m enterprise_ai.graph.cli run "What is the leave policy?" --role viewe
 The CLI role controls backend authorization; it does not bypass document access rules. The local
 checkpointer is volatile, process-local assessment infrastructure. See
 [graph design](docs/graph-design.md) for topology, security boundaries, production replacement,
-and the deliberately unsupported future nodes.
+and the deliberately excluded bonus paths.
 
 Bounded session conversational memory is available within one running CLI/runtime process. It
 stores sanitized turns and authorized attribution—not evidence bodies—and supports conservative
@@ -153,7 +153,7 @@ provider; OpenAI Responses API mode is explicit and enforces `store=false`. See
 
 ## Environment configuration
 
-Configuration is loaded from environment variables by `enterprise_ai.core.config.Settings`. Application settings include `APP_ENV`, `LOG_LEVEL`, `API_HOST`, `API_PORT`, and the documented `AUTH_*`/`DEMO_*` proof-of-concept variables. Future provider variable names are listed in `.env.example`; no provider integration is active.
+Configuration is loaded from environment variables by `enterprise_ai.core.config.Settings`. Application settings include `APP_ENV`, `LOG_LEVEL`, `API_HOST`, `API_PORT`, and the documented authentication, provider, retrieval, tracing, and frontend variables. Offline fakes are the default; OpenAI, Pinecone, and LangSmith integrations activate only through explicit configuration.
 
 Never commit `.env`, API keys, credentials, or production configuration. Use a secrets manager in deployed environments and rotate any credential that is accidentally exposed.
 

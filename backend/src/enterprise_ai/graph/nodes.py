@@ -49,6 +49,7 @@ from enterprise_ai.research.service import ResearchService
 from enterprise_ai.retrieval.config import RetrievalSettings
 from enterprise_ai.retrieval.exceptions import RetrievalError
 from enterprise_ai.security.authorization import AuthorizationService
+from enterprise_ai.security.guardrails import contains_untrusted_instruction
 from enterprise_ai.tools.python_analysis.service import PythonAnalysisTool, plan_analysis
 
 
@@ -400,6 +401,7 @@ def create_nodes(
                 or evidence.source_line_start > evidence.source_line_end
                 or not math.isfinite(item.hybrid_score)
                 or evidence.build_fingerprint != expected_fingerprint
+                or contains_untrusted_instruction(evidence.text)
             ):
                 rejected += 1
                 continue

@@ -77,11 +77,11 @@ class PythonAnalysisTool:
             )
         ):
             raise AnalysisLimitError("analysis filter limit exceeded")
-        rows, excluded = await asyncio.to_thread(load_authorized_incidents, principal)
-        self.require_authorized(principal)
-        if len(rows) > self.settings.python_analysis_max_rows:
-            raise AnalysisLimitError("authorized analysis row limit exceeded")
         async with asyncio.timeout(self.settings.python_analysis_timeout_seconds):
+            rows, excluded = await asyncio.to_thread(load_authorized_incidents, principal)
+            self.require_authorized(principal)
+            if len(rows) > self.settings.python_analysis_max_rows:
+                raise AnalysisLimitError("authorized analysis row limit exceeded")
             result = await asyncio.to_thread(
                 execute_analysis,
                 request,

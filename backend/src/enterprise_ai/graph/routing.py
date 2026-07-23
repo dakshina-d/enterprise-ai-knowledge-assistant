@@ -10,6 +10,7 @@ from enterprise_ai.models.identity import (
     UserRole,
 )
 from enterprise_ai.security.authorization import AuthorizationService
+from enterprise_ai.security.guardrails import is_direct_prompt_attack
 
 GREETING = re.compile(r"^(hi|hello|hey|good (morning|afternoon|evening))[!. ]*$", re.I)
 
@@ -29,6 +30,8 @@ def requests_inaccessible_access(
 
 def classify(text: str) -> tuple[Intent, str]:
     value = text.casefold()
+    if is_direct_prompt_attack(text):
+        return Intent.UNSUPPORTED, "security_rejected"
     if GREETING.match(text.strip()) or "what can you do" in value:
         return Intent.CONVERSATIONAL, "simple"
     if any(
@@ -81,7 +84,7 @@ def classify(text: str) -> tuple[Intent, str]:
         return Intent.ENTERPRISE_TOOL_LOOKUP, "tool_required"
     if any(term in value for term in ("delete index", "admin operation", "reindex namespace")):
         return Intent.ADMINISTRATIVE, "tool_required"
-    if any(term in value for term in ("hack", "reveal system prompt", "steal credentials")):
+    if any(term in value for term in ("hack", "steal credentials")):
         return Intent.UNSUPPORTED, "simple"
     return Intent.KNOWLEDGE_LOOKUP, "simple"
 

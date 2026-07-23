@@ -19,7 +19,7 @@ structured output, and citation metadata remain application-owned.
 - Use async I/O for LLM, Pinecone, MCP, memory, and tool calls; use synchronous code for local validation and deterministic policy checks; use Server-Sent Events (SSE) for one-way streaming; run ingestion offline.
 - Emit structured operational summaries, never private chain-of-thought.
 
-## System context (proposed)
+## System context
 
 ```mermaid
 flowchart LR
@@ -35,7 +35,7 @@ flowchart LR
 
 External dependencies are the LLM provider, Pinecone, LangSmith, and any separately deployed MCP or restricted-runtime service. The browser never calls them directly.
 
-## Container and component architecture (proposed)
+## Component architecture
 
 ```mermaid
 flowchart TB
@@ -100,7 +100,7 @@ Login and health calls are ordinary HTTP operations. The chat POST remains open 
 graph work emits safe activity and one final output. Unvalidated model tokens are not streamed.
 Ingestion is offline and never runs in the interactive request path.
 
-## Trust boundaries (proposed)
+## Trust boundaries
 
 ```mermaid
 flowchart LR

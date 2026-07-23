@@ -8,6 +8,7 @@ from enterprise_ai.research.models import (
     ResearchWorkerResult,
 )
 from enterprise_ai.security.authorization import AuthorizationService
+from enterprise_ai.security.guardrails import contains_untrusted_instruction
 
 
 def aggregate_evidence(
@@ -30,6 +31,9 @@ def aggregate_evidence(
                 expected_build_fingerprint
                 and source.build_fingerprint != expected_build_fingerprint
             ):
+                dropped += 1
+                continue
+            if contains_untrusted_instruction(source.text):
                 dropped += 1
                 continue
             if principal is not None:
