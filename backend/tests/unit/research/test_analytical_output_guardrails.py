@@ -6,7 +6,10 @@ from enterprise_ai.llm.models import (
     LLMGenerationResult,
     LLMProviderMetadata,
 )
-from enterprise_ai.llm.response_service import GroundedResponseService
+from enterprise_ai.llm.response_service import (
+    GroundedResponseService,
+    select_relevant_analyses,
+)
 from enterprise_ai.retrieval.config import RetrievalSettings
 from enterprise_ai.tools.python_analysis.models import (
     AnalysisItem,
@@ -84,3 +87,18 @@ async def test_typed_analysis_deterministically_overrides_malicious_prose(
     assert response.fallback_reason is None
     assert provider.calls == 0
     assert not response.citations
+
+
+def test_research_analysis_is_selected_only_for_requested_aggregate_operation() -> None:
+    analysis = _analysis()
+    assert (
+        select_relevant_analyses(
+            "Compare pending status in September and settlement lag in February.",
+            (analysis,),
+        )
+        == ()
+    )
+    assert select_relevant_analyses(
+        "Identify recurring root causes across payment incidents.",
+        (analysis,),
+    ) == (analysis,)

@@ -63,7 +63,9 @@ class OllamaChatProvider:
                 ],
                 "stream": False,
                 "format": ollama_json_schema(
-                    require_grounded_claim=request.mode.value == "grounded_retrieval"
+                    require_grounded_claim=request.mode
+                    in {ResponseMode.GROUNDED_RETRIEVAL, ResponseMode.RESEARCH_SYNTHESIS},
+                    minimum_grounded_claims=request.required_claim_count,
                 ),
                 "think": False,
                 "options": {
@@ -118,6 +120,19 @@ class OllamaChatProvider:
             raise LLMInvalidResponseError(
                 "Ollama grounded output violated the bounded claim contract",
                 category="validation_claim_contract",
+            )
+        if request.mode is ResponseMode.RESEARCH_SYNTHESIS and (
+            (
+                request.required_claim_count is not None
+                and len(draft.claims) != request.required_claim_count
+            )
+            or not 1 <= len(draft.claims) <= 5
+            or tuple(claim.claim_id for claim in draft.claims)
+            != tuple(f"C{index}" for index in range(1, len(draft.claims) + 1))
+        ):
+            raise LLMInvalidResponseError(
+                "Ollama research output violated the bounded claim contract",
+                category="validation_research_claim_contract",
             )
         return LLMGenerationResult(
             draft=draft,
@@ -205,7 +220,11 @@ def _non_negative_int(value: object) -> int | None:
     return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else None
 
 
-def ollama_json_schema(*, require_grounded_claim: bool = False) -> dict[str, Any]:
+def ollama_json_schema(
+    *,
+    require_grounded_claim: bool = False,
+    minimum_grounded_claims: int | None = None,
+) -> dict[str, Any]:
     """Derive Ollama's grammar-compatible schema from the authoritative Pydantic model."""
 
     def compatible(value: object) -> object:
@@ -220,9 +239,10 @@ def ollama_json_schema(*, require_grounded_claim: bool = False) -> dict[str, Any
         return value
 
     schema = cast(dict[str, Any], compatible(GroundedAnswerDraft.model_json_schema()))
-    if require_grounded_claim:
+    minimum_claims = minimum_grounded_claims or (1 if require_grounded_claim else 0)
+    if minimum_claims:
         properties = schema["properties"]
-        properties["claims"]["minItems"] = 1
+        properties["claims"]["minItems"] = minimum_claims
         required = list(schema.get("required", []))
         if "claims" not in required:
             required.append("claims")

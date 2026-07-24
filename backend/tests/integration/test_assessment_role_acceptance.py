@@ -7,6 +7,8 @@ from enterprise_ai.graph.builder import build_graph
 from enterprise_ai.graph.checkpointer import create_checkpointer
 from enterprise_ai.graph.dependencies import OfflineSparseAdapter
 from enterprise_ai.graph.runtime import GraphRuntime
+from enterprise_ai.llm.fake_provider import FakeLLMProvider
+from enterprise_ai.llm.models import GroundedAnswerDraft, GroundedClaim, LLMGenerationRequest
 from enterprise_ai.llm.ollama_provider import OllamaChatProvider
 from enterprise_ai.llm.response_service import GroundedResponseService
 from enterprise_ai.main import create_app
@@ -132,6 +134,15 @@ def test_viewer_analyst_and_administrator_route_acceptance() -> None:
             elif route in {"simple_retrieval", "recursive_research"}:
                 assert output["evidence"]
                 assert output["citations"]
+                if route == "recursive_research":
+                    expected_titles = {
+                        "Pending Payment Status Accumulation",
+                        "Card Settlement Consumer Lag",
+                    }
+                    assert expected_titles <= {item["title"] for item in output["citations"]}
+                    assert len({item["document_id"] for item in output["citations"]}) >= 2
+                    assert output["deterministic_fallback_used"] is False
+                    assert "database_lock_contention" not in output["response_text"]
             assert (
                 sum(
                     item["event"] in {"response.completed", "response.failed", "stream.error"}
@@ -265,6 +276,238 @@ def test_exact_viewer_followup_reaches_ollama_as_resolved_question() -> None:
     second_prompt = requests[1]["messages"][1]["content"]  # type: ignore[index]
     assert question in second_prompt
     assert previous_answer_sentinel not in second_prompt
+
+
+def test_exact_comparison_synthesis_is_grounded_in_both_dimensions() -> None:
+    requests: list[LLMGenerationRequest] = []
+
+    def comparison_draft(request: LLMGenerationRequest) -> GroundedAnswerDraft:
+        requests.append(request)
+        allowed = request.allowed_evidence_ids
+        return GroundedAnswerDraft(
+            answer_summary=(
+                "The September pending-payment incident and February settlement-consumer-lag "
+                "incident had different symptom framing."
+            ),
+            claims=(
+                GroundedClaim(
+                    claim_id="C1",
+                    text=(
+                        "In September, consumer throughput fell below ingress and messages "
+                        "accumulated as pending-payment statuses."
+                    ),
+                    supporting_evidence_ids=allowed[:1],
+                ),
+                GroundedClaim(
+                    claim_id="C2",
+                    text=(
+                        "In February, consumer throughput fell below ingress and messages "
+                        "accumulated as settlement-consumer lag."
+                    ),
+                    supporting_evidence_ids=allowed[1:2],
+                ),
+                GroundedClaim(
+                    claim_id="C3",
+                    text=(
+                        "Both belong to the message queue backlog family: consumer throughput "
+                        "fell below ingress and payment messages accumulated."
+                    ),
+                    supporting_evidence_ids=allowed,
+                ),
+            ),
+        )
+
+    active = RetrievalSettings(llm_max_evidence_items=1)
+
+    def runtime_factory(_settings: RetrievalSettings) -> GraphRuntime:
+        tracer = SafeTracer()
+        memory = create_memory_service(active)
+        provider = FakeLLMProvider(comparison_draft)
+        responses = GroundedResponseService(provider, active, tracer)
+        graph = build_graph(
+            active,
+            OfflineSparseAdapter(SparseRetrievalService(active)),
+            checkpointer=create_checkpointer(),
+            memory=memory,
+            responses=responses,
+            tracer=tracer,
+        )
+        return GraphRuntime(graph, active, memory, responses, tracer)
+
+    query = "Compare pending payment status in September and delayed settlement in February."
+    with TestClient(create_app(chat_settings(), runtime_factory=runtime_factory)) as client:
+        response = client.post(
+            "/api/v1/chat",
+            headers=authorization_header(client, "demo-analyst"),
+            json={"message": query},
+        )
+
+    assert response.status_code == 200
+    output = response.json()
+    assert output["selected_route"] == "recursive_research"
+    assert output["completion_status"] == "completed"
+    assert {item["document_id"] for item in output["evidence"]} >= {
+        "d71d6b52-aaaa-5389-838a-2dd02331fa70",
+        "13167a0c-5190-5984-84e5-705ca72c8699",
+    }
+    assert {item["title"] for item in output["citations"]} == {
+        "Pending Payment Status Accumulation",
+        "Card Settlement Consumer Lag",
+    }
+    answer = output["response_text"].casefold()
+    assert "september" in answer and "february" in answer
+    assert "pending-payment" in answer
+    assert "settlement-consumer-lag" in answer
+    assert "message queue backlog" in answer
+    assert "throughput" in answer and "ingress" in answer and "accumulated" in answer
+    assert "database_lock_contention" not in answer
+    assert output["deterministic_fallback_used"] is False
+    assert len(requests) == 1
+    assert requests[0].mode.value == "research_synthesis"
+    assert requests[0].allowed_evidence_ids == ("E1", "E2")
+
+
+def test_one_sided_research_draft_is_repaired_with_both_dimensions() -> None:
+    requests: list[LLMGenerationRequest] = []
+
+    def comparison_draft(request: LLMGenerationRequest) -> GroundedAnswerDraft:
+        requests.append(request)
+        if len(requests) == 1:
+            return GroundedAnswerDraft(
+                answer_summary="The first comparison side is described.",
+                claims=(
+                    GroundedClaim(
+                        claim_id="C1",
+                        text="The September pending-payment status accumulated.",
+                        supporting_evidence_ids=("E1",),
+                    ),
+                ),
+            )
+        return GroundedAnswerDraft(
+            answer_summary="Both requested comparison sides are described.",
+            claims=(
+                GroundedClaim(
+                    claim_id="C1",
+                    text="The September pending-payment status accumulated.",
+                    supporting_evidence_ids=("E1",),
+                ),
+                GroundedClaim(
+                    claim_id="C2",
+                    text="The February settlement consumer experienced lag.",
+                    supporting_evidence_ids=("E2",),
+                ),
+                GroundedClaim(
+                    claim_id="C3",
+                    text=(
+                        "Both incidents belong to the message queue backlog family because "
+                        "throughput fell below ingress and messages accumulated."
+                    ),
+                    supporting_evidence_ids=("E1", "E2"),
+                ),
+            ),
+        )
+
+    active = RetrievalSettings(llm_max_evidence_items=1)
+
+    def runtime_factory(_settings: RetrievalSettings) -> GraphRuntime:
+        tracer = SafeTracer()
+        memory = create_memory_service(active)
+        responses = GroundedResponseService(FakeLLMProvider(comparison_draft), active, tracer)
+        graph = build_graph(
+            active,
+            OfflineSparseAdapter(SparseRetrievalService(active)),
+            checkpointer=create_checkpointer(),
+            memory=memory,
+            responses=responses,
+            tracer=tracer,
+        )
+        return GraphRuntime(graph, active, memory, responses, tracer)
+
+    with TestClient(create_app(chat_settings(), runtime_factory=runtime_factory)) as client:
+        response = client.post(
+            "/api/v1/chat",
+            headers=authorization_header(client, "demo-analyst"),
+            json={
+                "message": (
+                    "Compare pending payment status in September and delayed settlement "
+                    "in February."
+                )
+            },
+        )
+
+    output = response.json()
+    assert response.status_code == 200
+    assert output["completion_status"] == "completed"
+    assert output["selected_route"] == "recursive_research"
+    assert output["deterministic_fallback_used"] is False
+    assert output["fallback_reason"] is None
+    assert {item["title"] for item in output["citations"]} == {
+        "Pending Payment Status Accumulation",
+        "Card Settlement Consumer Lag",
+    }
+    assert len(requests) == 2
+    assert all(request.mode.value == "research_synthesis" for request in requests)
+    assert all(request.allowed_evidence_ids == ("E1", "E2") for request in requests)
+    assert "delayed settlement in February" in requests[1].input_text
+
+
+def test_persistently_one_sided_research_draft_falls_back_partially() -> None:
+    requests: list[LLMGenerationRequest] = []
+
+    def one_sided(request: LLMGenerationRequest) -> GroundedAnswerDraft:
+        requests.append(request)
+        return GroundedAnswerDraft(
+            answer_summary="Only the first comparison side was generated.",
+            claims=(
+                GroundedClaim(
+                    claim_id="C1",
+                    text="The September pending-payment status accumulated.",
+                    supporting_evidence_ids=("E1",),
+                ),
+            ),
+        )
+
+    active = RetrievalSettings(llm_max_evidence_items=1)
+
+    def runtime_factory(_settings: RetrievalSettings) -> GraphRuntime:
+        tracer = SafeTracer()
+        memory = create_memory_service(active)
+        responses = GroundedResponseService(FakeLLMProvider(one_sided), active, tracer)
+        graph = build_graph(
+            active,
+            OfflineSparseAdapter(SparseRetrievalService(active)),
+            checkpointer=create_checkpointer(),
+            memory=memory,
+            responses=responses,
+            tracer=tracer,
+        )
+        return GraphRuntime(graph, active, memory, responses, tracer)
+
+    with TestClient(create_app(chat_settings(), runtime_factory=runtime_factory)) as client:
+        response = client.post(
+            "/api/v1/chat",
+            headers=authorization_header(client, "demo-analyst"),
+            json={
+                "message": (
+                    "Compare pending payment status in September and delayed settlement "
+                    "in February."
+                )
+            },
+        )
+
+    output = response.json()
+    assert response.status_code == 200
+    assert output["completion_status"] == "partial_success"
+    assert output["deterministic_fallback_used"] is True
+    assert output["fallback_reason"] == "research_dimension_validation_failed"
+    assert len(requests) == 2
+    assert {item["title"] for item in output["citations"]} == {
+        "Pending Payment Status Accumulation",
+        "Card Settlement Consumer Lag",
+    }
+    answer = output["response_text"]
+    assert "Unvalidated response dimensions: delayed settlement in February" in answer
+    assert "no February evidence" not in answer
 
 
 def test_unsupported_password_policy_query_abstains_without_citations() -> None:

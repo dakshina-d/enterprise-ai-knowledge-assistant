@@ -180,6 +180,8 @@ class ResearchService:
                                 queries=proposal.queries, filters=DenseQueryFilters()
                             ),
                             priority=25,
+                            comparison_dimension=proposal.comparison_dimension,
+                            comparison_terms=proposal.comparison_terms,
                             completion_criteria=("Find authorized evidence for the gap",),
                         )
                         key = self._equivalence(child)

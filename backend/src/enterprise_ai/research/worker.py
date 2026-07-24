@@ -5,6 +5,7 @@ from time import monotonic
 
 from enterprise_ai.graph.dependencies import KnowledgeRetriever
 from enterprise_ai.research.budgets import BudgetLedger
+from enterprise_ai.research.coverage import evidence_supports_task
 from enterprise_ai.research.models import (
     CoverageStatus,
     ResearchChildTaskProposal,
@@ -98,16 +99,27 @@ class ResearchWorker:
         analysis_result: AnalysisResult | None = None,
         analysis_calls: int = 0,
     ) -> ResearchWorkerResult:
-        typed_evidence = tuple(evidence)
+        typed_evidence = tuple(
+            found
+            for found in evidence
+            if item.task.comparison_dimension is None or evidence_supports_task(found, item.task)
+        )
         proposals: tuple[ResearchChildTaskProposal, ...] = ()
         if not typed_evidence and item.task.depth < 2 and error is None:
+            dimension = item.task.comparison_dimension
             proposals = (
                 ResearchChildTaskProposal(
                     parent_task_id=item.task.task_id,
                     task_type=ResearchTaskType.GAP_INVESTIGATION,
-                    research_question=f"Narrow evidence gap for {item.task.research_question}",
-                    queries=(item.task.research_question,),
-                    reason="No authorized evidence was retrieved.",
+                    research_question=(
+                        f"Investigate missing comparison evidence for {dimension}"
+                        if dimension
+                        else f"Narrow evidence gap for {item.task.research_question}"
+                    ),
+                    queries=item.task.search.queries,
+                    reason="No authorized dimension-matching evidence was retrieved.",
+                    comparison_dimension=dimension,
+                    comparison_terms=item.task.comparison_terms,
                 ),
             )
         return ResearchWorkerResult(
@@ -138,4 +150,5 @@ class ResearchWorker:
             retrieval_calls=len(executed),
             analysis_result=analysis_result,
             analysis_calls=analysis_calls,
+            comparison_dimension=item.task.comparison_dimension,
         )

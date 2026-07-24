@@ -188,8 +188,26 @@ def test_authenticated_graph_scenarios_with_local_qwen() -> None:
     assert mcp.status_code == 200 and mcp.json()["mcp_result"] is not None
     assert analysis.status_code == 200 and analysis.json()["analysis_result"] is not None
     assert research.status_code == 200
-    assert research.json()["selected_route"] == "recursive_research"
-    assert research.json()["citations"]
+    research_output = research.json()
+    assert research_output["selected_route"] == "recursive_research"
+    assert research_output["completion_status"] == "completed"
+    assert research_output["response_provider"] == "ollama"
+    assert research_output["deterministic_fallback_used"] is False
+    assert research_output["fallback_reason"] is None
+    assert {item["title"] for item in research_output["citations"]} == {
+        "Pending Payment Status Accumulation",
+        "Card Settlement Consumer Lag",
+    }
+    research_answer = research_output["response_text"].casefold()
+    assert "september" in research_answer and "february" in research_answer
+    assert "message_queue_backlog" in research_answer or "message queue backlog" in research_answer
+    assert "throughput" in research_answer and "ingress" in research_answer
+    assert "pending" in research_answer
+    assert "settlement" in research_answer and (
+        "lag" in research_answer or "delay" in research_answer
+    )
+    assert "database_lock_contention" not in research_answer
+    assert "no february evidence" not in research_answer
     assert research_seconds < active.graph_timeout_seconds
     serialized = " ".join(
         response.text

@@ -69,6 +69,8 @@ class ResearchTask(ContractModel):
     dependency_task_ids: tuple[str, ...] = ()
     priority: int = Field(default=50, ge=0, le=100)
     analysis_may_be_useful: bool = False
+    comparison_dimension: str | None = None
+    comparison_terms: tuple[str, ...] = ()
     completion_criteria: tuple[str, ...] = ()
 
 
@@ -120,6 +122,8 @@ class ResearchChildTaskProposal(ContractModel):
     research_question: str
     queries: tuple[str, ...]
     reason: str
+    comparison_dimension: str | None = None
+    comparison_terms: tuple[str, ...] = ()
 
 
 class ResearchWorkerInput(ContractModel):
@@ -147,6 +151,7 @@ class ResearchWorkerResult(ContractModel):
     retrieval_calls: int = Field(default=0, ge=0)
     analysis_calls: int = Field(default=0, ge=0)
     analysis_result: AnalysisResult | None = None
+    comparison_dimension: str | None = None
 
 
 class ResearchEvidenceEntry(ContractModel):

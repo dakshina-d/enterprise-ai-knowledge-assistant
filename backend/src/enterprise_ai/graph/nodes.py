@@ -13,7 +13,7 @@ from enterprise_ai.graph.events import event
 from enterprise_ai.graph.routing import classify, requests_inaccessible_access, supervise
 from enterprise_ai.graph.schemas import GraphEvidenceAttribution, GraphOutput
 from enterprise_ai.graph.state import GraphState
-from enterprise_ai.llm.models import ResponseMode
+from enterprise_ai.llm.models import FallbackReason, ResponseMode
 from enterprise_ai.llm.response_service import GroundedResponseService
 from enterprise_ai.mcp_tools.client import result_count
 from enterprise_ai.mcp_tools.errors import (
@@ -714,6 +714,8 @@ def create_nodes(
                     }
                 ),
             }
+            if grounded.fallback_reason is FallbackReason.RESEARCH_DIMENSION_VALIDATION_FAILED:
+                update["processing_status"] = ProcessingStatus.PARTIAL_SUCCESS
         else:
             grounded, draft, validation, repairs = await responses.retrieval_response(
                 state["resolved_query"], state.get("retrieved_evidence", ()), state["principal"]

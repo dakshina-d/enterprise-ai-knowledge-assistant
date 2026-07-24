@@ -9,6 +9,7 @@ from enterprise_ai.research.models import (
     ResearchTaskType,
 )
 from enterprise_ai.research.plan_validator import ResearchPlanValidationError, compile_plan
+from enterprise_ai.research.planner import FakeResearchPlanner
 from enterprise_ai.retrieval.config import RetrievalSettings
 
 
@@ -84,3 +85,59 @@ def test_compiler_rejects_depth_and_self_dependency() -> None:
     task = plan.tasks[0].model_copy(update={"dependency_task_ids": ("T1",)})
     with pytest.raises(ResearchPlanValidationError):
         compile_plan(plan.model_copy(update={"tasks": (task,)}), RetrievalSettings())
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("question", "expected"),
+    (
+        (
+            "Compare pending payment status in September and delayed settlement in February.",
+            (
+                "pending payment status in September",
+                "delayed settlement in February",
+            ),
+        ),
+        (
+            "Compare primary latency in March versus secondary availability in April.",
+            ("primary latency in March", "secondary availability in April"),
+        ),
+    ),
+)
+async def test_comparison_planner_creates_independent_bounded_dimensions(
+    question: str,
+    expected: tuple[str, str],
+) -> None:
+    catalog = CollectionCatalog(
+        build_fingerprint="a" * 64,
+        document_count=10,
+        departments=("payments",),
+        document_types=("incident",),
+        statuses=("final",),
+    )
+    plan = await FakeResearchPlanner().create_plan(question, catalog)
+    assert plan.required_comparison_dimensions == expected
+    assert tuple(task.comparison_dimension for task in plan.tasks) == expected
+    assert all(task.task_type is ResearchTaskType.COMPARISON_DIMENSION for task in plan.tasks)
+    assert all(task.comparison_terms and not task.analysis_may_be_useful for task in plan.tasks)
+    assert expected[0].casefold().split()[-1] in plan.tasks[0].search.queries[0]
+    assert expected[1].casefold().split()[-1] in plan.tasks[1].search.queries[0]
+
+
+@pytest.mark.asyncio
+async def test_analysis_tasks_are_created_only_for_explicit_aggregate_requests() -> None:
+    catalog = CollectionCatalog(
+        build_fingerprint="a" * 64,
+        document_count=10,
+        departments=(),
+        document_types=("incident",),
+        statuses=("final",),
+    )
+    comparison = await FakeResearchPlanner().create_plan(
+        "Compare one incident with another incident.", catalog
+    )
+    recurring = await FakeResearchPlanner().create_plan(
+        "Summarize incidents and identify recurring root causes.", catalog
+    )
+    assert not any(task.analysis_may_be_useful for task in comparison.tasks)
+    assert any(task.analysis_may_be_useful for task in recurring.tasks)

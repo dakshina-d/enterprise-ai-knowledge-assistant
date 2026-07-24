@@ -32,6 +32,17 @@ def _request() -> LLMGenerationRequest:
     )
 
 
+def _grounded_request(mode: ResponseMode) -> LLMGenerationRequest:
+    return LLMGenerationRequest(
+        mode=mode,
+        instructions="Safe grounded instructions",
+        input_text="Safe evidence context",
+        allowed_evidence_ids=("E1", "E2"),
+        model="qwen3:4b-instruct",
+        maximum_output_tokens=128,
+    )
+
+
 def _response(*, thinking: object = "", content: str | None = None) -> dict[str, object]:
     structured = {
         "answer_summary": "Ready.",
@@ -110,6 +121,97 @@ def test_grounded_schema_requires_claim_and_evidence_relationship() -> None:
     claim = schema["$defs"]["GroundedClaim"]
     assert claim["properties"]["supporting_evidence_ids"]["minItems"] == 1
     assert "supporting_evidence_ids" in claim["required"]
+
+
+@pytest.mark.asyncio
+async def test_ollama_research_mode_accepts_sequential_multi_source_claims() -> None:
+    structured = {
+        "answer_summary": "Both dimensions are covered.",
+        "claims": [
+            {
+                "claim_id": "C1",
+                "text": "The first dimension is supported.",
+                "supporting_evidence_ids": ["E1"],
+                "factual": True,
+                "confidence": "high",
+                "qualification": None,
+            },
+            {
+                "claim_id": "C2",
+                "text": "The second dimension is supported.",
+                "supporting_evidence_ids": ["E2"],
+                "factual": True,
+                "confidence": "high",
+                "qualification": None,
+            },
+            {
+                "claim_id": "C3",
+                "text": "The sources support a comparison.",
+                "supporting_evidence_ids": ["E1", "E2"],
+                "factual": True,
+                "confidence": "high",
+                "qualification": None,
+            },
+        ],
+        "warnings": [],
+        "insufficient_evidence": False,
+        "clarification_needed": False,
+    }
+    provider = OllamaChatProvider(
+        RetrievalSettings(llm_provider="ollama"),
+        transport=httpx.MockTransport(
+            lambda _request: httpx.Response(
+                200,
+                json=_response(content=json.dumps(structured)),
+            )
+        ),
+    )
+    try:
+        result = await provider.generate(_grounded_request(ResponseMode.RESEARCH_SYNTHESIS))
+    finally:
+        await provider.close()
+    assert len(result.draft.claims) == 3
+    assert {
+        evidence_id
+        for claim in result.draft.claims
+        for evidence_id in claim.supporting_evidence_ids
+    } == {"E1", "E2"}
+
+
+@pytest.mark.asyncio
+async def test_simple_ollama_retrieval_still_requires_exactly_one_c1_claim() -> None:
+    structured = {
+        "answer_summary": "Too many simple claims.",
+        "claims": [
+            {
+                "claim_id": claim_id,
+                "text": "A simple claim.",
+                "supporting_evidence_ids": [evidence_id],
+                "factual": True,
+                "confidence": "high",
+                "qualification": None,
+            }
+            for claim_id, evidence_id in (("C1", "E1"), ("C2", "E2"))
+        ],
+        "warnings": [],
+        "insufficient_evidence": False,
+        "clarification_needed": False,
+    }
+    provider = OllamaChatProvider(
+        RetrievalSettings(llm_provider="ollama"),
+        transport=httpx.MockTransport(
+            lambda _request: httpx.Response(
+                200,
+                json=_response(content=json.dumps(structured)),
+            )
+        ),
+    )
+    try:
+        with pytest.raises(LLMInvalidResponseError) as caught:
+            await provider.generate(_grounded_request(ResponseMode.GROUNDED_RETRIEVAL))
+    finally:
+        await provider.close()
+    assert caught.value.category == "validation_claim_contract"
 
 
 def test_zero_temperature_parses_from_string_environment_and_rejects_nonzero(

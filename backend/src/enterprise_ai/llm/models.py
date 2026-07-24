@@ -11,6 +11,7 @@ from enterprise_ai.models.common import ContractModel
 
 class ResponseMode(StrEnum):
     GROUNDED_RETRIEVAL = "grounded_retrieval"
+    RESEARCH_SYNTHESIS = "research_synthesis"
     STRUCTURED_ANALYSIS = "structured_analysis"
     DIRECT = "direct"
 
@@ -28,6 +29,7 @@ class FallbackReason(StrEnum):
     INVALID_STRUCTURED_OUTPUT = "invalid_structured_output"
     PROHIBITED_REASONING = "prohibited_reasoning"
     CITATION_VALIDATION_FAILED = "citation_validation_failed"
+    RESEARCH_DIMENSION_VALIDATION_FAILED = "research_dimension_validation_failed"
     RESPONSE_POLICY_REJECTED = "response_policy_rejected"
     PROVIDER_CALL_BUDGET_EXHAUSTED = "provider_call_budget_exhausted"
     UNKNOWN_PROVIDER_FAILURE = "unknown_provider_failure"
@@ -72,6 +74,7 @@ class LLMGenerationRequest(ContractModel):
     instructions: str = Field(repr=False)
     input_text: str = Field(repr=False)
     allowed_evidence_ids: tuple[str, ...] = ()
+    required_claim_count: int | None = Field(default=None, ge=1, le=5)
     model: str
     maximum_output_tokens: int
 

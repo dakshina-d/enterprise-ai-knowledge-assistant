@@ -94,3 +94,43 @@ async def test_viewer_consumes_no_analysis_budget() -> None:
     await worker.execute(item.model_copy(update={"task": task, "principal": viewer}))
     assert analysis.started == 0
     assert (await ledger.usage()).analysis_calls == 0
+
+
+@pytest.mark.asyncio
+async def test_comparison_worker_rejects_irrelevant_evidence_and_proposes_specific_gap() -> None:
+    class IrrelevantRetriever:
+        async def retrieve(self, *args: object, **kwargs: object) -> object:
+            from enterprise_ai.retrieval.hybrid.models import (
+                CompletionStatus,
+                HybridRetrievalResult,
+            )
+
+            from .evidence_fixtures import evidence
+
+            return HybridRetrievalResult(
+                evidence=(evidence(9, title="Unrelated", text="Different subject."),),
+                completion_status=CompletionStatus.COMPLETE,
+            )
+
+    ledger = BudgetLedger(_analysis_budget(0).model_copy(update={"maximum_retrieval_calls": 1}))
+    worker = ResearchWorker(
+        IrrelevantRetriever(),  # type: ignore[arg-type]
+        ledger,
+        1,
+        CountingAnalysis(),
+        AuthorizationService(),  # type: ignore[arg-type]
+    )
+    item = _input("secondary availability april", "T1")
+    dimension = "secondary availability in April"
+    task = item.task.model_copy(
+        update={
+            "task_type": ResearchTaskType.COMPARISON_DIMENSION,
+            "comparison_dimension": dimension,
+            "comparison_terms": ("secondary", "availability", "april"),
+        }
+    )
+    outcome = await worker.execute(item.model_copy(update={"task": task}))
+    assert not outcome.evidence
+    assert outcome.comparison_dimension == dimension
+    assert outcome.child_task_proposals[0].comparison_dimension == dimension
+    assert outcome.child_task_proposals[0].queries == task.search.queries

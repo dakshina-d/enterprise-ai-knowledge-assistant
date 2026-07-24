@@ -7,7 +7,10 @@ from enterprise_ai.security.guardrails import contains_untrusted_instruction
 
 
 def build_evidence_context(
-    evidence: tuple[HybridEvidence, ...], settings: RetrievalSettings
+    evidence: tuple[HybridEvidence, ...],
+    settings: RetrievalSettings,
+    *,
+    maximum_items: int | None = None,
 ) -> tuple[EvidenceContextItem, ...]:
     result: list[EvidenceContextItem] = []
     remaining = settings.llm_max_evidence_characters
@@ -15,13 +18,26 @@ def build_evidence_context(
         evidence,
         key=lambda item: (item.final_rank, -item.hybrid_score, str(item.evidence.chunk_id)),
     )
-    for index, item in enumerate(ordered[: settings.llm_max_evidence_items], start=1):
+    item_limit = settings.llm_max_evidence_items if maximum_items is None else maximum_items
+    item_limit = min(item_limit, settings.research_max_evidence_items, settings.llm_max_citations)
+    selected = ordered[:item_limit]
+    per_item_budget = (
+        max(1, settings.llm_max_evidence_characters // len(selected))
+        if maximum_items is not None and selected
+        else settings.llm_max_evidence_item_characters
+    )
+    for index, item in enumerate(selected, start=1):
         source = item.evidence
         if contains_untrusted_instruction(source.text):
             continue
         if remaining <= 0:
             break
-        text = source.text[: min(settings.llm_max_evidence_item_characters, remaining)]
+        text_budget = min(settings.llm_max_evidence_item_characters, per_item_budget, remaining)
+        text = _bounded_excerpt(
+            source.text,
+            text_budget,
+            preserve_ends=maximum_items is not None,
+        )
         remaining -= len(text)
         result.append(
             EvidenceContextItem(
@@ -45,3 +61,15 @@ def build_evidence_context(
             )
         )
     return tuple(result)
+
+
+def _bounded_excerpt(text: str, maximum_characters: int, *, preserve_ends: bool) -> str:
+    if len(text) <= maximum_characters:
+        return text
+    if not preserve_ends or maximum_characters < 20:
+        return text[:maximum_characters]
+    separator = "\n...\n"
+    available = maximum_characters - len(separator)
+    prefix = (available + 1) // 2
+    suffix = available - prefix
+    return text[:prefix] + separator + text[-suffix:]
