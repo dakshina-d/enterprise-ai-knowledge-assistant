@@ -1,0 +1,193 @@
+"""Explicitly opt-in, credential-free local Ollama integration check."""
+
+from __future__ import annotations
+
+import os
+from time import monotonic
+
+import pytest
+from enterprise_ai.api.runtime import create_api_runtime
+from enterprise_ai.graph.dependencies import OfflineSparseAdapter
+from enterprise_ai.graph.runtime import GraphRuntime
+from enterprise_ai.llm.grounding import build_evidence_context
+from enterprise_ai.llm.models import LLMGenerationRequest, ResponseMode
+from enterprise_ai.llm.ollama_provider import OllamaChatProvider
+from enterprise_ai.llm.prompts import grounded_request
+from enterprise_ai.main import create_app
+from enterprise_ai.models.identity import UserRole
+from enterprise_ai.retrieval.config import RetrievalSettings
+from enterprise_ai.retrieval.evaluation import assessment_principal
+from enterprise_ai.retrieval.filters import DenseQueryFilters
+from enterprise_ai.retrieval.sparse.retriever import SparseRetrievalService
+from fastapi.testclient import TestClient
+
+from backend.tests.integration.chat_api_support import authorization_header, chat_settings
+
+pytestmark = pytest.mark.ollama_live
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(
+    os.getenv("OLLAMA_LIVE_TESTS", "").casefold() != "true",
+    reason="set OLLAMA_LIVE_TESTS=true to run local Ollama integration tests",
+)
+async def test_qwen_structured_response_has_no_thinking() -> None:
+    settings = RetrievalSettings(
+        llm_provider="ollama",
+        ollama_num_ctx=2_048,
+        ollama_num_predict=128,
+    )
+    assert settings.ollama_model == "qwen3:4b-instruct"
+    provider = OllamaChatProvider(settings)
+    try:
+        assert settings.ollama_model in await provider.model_names()
+        result = await provider.generate(
+            LLMGenerationRequest(
+                mode=ResponseMode.GROUNDED_RETRIEVAL,
+                instructions=(
+                    "Return one factual claim C1 citing only E1 with confidence high. "
+                    "Return no warnings, set both boolean fields false, and do not "
+                    "include private reasoning."
+                ),
+                input_text="E1: The structured local inference probe is ready.",
+                allowed_evidence_ids=("E1",),
+                model=settings.ollama_model,
+                maximum_output_tokens=128,
+            )
+        )
+    finally:
+        await provider.close()
+    assert result.metadata.provider == "ollama"
+    assert result.draft.answer_summary
+    assert "<think" not in result.draft.model_dump_json().casefold()
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(
+    os.getenv("OLLAMA_LIVE_TESTS", "").casefold() != "true",
+    reason="set OLLAMA_LIVE_TESTS=true to run local Ollama integration tests",
+)
+async def test_qwen_real_grounded_request_contract() -> None:
+    settings = RetrievalSettings(
+        llm_provider="ollama",
+        ollama_num_ctx=4_096,
+        ollama_num_predict=256,
+        llm_max_evidence_items=1,
+        llm_max_evidence_characters=2_000,
+        llm_max_evidence_item_characters=2_000,
+        llm_max_prompt_characters=4_000,
+    )
+    question = (
+        "What does the active Payment Queue Backlog Recovery Runbook require "
+        "for controlled backlog drain and idempotency verification?"
+    )
+    principal = assessment_principal(UserRole.VIEWER)
+    retrieved = await OfflineSparseAdapter(SparseRetrievalService(settings)).retrieve(
+        principal,
+        question,
+        top_k=5,
+        filters=DenseQueryFilters(),
+    )
+    context = build_evidence_context(retrieved.evidence, settings)
+    provider = OllamaChatProvider(settings)
+    try:
+        result = await provider.generate(grounded_request(question, context, settings))
+    finally:
+        await provider.close()
+    assert result.metadata.provider == "ollama"
+    assert result.draft.claims
+    assert set(result.draft.claims[0].supporting_evidence_ids) <= {"E1"}
+
+
+@pytest.mark.skipif(
+    os.getenv("OLLAMA_LIVE_TESTS", "").casefold() != "true",
+    reason="set OLLAMA_LIVE_TESTS=true to run local Ollama integration tests",
+)
+def test_authenticated_graph_scenarios_with_local_qwen() -> None:
+    active = RetrievalSettings(
+        llm_provider="ollama",
+        ollama_num_ctx=4_096,
+        ollama_num_predict=256,
+        llm_max_evidence_items=1,
+        llm_max_evidence_characters=2_000,
+        llm_max_evidence_item_characters=2_000,
+        llm_max_prompt_characters=4_000,
+        graph_timeout_seconds=300,
+        research_max_execution_seconds=90,
+    )
+
+    def runtime_factory(_settings: RetrievalSettings) -> GraphRuntime:
+        return create_api_runtime(active)
+
+    supported_query = (
+        "What does the active Payment Queue Backlog Recovery Runbook require "
+        "for controlled backlog drain and idempotency verification?"
+    )
+    started = monotonic()
+    with TestClient(create_app(chat_settings(), runtime_factory=runtime_factory)) as client:
+        viewer = authorization_header(client, "demo-viewer")
+        supported = client.post(
+            "/api/v1/chat",
+            headers=viewer,
+            json={"message": supported_query},
+        )
+        assert supported.status_code == 200
+        supported_output = supported.json()
+        assert supported_output["evidence"][0]["title"] == "Payment Queue Backlog Recovery Runbook"
+        assert supported_output["citations"]
+        assert supported_output["response_provider"] == "ollama"
+        unsupported = client.post(
+            "/api/v1/chat",
+            headers=viewer,
+            json={"message": "Summarize the password policy."},
+        )
+        follow_up = client.post(
+            "/api/v1/chat",
+            headers=viewer,
+            json={
+                "message": "What validation follows that recovery action?",
+                "session_id": supported.json()["session_id"],
+            },
+        )
+        analyst = authorization_header(client, "demo-analyst")
+        mcp = client.post(
+            "/api/v1/chat",
+            headers=analyst,
+            json={"message": "Who owns the payment-gateway service?"},
+        )
+        analysis = client.post(
+            "/api/v1/chat",
+            headers=analyst,
+            json={"message": "Count payment incidents by root cause."},
+        )
+        research_started = monotonic()
+        research = client.post(
+            "/api/v1/chat",
+            headers=analyst,
+            json={
+                "message": (
+                    "Compare pending payment status in September and delayed "
+                    "settlement in February."
+                )
+            },
+        )
+        research_seconds = monotonic() - research_started
+        print(f"ollama_live_research_seconds={research_seconds:.2f}")
+
+    assert unsupported.status_code == 200
+    assert unsupported.json()["insufficient_evidence"] is True
+    assert unsupported.json()["citations"] == []
+    assert follow_up.status_code == 200
+    assert follow_up.json()["memory_used"] is True
+    assert mcp.status_code == 200 and mcp.json()["mcp_result"] is not None
+    assert analysis.status_code == 200 and analysis.json()["analysis_result"] is not None
+    assert research.status_code == 200
+    assert research.json()["selected_route"] == "recursive_research"
+    assert research.json()["citations"]
+    assert research_seconds < active.graph_timeout_seconds
+    serialized = " ".join(
+        response.text for response in (supported, unsupported, follow_up, mcp, analysis, research)
+    ).casefold()
+    assert "<think" not in serialized
+    assert "private reasoning" not in serialized
+    assert monotonic() - started < active.graph_timeout_seconds * 2

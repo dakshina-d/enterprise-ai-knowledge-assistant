@@ -47,12 +47,15 @@ random signing secret and Argon2id hashes, refuses to overwrite by default, and 
 secret, hashes, or passwords:
 
 ```powershell
-python scripts/create_demo_env.py
+python scripts/create_demo_env.py --llm-provider ollama
 ```
 
 Use `--force` only when intentionally replacing the local file. On platforms that support POSIX
 permissions the script applies mode `0600`; Windows users should also verify the file ACL. The
 file is excluded by both `.gitignore` and `.dockerignore`.
+
+`--force` prompts for and replaces all three demo passwords, their hashes, and the JWT signing
+secret; it never reads or migrates the existing file.
 
 Start the authenticated stack:
 
@@ -80,7 +83,8 @@ settings. It does not mount the environment file into either container.
 From an activated Python 3.12 environment with `pip install -e ".[dev]"`:
 
 ```powershell
-python scripts/create_demo_env.py
+python scripts/create_demo_env.py --llm-provider ollama
+python -m enterprise_ai.llm.cli check-ollama
 
 Get-Content .env.demo | ForEach-Object {
     if ($_ -and -not $_.StartsWith('#')) {
@@ -102,12 +106,18 @@ streamlit run frontend/streamlit_app.py --server.address=127.0.0.1 --server.port
 Do not use Uvicorn reload mode during the recorded assessment. Remove the process environment or
 close the terminals after the demo, then delete `.env.demo`.
 
-## Optional providers
+Native startup uses `OLLAMA_BASE_URL=http://127.0.0.1:11434`. When the API runs in Compose, its
+documented default is `http://host.docker.internal:11434`; the Linux host-gateway alias is declared
+in Compose. API/UI host ports remain loopback-only. Ollama is a host dependency: the application
+image and Compose stack do not install Ollama, start it, pull a model, or copy model weights.
 
-OpenAI, Pinecone, and LangSmith activate only through explicit runtime settings and credentials.
-They are not needed for container health or the main deterministic demo. The MCP path remains the
-implemented local in-process/official-SDK boundary; this stack intentionally has no remote MCP
-container or OAuth configuration.
+## Provider modes
+
+Local Qwen/Ollama is the primary authenticated manual-assessment mode. Fake is the CI and
+infrastructure-smoke default. OpenAI, Pinecone, and LangSmith activate only through explicit
+runtime settings and credentials. The MCP path remains the implemented local
+in-process/official-SDK boundary; this stack intentionally has no remote MCP container or OAuth
+configuration.
 
 ## Troubleshooting
 

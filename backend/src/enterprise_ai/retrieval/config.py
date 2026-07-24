@@ -2,8 +2,9 @@
 
 from pathlib import Path
 from typing import Literal, Self
+from urllib.parse import urlsplit
 
-from pydantic import Field, SecretStr, model_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from enterprise_ai.retrieval.exceptions import RetrievalConfigurationError
@@ -94,7 +95,18 @@ class RetrievalSettings(BaseSettings):
     python_analysis_max_distinct_values: int = Field(default=500, ge=1, le=5_000)
     python_analysis_allow_partial_rows: bool = True
     llm_enabled: bool = True
-    llm_provider: Literal["fake", "openai"] = "fake"
+    llm_provider: Literal["fake", "ollama", "openai"] = "fake"
+    ollama_base_url: str = Field(default="http://127.0.0.1:11434", max_length=300)
+    ollama_allow_remote: bool = False
+    ollama_model: str = Field(
+        default="qwen3:4b-instruct",
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$",
+    )
+    ollama_request_timeout_seconds: float = Field(default=120, ge=1, le=300)
+    ollama_num_ctx: int = Field(default=8_192, ge=512, le=65_536)
+    ollama_num_predict: int = Field(default=800, ge=64, le=4_096)
+    ollama_temperature: Literal[0] = 0
+    ollama_keep_alive: str = Field(default="5m", pattern=r"^[1-9][0-9]{0,2}[smh]$")
     openai_api_key: SecretStr | None = None
     openai_response_model: str = "gpt-5.4-mini"
     openai_response_timeout_seconds: float = Field(default=30, gt=0, le=300)
@@ -132,6 +144,28 @@ class RetrievalSettings(BaseSettings):
     research_planner_timeout_seconds: float = Field(default=15, gt=0, le=120)
     research_allow_partial_results: bool = True
 
+    @field_validator("ollama_base_url")
+    @classmethod
+    def validate_ollama_base_url(cls, value: str) -> str:
+        parsed = urlsplit(value)
+        if (
+            parsed.scheme not in {"http", "https"}
+            or not parsed.hostname
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.query
+            or parsed.fragment
+            or parsed.path not in {"", "/"}
+        ):
+            raise ValueError("OLLAMA_BASE_URL must be an HTTP origin without credentials or paths")
+        try:
+            port = parsed.port
+        except ValueError as error:
+            raise ValueError("OLLAMA_BASE_URL contains an invalid port") from error
+        if port is not None and not 1 <= port <= 65_535:
+            raise ValueError("OLLAMA_BASE_URL contains an invalid port")
+        return value.rstrip("/")
+
     @model_validator(mode="after")
     def validate_enabled(self) -> Self:
         if self.hybrid_dense_weight + self.hybrid_sparse_weight <= 0:
@@ -146,11 +180,38 @@ class RetrievalSettings(BaseSettings):
             and (self.openai_api_key is None or not self.openai_api_key.get_secret_value())
         ):
             raise ValueError("OPENAI_API_KEY is required when the OpenAI LLM provider is enabled")
+        parsed_ollama = urlsplit(self.ollama_base_url)
+        local_hosts = {"127.0.0.1", "::1", "localhost", "host.docker.internal"}
+        if parsed_ollama.hostname not in local_hosts:
+            if not self.ollama_allow_remote:
+                raise ValueError("remote Ollama requires OLLAMA_ALLOW_REMOTE=true")
+            if parsed_ollama.scheme != "https":
+                raise ValueError("remote Ollama requires HTTPS")
+        unit_seconds = {"s": 1, "m": 60, "h": 3_600}
+        if int(self.ollama_keep_alive[:-1]) * unit_seconds[self.ollama_keep_alive[-1]] > 3_600:
+            raise ValueError("OLLAMA_KEEP_ALIVE must not exceed one hour")
         if self.langsmith_tracing and (
             self.langsmith_api_key is None or not self.langsmith_api_key.get_secret_value()
         ):
             raise ValueError("LANGSMITH_API_KEY is required when LangSmith tracing is enabled")
         return self
+
+    def selected_llm_model(self) -> str:
+        return self.ollama_model if self.llm_provider == "ollama" else self.openai_response_model
+
+    def selected_llm_max_output_tokens(self) -> int:
+        return (
+            self.ollama_num_predict
+            if self.llm_provider == "ollama"
+            else self.openai_response_max_output_tokens
+        )
+
+    def selected_llm_timeout_seconds(self) -> float:
+        return (
+            self.ollama_request_timeout_seconds
+            if self.llm_provider == "ollama"
+            else self.openai_response_timeout_seconds
+        )
 
     def langsmith_api_key_value(self) -> str:
         if self.langsmith_api_key is None:

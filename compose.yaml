@@ -16,6 +16,13 @@ x-app-environment: &app-environment
   PINECONE_API_KEY: ${PINECONE_API_KEY:-}
   LLM_ENABLED: ${LLM_ENABLED:-true}
   LLM_PROVIDER: ${LLM_PROVIDER:-fake}
+  OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+  OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:4b-instruct}
+  OLLAMA_REQUEST_TIMEOUT_SECONDS: ${OLLAMA_REQUEST_TIMEOUT_SECONDS:-120}
+  OLLAMA_NUM_CTX: ${OLLAMA_NUM_CTX:-8192}
+  OLLAMA_NUM_PREDICT: ${OLLAMA_NUM_PREDICT:-800}
+  OLLAMA_TEMPERATURE: ${OLLAMA_TEMPERATURE:-0}
+  OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-5m}
   OPENAI_API_KEY: ${OPENAI_API_KEY:-}
   GRAPH_OFFLINE_RETRIEVAL_MODE: ${GRAPH_OFFLINE_RETRIEVAL_MODE:-sparse}
   LANGSMITH_TRACING: ${LANGSMITH_TRACING:-false}
@@ -55,6 +62,8 @@ services:
       API_ALLOWED_ORIGINS: '["http://127.0.0.1:8501","http://localhost:8501"]'
     ports:
       - "127.0.0.1:8000:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test:
         - CMD
@@ -83,6 +92,7 @@ services:
       HOME: /tmp
       FRONTEND_API_BASE_URL: http://api:8000
       FRONTEND_APPLICATION_TITLE: Enterprise AI Knowledge Assistant
+      FRONTEND_STREAM_TIMEOUT_SECONDS: ${FRONTEND_STREAM_TIMEOUT_SECONDS:-90}
     ports:
       - "127.0.0.1:8501:8501"
     depends_on:

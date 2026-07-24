@@ -21,7 +21,12 @@ class ChatRequest(ContractModel):
         json_schema_extra={
             "examples": [
                 {"message": "Who owns the payment-gateway service?"},
-                {"message": "Summarize the password policy."},
+                {
+                    "message": (
+                        "What does the active Payment Queue Backlog Recovery Runbook "
+                        "require for controlled backlog drain?"
+                    )
+                },
                 {"message": "Identify recurring payment incident causes.", "top_k": 8},
             ]
         },

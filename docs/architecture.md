@@ -14,8 +14,10 @@ imply production orchestration.
 
 The restricted analysis boundary maps typed operations to trusted standard-library functions over
 manifest-authorized incident rows. It is not a code-execution sandbox.
-Grounded response generation depends on an application provider protocol; retrieval, authorization,
-structured output, and citation metadata remain application-owned.
+Grounded response generation depends on an application provider protocol. Local manual assessment
+uses native Ollama with schema-constrained `qwen3:4b-instruct`; fake remains the CI default and
+OpenAI Responses remains optional. Retrieval, authorization, structured output, and citation
+metadata remain application-owned.
 
 ## Architectural principles
 
@@ -31,7 +33,8 @@ structured output, and citation metadata remain application-owned.
 flowchart LR
     User[Enterprise user] -->|HTTPS: sync requests and SSE| App[Knowledge assistant]
     Admin[Administrator] -->|HTTPS: ingestion control if enabled| App
-    App -->|Async HTTPS| LLM[LLM provider]
+    App -->|Native local HTTP| Qwen[Ollama / Qwen3-4B-Instruct]
+    App -.->|Optional async HTTPS| LLM[OpenAI Responses]
     App -->|Async HTTPS| PC[(Pinecone)]
     App -->|Async MCP transport| Ext[MCP server]
     App -->|Restricted job protocol| Py[Restricted Python runtime]
@@ -39,7 +42,8 @@ flowchart LR
     Source[Mock documents] -->|Offline ingestion| App
 ```
 
-External dependencies are the LLM provider, Pinecone, LangSmith, and any separately deployed MCP or restricted-runtime service. The browser never calls them directly.
+The local Ollama runtime is a separate local generation boundary. Optional external dependencies
+are OpenAI, Pinecone, and LangSmith. The browser never calls any provider directly.
 
 ## Component architecture
 
@@ -64,7 +68,9 @@ flowchart TB
         Pinecone[(Pinecone hybrid index)]
         MCP[MCP server]
         Python[Restricted Python runtime]
-        Provider[LLM provider]
+        Ollama[Local Ollama / Qwen]
+        Provider[Optional OpenAI]
+        Fake[Deterministic fake provider]
     end
     subgraph Offline[Offline ingestion]
         Ingest[Parse, normalize, chunk, enrich, embed, sparse encode]
@@ -74,14 +80,19 @@ flowchart TB
     Graph --> Guard
     Graph --> Memory
     Graph --> Obs
-    Agents --> Provider
+    Agents --> Ollama
+    Agents -.-> Provider
+    Agents --> Fake
     Tools --> Pinecone
     Tools --> MCP
     Tools --> Python
     Ingest --> Pinecone
 ```
 
-The Streamlit container owns presentation only. FastAPI owns schemas, identity, authorization, budgets, graph execution, event projection, and error mapping. LangGraph coordinates agent roles; agents do not become independently deployed services. The MCP server is separate only where its tool boundary or lifecycle requires it.
+The Streamlit container owns presentation only. FastAPI owns schemas, identity, authorization,
+budgets, graph execution, event projection, and error mapping. LangGraph coordinates agent roles;
+agents do not become independently deployed services. Qwen is pretrained: enterprise documents
+are indexed for RAG and updated by re-ingestion/re-indexing, not model retraining.
 
 ## Implemented interactive request lifecycle
 

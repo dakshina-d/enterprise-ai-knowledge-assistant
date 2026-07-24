@@ -29,6 +29,7 @@ private run/workspace IDs, raw prompts, or evidence bodies.
 | Assumptions and trade-offs | Required | Documentation | 44:05 | Nothing sensitive |
 | Public video URL | Required after upload | Submission document | After recording | Private draft/share-management URLs |
 | Live OpenAI answer | Optional | Streamlit | Separate appendix | API key, request/response trace body |
+| Local Qwen grounded answer | Required | Viewer query: `What does the active Payment Queue Backlog Recovery Runbook require for controlled backlog drain and idempotency verification?` | Retrieval demo | Hide passwords/tokens; show relevant citation and no reasoning |
 | Live Pinecone query | Optional | CLI/UI | Separate appendix | API key, index host/private metadata |
 | Container runtime proof | Available local bonus evidence | Compose `ps` and smoke output | 10:30 | Container IDs, environment, mounted paths |
 

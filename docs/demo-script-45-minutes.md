@@ -1,8 +1,9 @@
 # Forty-five-minute Assessment Demonstration
 
-Target duration: **45:00**. Main scenarios use `LLM_PROVIDER=fake`,
-`GRAPH_OFFLINE_RETRIEVAL_MODE=sparse`, and the committed corpus. They require no OpenAI or
-Pinecone credential. Review [model selection](model-selection.md) before recording.
+Target duration: **45:00**. Main scenarios use local Ollama with
+`LLM_PROVIDER=ollama`, `qwen3:4b-instruct`, `GRAPH_OFFLINE_RETRIEVAL_MODE=sparse`, and the
+committed corpus. They require no OpenAI or Pinecone credential. Fake remains the deterministic
+CI/infrastructure-smoke provider. Review [model selection](model-selection.md) before recording.
 
 ## 00:00–03:00 — Introduction
 
@@ -49,7 +50,7 @@ Recovery: if Docker is unavailable, use native processes and show the successful
 | Field | Expected demonstration |
 |---|---|
 | Role | Viewer |
-| Exact query | `Summarize the password policy.` |
+| Exact query | `What does the active Payment Queue Backlog Recovery Runbook require for controlled backlog drain and idempotency verification?` |
 | Expected route | `simple_retrieval` |
 | Activity | request/graph start, memory load, route selection, retrieval, response generation, citation validation, memory update, completion |
 | Result | Completed grounded summary from authorized policy evidence |

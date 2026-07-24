@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1180" viewBox="0 0 1600 1180" role="img" aria-labelledby="title desc">
   <title id="title">Enterprise AI Knowledge Assistant final assessment architecture</title>
-  <desc id="desc">A layered architecture showing the browser, FastAPI policy boundary, LangGraph agents, authorized tools and retrieval, optional external providers, and the offline synthetic corpus pipeline.</desc>
+  <desc id="desc">A layered architecture showing the browser, FastAPI policy boundary, LangGraph agents, authorized tools and retrieval, local Ollama and Qwen generation, optional external providers, deterministic fake generation, and the offline synthetic corpus RAG pipeline.</desc>
   <defs>
     <style>
       text { font-family: Arial, Helvetica, sans-serif; fill: #172033; }
@@ -28,7 +28,7 @@
 
   <rect width="1600" height="1180" fill="#ffffff"/>
   <text x="50" y="50" class="title">Enterprise AI Knowledge Assistant</text>
-  <text x="50" y="79" class="subtitle">Bounded executable assessment PoC — policy-owned orchestration with offline defaults</text>
+  <text x="50" y="79" class="subtitle">Bounded executable assessment PoC — local schema-constrained Qwen with application-owned policy</text>
 
   <rect x="45" y="105" width="1510" height="145" class="group"/>
   <text x="70" y="135" class="group-title">Browser trust boundary</text>
@@ -108,7 +108,7 @@
   <text x="775" y="840" class="small">optional • namespace + filters</text>
   <rect x="635" y="885" width="280" height="70" class="node implemented"/>
   <text x="775" y="914" class="label">Local BM25 sparse</text>
-  <text x="775" y="936" class="small">default offline retrieval</text>
+  <text x="775" y="936" class="small">authorized relevance gate + abstention</text>
   <rect x="85" y="905" width="220" height="60" class="node local"/>
   <text x="195" y="932" class="label">Local MCP tools</text>
   <text x="195" y="952" class="small">three read-only methods</text>
@@ -121,25 +121,30 @@
   <path d="M803 580 V745 H185 V810" class="edge"/>
 
   <rect x="1005" y="745" width="550" height="250" class="group"/>
-  <text x="1030" y="775" class="group-title">Optional external provider boundary</text>
-  <rect x="1045" y="810" width="215" height="65" class="node optional"/>
-  <text x="1153" y="839" class="label">OpenAI Responses</text>
-  <text x="1153" y="860" class="small">optional • store=false</text>
-  <rect x="1300" y="810" width="215" height="65" class="node optional"/>
-  <text x="1408" y="839" class="label">Pinecone service</text>
-  <text x="1408" y="860" class="small">optional credentials</text>
-  <rect x="1045" y="905" width="215" height="65" class="node optional"/>
-  <text x="1153" y="934" class="label">LangSmith</text>
-  <text x="1153" y="955" class="small">safe metadata only</text>
-  <rect x="1300" y="905" width="215" height="65" class="node offline"/>
-  <text x="1408" y="934" class="label">Fake providers</text>
-  <text x="1408" y="955" class="small">default offline mode</text>
-  <path d="M1088 620 V730 H1153 V810" class="edge dashed"/>
-  <path d="M915 825 H1300" class="edge dashed"/>
-  <path d="M1383 580 V730 H1153 V905" class="edge dashed"/>
+  <text x="1030" y="775" class="group-title">Generation and optional external boundaries</text>
+  <rect x="1045" y="790" width="215" height="52" class="node local"/>
+  <text x="1153" y="813" class="label">Local Ollama runtime</text>
+  <text x="1153" y="833" class="small">Qwen3-4B-Instruct</text>
+  <rect x="1300" y="790" width="215" height="52" class="node offline"/>
+  <text x="1408" y="813" class="label">Fake provider</text>
+  <text x="1408" y="833" class="small">CI/tests default</text>
+  <rect x="1045" y="857" width="215" height="52" class="node optional"/>
+  <text x="1153" y="880" class="label">OpenAI Responses</text>
+  <text x="1153" y="900" class="small">optional • store=false</text>
+  <rect x="1300" y="857" width="215" height="52" class="node optional"/>
+  <text x="1408" y="880" class="label">Pinecone service</text>
+  <text x="1408" y="900" class="small">optional credentials</text>
+  <rect x="1045" y="924" width="215" height="52" class="node optional"/>
+  <text x="1153" y="947" class="label">LangSmith</text>
+  <text x="1153" y="967" class="small">safe metadata only</text>
+  <path d="M1088 620 V730 H1153 V790" class="edge"/>
+  <path d="M1088 620 V730 H1408 V790" class="edge dashed"/>
+  <path d="M1088 620 V730 H1015 V883 H1045" class="edge dashed"/>
+  <path d="M915 825 H985 V883 H1300" class="edge dashed"/>
+  <path d="M1383 580 V730 H1280 V950 H1260" class="edge dashed"/>
 
   <rect x="45" y="1020" width="1510" height="105" class="group"/>
-  <text x="70" y="1050" class="group-title">Offline pipeline</text>
+  <text x="70" y="1050" class="group-title">Offline RAG pipeline — re-index documents; do not retrain pretrained Qwen</text>
   <rect x="225" y="1060" width="290" height="48" class="node offline"/>
   <text x="370" y="1090" class="label">Synthetic organizational corpus</text>
   <rect x="655" y="1060" width="260" height="48" class="node offline"/>

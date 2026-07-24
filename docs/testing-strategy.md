@@ -2,8 +2,9 @@
 
 Status: **Implemented for the bounded offline PoC.** Unit, integration, contract, security,
 retrieval-quality, graph, failure-injection, streaming, API, frontend, and assessment role suites
-run without provider credentials. Live Pinecone/OpenAI and current remote LangSmith export remain
-explicit manual checks; reranking is out of scope.
+run without provider credentials. Credential-free live Ollama/Qwen tests are explicitly opt-in;
+live Pinecone/OpenAI and current remote LangSmith export remain explicit manual checks; reranking
+is out of scope.
 
 Memory tests cover ownership, immutable snapshots, idempotency conflicts, sequences, TTL, eviction,
 concurrency, sanitization, structured context, follow-up resolution, lifecycle ordering, and repeated
@@ -12,6 +13,8 @@ Restricted-analysis tests cover role scope, corpus hashes/paths, taxonomy rules,
 aggregates and provenance, cancellation, graph routing, and static prohibited-primitive scanning.
 Grounded-response tests use a deterministic fake for context bounds, citation mapping, invented-ID
 repair/fallback, no-evidence abstention, prompt-injection isolation, and explicit provider closure.
+Mocked Ollama tests cover native payloads, schema derivation, private-reasoning rejection, safe
+errors, timeouts, cancellation, provider closure, and fake/OpenAI factory preservation.
 
 ## Repository CI
 

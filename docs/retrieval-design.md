@@ -59,6 +59,25 @@ The PoC namespace strategy is one namespace per logical corpus/environment, for 
 
 The backend derives a mandatory authorization predicate from the authenticated principal. The client and LLM cannot supply or weaken it. The retrieval adapter combines it with validated user filters using logical AND, sends it to Pinecone on every dense/sparse query, and rechecks every returned record. Unauthorized records are discarded and raise a security audit signal. Only revalidated, authorized evidence can enter model context.
 
+## Deterministic sparse relevance and abstention
+
+After authorization and before evidence enters model context, local sparse retrieval normalizes
+query terms, removes instruction-only words and stop words, and separates specific terms from
+generic corpus vocabulary. Evidence must cover the query's salient terms using terms that actually
+contributed to the BM25 match: one- or two-term queries require complete support and longer queries
+require at least half. Generic-only and out-of-vocabulary queries abstain. When the question asks
+for current or approved material, archived, draft, and superseded records are deterministically
+demoted without being erased from conflict-oriented queries.
+
+This gate is sparse-specific. It does not impose exact lexical overlap on authorized dense/hybrid
+semantic evidence. Hybrid fusion retains provider-specific evidence and strips sparse diagnostics
+when mapping to the shared dense evidence contract.
+
+The corpus contains no password-policy source; incidental security boilerplate mentioning
+passwords is not equivalent policy evidence. Therefore `Summarize the password policy.` now
+returns insufficient evidence instead of citing unrelated policies. The demonstration uses the
+committed active Payment Queue Backlog Recovery Runbook question documented in the README.
+
 ## Query and ranking pipeline
 
 1. Normalize the query without changing its intent.

@@ -272,7 +272,7 @@ class GroundedResponseService:
         )
 
     async def _generate(self, request: LLMGenerationRequest) -> LLMGenerationResult:
-        async with asyncio.timeout(self.settings.openai_response_timeout_seconds):
+        async with asyncio.timeout(self.settings.selected_llm_timeout_seconds()):
             result = await self.provider.generate(request)
         return LLMGenerationResult.model_validate(result)
 

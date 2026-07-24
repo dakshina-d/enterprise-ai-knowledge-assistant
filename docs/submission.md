@@ -64,6 +64,9 @@ and the offline trace tests, and state that the remote manual evidence could not
   analysis.
 - Optional privacy-safe LangSmith tracing, direct/indirect prompt guardrails, response policy,
   dependency failure containment, and offline acceptance evidence.
+- Local manual generation through Ollama/`qwen3:4b-instruct`; Qwen is pretrained and enterprise
+  documents are re-ingested/re-indexed for RAG, never used to retrain the model.
+- Verified Viewer retrieval question: `What does the active Payment Queue Backlog Recovery Runbook require for controlled backlog drain and idempotency verification?`
 
 ## Bonus status
 
@@ -112,7 +115,7 @@ For interactive assessment, generate ignored local credentials and follow the au
 of [local and container deployment](local-container-deployment.md):
 
 ```powershell
-python scripts/create_demo_env.py
+python scripts/create_demo_env.py --llm-provider ollama
 docker compose --env-file .env.demo up -d --build
 python scripts/container_smoke.py
 ```

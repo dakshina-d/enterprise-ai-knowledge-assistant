@@ -99,6 +99,9 @@ def _as_dense(item: SparseEvidence | None) -> DenseEvidence | None:
     values: dict[str, Any] = item.model_dump()
     values.pop("sparse_score")
     values.pop("sparse_build_fingerprint")
+    values.pop("salient_query_terms")
+    values.pop("matched_query_terms")
+    values.pop("salient_term_coverage")
     values["record_id"] = str(item.chunk_id)
     values["dense_score"] = 0.0
     return DenseEvidence.model_validate(values)

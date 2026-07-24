@@ -75,4 +75,7 @@ addopts = "-q --strict-config --strict-markers"
 asyncio_mode = "auto"
 testpaths = ["backend/tests", "mcp_server/tests", "ingestion/tests", "tests"]
 pythonpath = ["backend/src", "ingestion/src"]
-markers = ["pinecone_live: explicitly enabled Pinecone integration tests"]
+markers = [
+  "ollama_live: explicitly enabled local Ollama integration tests",
+  "pinecone_live: explicitly enabled Pinecone integration tests",
+]

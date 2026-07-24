@@ -74,8 +74,12 @@ flowchart TB
         OPENAI["OpenAI Responses API<br/>optional; store=false"]:::optional
         PINECONE["Pinecone service<br/>optional"]:::optional
         LANGSMITH["LangSmith<br/>optional safe metadata"]:::optional
-        FAKE["Deterministic fake providers<br/>default offline mode"]:::offline
     end
+    subgraph LOCALMODEL["Local generation boundary"]
+        OLLAMA["Native Ollama API<br/>Qwen3-4B-Instruct<br/>schema constrained"]:::local
+        FAKE["Deterministic fake provider<br/>CI/tests default"]:::offline
+    end
+    RESP --> OLLAMA
     RESP --> OPENAI
     RESP --> FAKE
     DENSE --> PINECONE
@@ -83,7 +87,7 @@ flowchart TB
 
     subgraph INGEST["Offline pipeline"]
         CORPUS["Synthetic organizational corpus"]:::offline
-        PIPE["Parse / validate / chunk / index"]:::offline
+        PIPE["Parse / validate / chunk / index<br/>RAG; no model retraining"]:::offline
         ARTIFACTS["Committed retrieval artifacts<br/>untrusted document content"]:::untrusted
         CORPUS --> PIPE --> ARTIFACTS
     end
@@ -104,7 +108,12 @@ flowchart TB
   services. No OAuth-enabled remote MCP service is claimed.
 - Session memory, LangGraph checkpointing, and rate-limit buckets are process-local and reset when
   the API container restarts.
-- OpenAI, Pinecone, and LangSmith remain disabled unless the reviewer explicitly supplies runtime
-  credentials. The deterministic fake LLM and local BM25 path are the default.
+- Local manual assessment uses native Ollama with `qwen3:4b-instruct`; CI and infrastructure smoke
+  use the deterministic fake provider. OpenAI, Pinecone, and LangSmith remain disabled unless the
+  reviewer explicitly selects them and supplies required runtime credentials.
+- Qwen is pretrained. Enterprise documents are indexed for RAG; updating them requires
+  re-ingestion/re-indexing, not model retraining.
+- Pinecone remains an optional runtime dependency and the implemented mandatory assessment
+  integration; local BM25 provides credential-free retrieval.
 - Offline ingestion creates the committed artifacts used by local retrieval; it is not part of the
   interactive container request path.

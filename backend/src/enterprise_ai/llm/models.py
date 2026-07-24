@@ -23,7 +23,7 @@ class Confidence(StrEnum):
 
 class GroundedClaim(ContractModel):
     claim_id: Annotated[str, Field(pattern=r"^C[1-9][0-9]{0,2}$")]
-    text: Annotated[str, Field(min_length=1, max_length=2_000)]
+    text: Annotated[str, Field(min_length=1, max_length=2_000, repr=False)]
     supporting_evidence_ids: tuple[Annotated[str, Field(pattern=r"^E[1-9][0-9]{0,2}$")], ...] = ()
     factual: bool = True
     confidence: Confidence = Confidence.MEDIUM
@@ -37,7 +37,7 @@ class GroundedClaim(ContractModel):
 
 
 class GroundedAnswerDraft(ContractModel):
-    answer_summary: Annotated[str, Field(min_length=1, max_length=8_000)]
+    answer_summary: Annotated[str, Field(min_length=1, max_length=8_000, repr=False)]
     claims: tuple[GroundedClaim, ...] = Field(default=(), max_length=20)
     warnings: tuple[Annotated[str, Field(max_length=500)], ...] = ()
     insufficient_evidence: bool = False
@@ -57,8 +57,8 @@ class LLMProviderMetadata(ContractModel):
 
 class LLMGenerationRequest(ContractModel):
     mode: ResponseMode
-    instructions: str
-    input_text: str
+    instructions: str = Field(repr=False)
+    input_text: str = Field(repr=False)
     allowed_evidence_ids: tuple[str, ...] = ()
     model: str
     maximum_output_tokens: int

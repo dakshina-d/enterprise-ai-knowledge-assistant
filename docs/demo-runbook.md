@@ -9,8 +9,8 @@
   tabs containing tokens or private URLs.
 - Set browser zoom so the architecture SVG, Streamlit activity, and citations remain legible.
 - Prepare Viewer, Analyst, and Administrator passwords privately.
-- Rehearse all exact queries in [the 45-minute script](demo-script-45-minutes.md) with fake/sparse
-  defaults.
+- Rehearse all exact queries in [the 45-minute script](demo-script-45-minutes.md) with local
+  Ollama/Qwen and sparse retrieval.
 - If showing LangSmith, create a temporary least-privilege key and prepare a project containing one
   successful and one denied trace.
 - Test microphone, resolution, cursor visibility, and approximately 45 minutes of recording space.
@@ -24,7 +24,8 @@ python -m venv .venv
 .venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
-python scripts/create_demo_env.py
+python scripts/create_demo_env.py --llm-provider ollama
+python -m enterprise_ai.llm.cli check-ollama
 ```
 
 The script writes `.env.demo` without displaying secrets. Do not open the file during recording.
@@ -95,7 +96,7 @@ reset; the button clears the current backend session identifier and UI history.
 
 ## Exact main-demo queries
 
-1. Viewer: `Summarize the password policy.`
+1. Viewer: `What does the active Payment Queue Backlog Recovery Runbook require for controlled backlog drain and idempotency verification?`
 2. Viewer follow-up: `Explain that again.`
 3. Viewer Python denial: `Count payment incidents by root cause.`
 4. Viewer MCP denial: `Who owns the payment-gateway service?`
@@ -161,7 +162,8 @@ checks before committing.
 |---|---|
 | Login endpoint missing | Authentication-disabled smoke mode is running; restart with `.env.demo` |
 | API configuration error | Regenerate `.env.demo`; all three hashes and signing secret are required |
-| OpenAI unavailable | Set `LLM_PROVIDER=fake`; begin a new conversation |
+| Ollama unavailable | Confirm Ollama/model readiness with `python -m enterprise_ai.llm.cli check-ollama`; use `LLM_PROVIDER=fake` only for the deterministic fallback demonstration |
+| OpenAI unavailable | OpenAI is optional; use local Ollama or deterministic fake mode |
 | Pinecone unavailable | Set `PINECONE_ENABLED=false` and `GRAPH_OFFLINE_RETRIEVAL_MODE=sparse` |
 | LangSmith unavailable | Use `graph.cli trace-demo` and offline tracer tests; state remote evidence is unavailable |
 | MCP failure | Show the safe failure test and `mcp_tools.cli list-tools`; never add an unrestricted fallback |

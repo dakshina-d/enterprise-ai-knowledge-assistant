@@ -18,13 +18,13 @@ mandatory assessment.
 | Supervisor, retrieval, research, response agents | Implemented for bounded PoC | graph nodes/routing, retrieval, research, response service | graph, research, grounding, role acceptance suites | Agents are logical graph boundaries, not services |
 | Bounded recursive research/RLM concept | Implemented for bounded PoC | `enterprise_ai.research` | research unit/integration/evaluation suites | Typed bounded decomposition, not unrestricted recursion |
 | Dense Pinecone retrieval | Implemented for bounded PoC | `retrieval/dense_retriever.py`, Pinecone gateway | dense retrieval/provider suites | Live execution is explicit and credential-dependent |
-| Sparse BM25 and hybrid fusion | Implemented | `retrieval/sparse`, `retrieval/hybrid` | sparse/hybrid suites and CLI validation | Offline benchmark defaults to local sparse |
+| Sparse BM25, relevance abstention, and hybrid fusion | Implemented | `retrieval/sparse`, `retrieval/hybrid` | sparse/hybrid relevance suites and CLI validation | Lexical coverage gate is sparse-only; semantic evidence is preserved |
 | Namespace, metadata, attribution, local RBAC recheck | Implemented | retrieval filters/models/authorization | dense/hybrid authorization and citation suites | One configured corpus namespace in the PoC |
 | Session conversational memory | Implemented for bounded PoC | `enterprise_ai.memory` | memory and API role acceptance suites | Process-local, bounded, non-durable |
 | Knowledge search | Implemented | retrieval graph routes/services | graph retrieval and role acceptance suites | Not a caller-selectable arbitrary tool |
 | MCP enterprise data | Implemented for bounded PoC | `enterprise_ai.mcp_tools` | MCP protocol/security/failure suites | Three local read-only fictional tools; no OAuth |
 | Restricted Python analysis | Implemented for bounded PoC | `tools/python_analysis` | Python tool and role acceptance suites | Typed aggregates only; no arbitrary code |
-| LLM abstraction, fake/OpenAI, grounding, citations, fallback | Implemented for bounded PoC | `enterprise_ai.llm` | grounded-response, citation, failure-matrix suites | Fake default; live OpenAI opt-in |
+| LLM abstraction, fake/Ollama/OpenAI, grounding, citations, fallback | Implemented for bounded PoC | `enterprise_ai.llm` | grounded-response, Ollama mocked/live, citation, failure-matrix suites | Fake CI default; local Qwen assessment; OpenAI optional |
 | LangSmith tracing | Implemented for bounded PoC | `observability/tracing.py` and graph spans | offline fake hierarchy/failure suites; documented prior remote smoke | Current remote export is a manual credentialed check |
 | Prompt/evidence/output guardrails | Implemented for bounded PoC | `security/guardrails.py`, graph/grounding/aggregation checks | `test_assessment_guardrails.py`, citation/security suites | Bounded deterministic patterns, not a universal content classifier |
 | Authentication and Viewer/Analyst/Administrator RBAC | Implemented for bounded PoC | security services and API dependencies | authentication, authorization, role acceptance suites | Demo JWT/password identities; no enterprise IdP |

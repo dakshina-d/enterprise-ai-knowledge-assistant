@@ -4,11 +4,13 @@ import asyncio
 from datetime import date
 from uuid import uuid4
 
+import httpx
 import pytest
 from enterprise_ai.llm.exceptions import LLMProviderError
 from enterprise_ai.llm.fake_provider import FakeLLMProvider
 from enterprise_ai.llm.grounding import build_evidence_context
 from enterprise_ai.llm.models import GroundedAnswerDraft, GroundedClaim
+from enterprise_ai.llm.ollama_provider import OllamaChatProvider
 from enterprise_ai.llm.response_service import GroundedResponseService
 from enterprise_ai.models.identity import AccessLevel, UserRole
 from enterprise_ai.models.retrieval import DocumentType
@@ -195,6 +197,32 @@ async def test_provider_failures_use_evidence_fallback_without_raw_detail(
     assert validation.valid
     assert repairs == 0
     assert "raw provider detail" not in repr((response, draft, validation))
+
+
+@pytest.mark.asyncio
+async def test_unavailable_ollama_uses_grounded_deterministic_fallback(
+    tmp_path: object,
+) -> None:
+    def unavailable(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("private endpoint detail", request=request)
+
+    configured = settings(tmp_path).model_copy(update={"llm_provider": "ollama"})
+    provider = OllamaChatProvider(configured, transport=httpx.MockTransport(unavailable))
+    try:
+        response, draft, validation, repairs = await GroundedResponseService(
+            provider, configured
+        ).retrieval_response(
+            "How should failover work?",
+            (evidence(),),
+            assessment_principal(UserRole.VIEWER),
+        )
+    finally:
+        await provider.close()
+
+    assert response.deterministic_fallback_used
+    assert response.citations
+    assert validation.valid and repairs == 0
+    assert "private endpoint detail" not in repr((response, draft, validation))
 
 
 @pytest.mark.asyncio

@@ -19,6 +19,11 @@ from enterprise_ai.retrieval.indexer import load_current_chunks
 from enterprise_ai.retrieval.sparse.analyzer import analyze
 from enterprise_ai.retrieval.sparse.artifacts import validate_sparse
 from enterprise_ai.retrieval.sparse.bm25 import score_corpus
+from enterprise_ai.retrieval.sparse.relevance import (
+    has_adequate_support,
+    matched_salient_terms,
+    salient_query_terms,
+)
 from enterprise_ai.security.authorization import AuthorizationService
 
 
@@ -46,6 +51,9 @@ class SparseEvidence(BaseModel):
     chunk_content_hash: str
     build_fingerprint: str
     sparse_build_fingerprint: str
+    salient_query_terms: tuple[str, ...] = ()
+    matched_query_terms: tuple[str, ...] = ()
+    salient_term_coverage: Annotated[float, Field(ge=0, le=1)] = 0
 
 
 class SparseRetrievalResult(BaseModel):
@@ -118,14 +126,32 @@ class SparseRetrievalService:
             k1=self.settings.bm25_k1,
             b=self.settings.bm25_b,
         )
+        salient_terms = salient_query_terms(query_terms)
+        supported = []
+        for item in scored:
+            frequencies = documents[item.chunk_id][1]
+            matched_terms = matched_salient_terms(salient_terms, frequencies)
+            if has_adequate_support(salient_terms, matched_terms):
+                supported.append((item, matched_terms))
+        prefer_current = bool({"approved", "current"} & set(query_terms))
+        if prefer_current:
+            supported.sort(
+                key=lambda row: (
+                    authorized[row[0].chunk_id].status in {"archived", "draft", "superseded"},
+                    -row[0].score,
+                    row[0].chunk_id,
+                )
+            )
         evidence = tuple(
             self._evidence(
                 authorized[item.chunk_id],
                 item.score,
                 ingestion_manifest.build_fingerprint,
                 str(sparse_manifest["sparse_build_fingerprint"]),
+                salient_terms,
+                matched_terms,
             )
-            for item in scored[:selected_top_k]
+            for item, matched_terms in supported[:selected_top_k]
         )
         return SparseRetrievalResult(evidence=evidence, total_candidates=len(documents))
 
@@ -173,7 +199,12 @@ class SparseRetrievalService:
 
     @staticmethod
     def _evidence(
-        chunk: ChunkRecord, score: float, fingerprint: str, sparse_fingerprint: str
+        chunk: ChunkRecord,
+        score: float,
+        fingerprint: str,
+        sparse_fingerprint: str,
+        salient_terms: tuple[str, ...],
+        matched_terms: tuple[str, ...],
     ) -> SparseEvidence:
         if not math.isfinite(score):
             raise RetrievalDataIntegrityError("BM25 produced a non-finite score")
@@ -200,4 +231,7 @@ class SparseRetrievalService:
             chunk_content_hash=chunk.chunk_content_hash,
             build_fingerprint=fingerprint,
             sparse_build_fingerprint=sparse_fingerprint,
+            salient_query_terms=salient_terms,
+            matched_query_terms=matched_terms,
+            salient_term_coverage=len(matched_terms) / len(salient_terms),
         )

@@ -43,8 +43,9 @@ See the [renderable Mermaid source and trust-boundary notes](docs/final-architec
 - Local BM25 sparse retrieval, optional Pinecone dense retrieval, transparent hybrid fusion,
   namespace/metadata filters, attribution, and local post-query authorization rechecks.
 - Three official-SDK local read-only MCP tools and typed restricted incident analysis.
-- Fake/offline and optional OpenAI Responses providers with grounded structured output, citation
-  validation, response guardrails, timeout handling, and deterministic fallback.
+- Native local Ollama/Qwen, fake/offline, and optional OpenAI Responses providers with grounded
+  structured output, citation validation, response guardrails, timeout handling, and deterministic
+  fallback.
 - Privacy-safe optional LangSmith hierarchy and structured HTTP/graph logs.
 
 ## Security model
@@ -71,7 +72,8 @@ python -m venv .venv
 .venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
-python scripts/create_demo_env.py
+python scripts/create_demo_env.py --llm-provider ollama
+python -m enterprise_ai.llm.cli check-ollama
 ```
 
 The last command securely prompts for Viewer/Analyst/Administrator passwords and writes the ignored
@@ -130,7 +132,7 @@ docker compose down --remove-orphans
 Authenticated demo mode:
 
 ```powershell
-python scripts/create_demo_env.py
+python scripts/create_demo_env.py --llm-provider ollama
 docker compose --env-file .env.demo up -d --build
 python scripts/container_smoke.py
 ```
@@ -142,8 +144,10 @@ docker compose --env-file .env.demo down --remove-orphans
 Remove-Item -LiteralPath .env.demo
 ```
 
-OpenAI, Pinecone, and LangSmith remain disabled unless explicitly configured. The implemented MCP
-path remains local/in-process; Compose does not invent a remote MCP service.
+The API container reaches host Ollama at `http://host.docker.internal:11434`; Compose neither
+starts Ollama nor downloads or embeds the model. OpenAI, Pinecone, and LangSmith remain disabled
+unless explicitly configured. The implemented MCP path remains local/in-process; Compose does not
+invent a remote MCP service.
 
 ## Demo users and example questions
 
@@ -152,7 +156,7 @@ values entered into `create_demo_env.py`.
 
 | Role | Exact example | Expected route/outcome |
 |---|---|---|
-| Viewer | `Summarize the password policy.` | `simple_retrieval`, grounded citations |
+| Viewer | `What does the active Payment Queue Backlog Recovery Runbook require for controlled backlog drain and idempotency verification?` | `simple_retrieval`, grounded citations |
 | Viewer | `Explain that again.` | multi-turn context continuation |
 | Viewer | `Count payment incidents by root cause.` | denied before Python analysis |
 | Viewer | `Who owns the payment-gateway service?` | denied before MCP |
@@ -162,8 +166,17 @@ values entered into `create_demo_env.py`.
 | Analyst | `Compare pending payment status in September and delayed settlement in February.` | `recursive_research`, bounded fan-out and citations |
 | Administrator | `What does INC-PAY-2025-126 say about certificate lifecycle ownership?` | authorized restricted retrieval |
 
-The main recording uses fake LLM/local sparse retrieval so these flows do not depend on paid or
-network providers.
+The main local recording uses Ollama with `qwen3:4b-instruct` and local sparse retrieval. Fake
+remains the deterministic CI/infrastructure-smoke provider; OpenAI remains an optional adapter.
+
+| Environment | LLM |
+|---|---|
+| CI/tests | `FakeLLMProvider` |
+| Local assessment | Ollama + `qwen3:4b-instruct` |
+| Optional cloud | OpenAI Responses API (`store=false`) |
+
+Qwen is pretrained and is not trained on this corpus. Enterprise documents are indexed for RAG;
+document updates require re-ingestion and re-indexing, not model retraining.
 
 ## Testing and deterministic verification
 
@@ -235,7 +248,7 @@ The architectural choices and production gaps are explained in
 - no durable SSE replay or distributed workers;
 - local read-only MCP without remote OAuth;
 - typed aggregate analysis rather than arbitrary Python;
-- fake provider default and runtime-only optional cloud credentials;
+- fake provider for CI, explicit local Ollama/Qwen for assessment, and optional cloud credentials;
 - structural citations/guardrails rather than universal semantic or safety proof;
 - no HITL, reranking, durable long-term memory, or persistent feedback; and
 - no production secrets, networking, telemetry, retention, governance, or scaling platform.

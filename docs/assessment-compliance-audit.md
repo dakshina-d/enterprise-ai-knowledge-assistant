@@ -100,7 +100,8 @@ Abbreviations used below: `role acceptance` =
 | Modern LLM provider abstraction | Implemented | `llm/provider.py` | provider/grounding suites | graph query | Application-owned protocol |
 | Model selection rationale | Implemented | `docs/model-selection.md` | documentation review | Read rationale | Requires periodic manual review |
 | Fake/offline provider | Implemented | fake provider | offline graph/evaluation suites | graph CLI | Deterministic minimal prose |
-| Optional real provider | Implemented for bounded PoC | OpenAI Responses provider | adapter tests | configure explicit OpenAI mode | Credentialed manual execution |
+| Local real provider | Implemented for bounded PoC | native Ollama provider with `qwen3:4b-instruct` | mocked adapter, privacy, and opt-in live tests | `check-ollama` then Viewer runbook query | CPU latency; schema-constrained output required |
+| Optional cloud provider | Implemented for bounded PoC | OpenAI Responses provider | adapter regression tests | configure explicit OpenAI mode | Credentialed manual execution |
 | Grounded structured output | Implemented | typed request/result/draft models | grounded-response tests | policy query | Structural grounding |
 | Citation validation | Implemented | citation validator/node | citation suites | inspect response citations | Not universal semantic entailment |
 | Deterministic fallback | Implemented | response service fallback | grounding and failure matrix | unavailable-provider test | Evidence-title summary only |

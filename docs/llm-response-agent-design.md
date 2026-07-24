@@ -1,9 +1,11 @@
 # Grounded LLM Response Agent
 
-Status: **implemented** with an application-owned provider protocol, an offline fake, and the
-official asynchronous OpenAI Responses API provider. OpenAI mode uses structured Pydantic parsing,
-`store=False`, no provider tools, no previous response, zero SDK retries, explicit timeout, and a
-bounded application retry policy. No client is created at module import.
+Status: **implemented** with an application-owned provider protocol, deterministic fake,
+schema-constrained native Ollama/Qwen, and optional official asynchronous OpenAI Responses
+providers. Ollama uses native `/api/chat`, `think=false`, bounded context/output/keep-alive, and a
+Pydantic-derived JSON Schema. OpenAI uses structured Pydantic parsing, `store=False`, no provider
+tools, no previous response, zero SDK retries, explicit timeout, and a bounded application retry
+policy. No client is created at module import.
 
 ## Grounding and prompts
 

@@ -112,6 +112,78 @@ def test_sparse_retrieval_exact_identifier_and_rbac(tmp_path: Path) -> None:
     )
 
 
+def test_sparse_relevance_abstains_for_unsupported_and_generic_queries(tmp_path: Path) -> None:
+    settings = _settings(tmp_path)
+    build_sparse(settings)
+    service = SparseRetrievalService(settings)
+    viewer = assessment_principal(UserRole.VIEWER)
+
+    password = asyncio.run(service.retrieve(viewer, "Summarize the password policy.", top_k=5))
+    generic = asyncio.run(service.retrieve(viewer, "policy", top_k=5))
+    out_of_vocabulary = asyncio.run(service.retrieve(viewer, "xylophonicquasar", top_k=5))
+
+    assert password.evidence == generic.evidence == out_of_vocabulary.evidence == ()
+
+
+def test_sparse_relevance_retains_verified_viewer_runbook(tmp_path: Path) -> None:
+    settings = _settings(tmp_path)
+    build_sparse(settings)
+    result = asyncio.run(
+        SparseRetrievalService(settings).retrieve(
+            assessment_principal(UserRole.VIEWER),
+            (
+                "What does the active Payment Queue Backlog Recovery Runbook require "
+                "for controlled backlog drain and idempotency verification?"
+            ),
+            top_k=5,
+        )
+    )
+
+    assert result.evidence
+    assert result.evidence[0].source_file.endswith("payment-queue-backlog-recovery.md")
+    assert result.evidence[0].salient_term_coverage >= 0.5
+    assert {"backlog", "drain", "idempotency"} <= set(result.evidence[0].matched_query_terms)
+
+
+def test_relevance_preserves_identifier_authorization_and_current_preference(
+    tmp_path: Path,
+) -> None:
+    settings = _settings(tmp_path)
+    build_sparse(settings)
+    service = SparseRetrievalService(settings)
+    administrator = asyncio.run(
+        service.retrieve(
+            assessment_principal(UserRole.ADMINISTRATOR),
+            "INC-PAY-2026-031",
+            top_k=5,
+        )
+    )
+    viewer = asyncio.run(
+        service.retrieve(
+            assessment_principal(UserRole.VIEWER),
+            "INC-PAY-2026-031",
+            top_k=5,
+        )
+    )
+    current = asyncio.run(
+        service.retrieve(
+            assessment_principal(UserRole.VIEWER),
+            "What is the current approved data retention policy?",
+            top_k=10,
+        )
+    )
+
+    assert administrator.evidence[0].source_file.endswith("inc-pay-2026-031.md")
+    assert all(item.access_level is not AccessLevel.RESTRICTED for item in viewer.evidence)
+    assert current.evidence
+    assert current.evidence[0].status != "superseded"
+    superseded_ranks = [
+        index for index, item in enumerate(current.evidence) if item.status == "superseded"
+    ]
+    if superseded_ranks:
+        assert superseded_ranks[0] > 0
+
+
 def _dense(identifier: str, score: float) -> DenseEvidence:
     chunk_id = UUID(identifier)
     return DenseEvidence(
@@ -226,3 +298,28 @@ async def test_hybrid_complete_failure_and_cancellation_are_not_hidden() -> None
     )
     with pytest.raises(asyncio.CancelledError):
         await cancelled.retrieve(assessment_principal(UserRole.VIEWER), "safe query")
+
+
+@pytest.mark.asyncio
+async def test_hybrid_keeps_authorized_dense_semantic_evidence_when_sparse_abstains() -> None:
+    item = _dense("00000000-0000-0000-0000-000000000001", 0.9)
+    service = HybridRetrievalService(
+        RetrievalSettings(),
+        RetrievalBranch(
+            DenseRetrievalResult(
+                evidence=(item,),
+                total_provider_matches=1,
+                dropped_unauthorized=0,
+                malformed_results=0,
+            )
+        ),  # type: ignore[arg-type]
+        RetrievalBranch(SparseRetrievalResult(evidence=(), total_candidates=1)),  # type: ignore[arg-type]
+    )
+
+    result = await service.retrieve(
+        assessment_principal(UserRole.VIEWER),
+        "known semantic paraphrase",
+    )
+
+    assert len(result.evidence) == 1
+    assert result.evidence[0].retrieval_modes == frozenset({"dense"})

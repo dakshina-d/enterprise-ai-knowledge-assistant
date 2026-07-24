@@ -10,8 +10,9 @@
   not an enterprise identity system.
 - Optional OpenAI, Pinecone, and LangSmith credentials are supplied only at runtime by the
   evaluator and are never required by CI.
-- The deterministic fake provider is the authority for repeatable tests and the credential-free
-  demo path. It proves contracts and control flow, not live-model prose quality.
+- The deterministic fake provider is the authority for repeatable CI and infrastructure smoke.
+  The primary manual-assessment provider is local Ollama with `qwen3:4b-instruct`; OpenAI is an
+  optional cloud adapter.
 - Live Pinecone execution is optional because it requires a provisioned index and credential. The
   local BM25 path and fake dense-provider tests demonstrate mandatory retrieval controls offline.
 - LangSmith live tracing is demonstrated separately with a temporary runtime credential. Offline
@@ -36,7 +37,13 @@
 | Process-local Token Bucket | Concurrent atomicity is demonstrable without infrastructure | No cross-process/user-cluster coordination |
 | Deterministic guardrails plus validation | LLM text cannot own policy, evidence authorization, tools, or citations | Pattern rules are bounded, not universal moderation |
 | Fake provider in CI | Fast, offline, deterministic, and free of secret/network dependency | Does not measure live model quality |
+| Local Qwen3-4B-Instruct through native Ollama | Fits the observed assessment hardware, keeps evidence local, has no per-request fee, and supports schema-constrained output | CPU inference is slower and recursive multi-call research may take several minutes |
 | Privacy-safe trace metadata | Preserves hierarchy and outcomes without exporting prompts/evidence | Less content is available for trace debugging |
+
+The Qwen model is pretrained, not fine-tuned on the synthetic enterprise corpus. Corpus updates
+flow through deterministic re-ingestion and re-indexing for RAG; they do not retrain the model.
+Authorization, retrieval relevance, routing, tools, calculations, citations, and memory policy
+remain application-owned regardless of provider.
 
 ## Production gaps
 

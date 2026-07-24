@@ -3,8 +3,8 @@
 Repository-wide GitHub Actions validation is implemented in `.github/workflows/ci.yml`, covering
 the deterministic offline corpus/retrieval pipeline, static quality gates, and full test suite.
 
-Status: **Mandatory PoC phases implemented through phase 24; bounded local deployment phase 25 is
-also implemented.** Each phase is an independently reviewable increment. Remaining optional phases
+Status: **Mandatory PoC phases implemented through phase 24; bounded local deployment phase 25 and
+local schema-constrained Qwen/relevance hardening phase 28 are also implemented.** Each phase is an independently reviewable increment. Remaining optional phases
 must keep Ruff, MyPy, Pytest, documentation, and secret scanning green.
 
 Progress: phases 1–22 and the phase-24 acceptance hardening are implemented. The duplicate phase
@@ -41,5 +41,6 @@ long-term memory, and feedback persistence are optional and not implemented.
 | 25 | `build: finalize deployment and submission evidence` (implemented for bounded PoC) | One secure image, API/UI Compose services, Python health smoke, demo environment generator, final architecture and submission evidence. MCP/analysis remain honest local application boundaries rather than invented services. | 14, 15, 22, 24 | Compose config and local image build/start/API health/UI health/down lifecycle pass. | Docker Compose bonus plus assessment deliverables | False production equivalence; secret handling. |
 | 26 | `test: add retrieval and response quality evaluation` | Versioned dataset, metrics, regression thresholds, optional reranking experiment. | 5–19 | Reproducible report and authorization precision 100%. | Reranking bonus, retrieval/citation quality | Overfitting and weak ground truth. |
 | 27 | `docs: prepare final demo and assessment evidence` (implemented documentation) | Final diagram, assumptions/trade-offs, 45-minute script, runbook, evidence checklist, submission and final checklist. | All selected phases | Links validate; public recording, video URL and final commit SHA remain manual. | Full assessment evidence | Stale evidence or overstated readiness. |
+| 28 | `feat: add local Qwen3 Instruct inference and enforce retrieval relevance` (implemented) | Native Ollama provider, schema-constrained Qwen output, private-reasoning rejection, sparse relevance abstention, verified demo query, and local CPU profile. | 8, 15, 24, 25 | Mocked/privacy/live Ollama tests; unsupported password query abstains; supported runbook query cites current evidence; all provider regressions pass. | Local model, grounding, privacy, retrieval quality | CPU latency and lexical-gate calibration |
 
 Long-term memory and the feedback loop remain optional follow-on commits after session-memory/privacy and feedback-contract validation. If implemented, use separate commits: `feat: add consented long-term memory` and `feat: add feedback analysis loop`, each with deletion, isolation, audit, and evaluation tests. They must not be silently folded into unrelated phases.

@@ -25,7 +25,15 @@ def _events(text: str) -> list[dict[str, object]]:
 
 def test_viewer_analyst_and_administrator_route_acceptance() -> None:
     scenarios = (
-        ("demo-viewer", "Summarize the password policy.", "simple_retrieval", "completed"),
+        (
+            "demo-viewer",
+            (
+                "What does the active Payment Queue Backlog Recovery Runbook require "
+                "for controlled backlog drain and idempotency verification?"
+            ),
+            "simple_retrieval",
+            "completed",
+        ),
         ("demo-viewer", "Who owns the payment-gateway service?", "deny", "denied"),
         ("demo-viewer", "Count payment incidents by root cause.", "deny", "denied"),
         ("demo-analyst", "Who owns the payment-gateway service?", "mcp_tool", "completed"),
@@ -111,7 +119,12 @@ def test_multi_turn_continuation_and_new_user_isolation() -> None:
         first = client.post(
             "/api/v1/chat",
             headers=analyst_headers,
-            json={"message": "Summarize the password policy."},
+            json={
+                "message": (
+                    "What does the active Payment Queue Backlog Recovery Runbook require "
+                    "for controlled backlog drain and idempotency verification?"
+                )
+            },
         )
         second = client.post(
             "/api/v1/chat",
@@ -132,3 +145,20 @@ def test_multi_turn_continuation_and_new_user_isolation() -> None:
     assert second.json()["memory_used"]
     assert cross_user.status_code == 409
     assert cross_user.json()["error"]["code"] == "session.ownership_conflict"
+
+
+def test_unsupported_password_policy_query_abstains_without_citations() -> None:
+    with TestClient(create_app(chat_settings())) as client:
+        response = client.post(
+            "/api/v1/chat",
+            headers=authorization_header(client, "demo-viewer"),
+            json={"message": "Summarize the password policy."},
+        )
+
+    assert response.status_code == 200
+    output = response.json()
+    assert output["selected_route"] == "simple_retrieval"
+    assert output["insufficient_evidence"] is True
+    assert output["evidence"] == []
+    assert output["citations"] == []
+    assert "No sufficient authorized evidence" in output["response_text"]
