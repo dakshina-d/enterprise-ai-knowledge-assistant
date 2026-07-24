@@ -121,7 +121,7 @@ def execute_analysis(
         )
     documents = tuple(sorted({row.document_id for row in selected}, key=str))
     incidents = tuple(sorted(row.incident_id for row in selected if row.incident_id))
-    summary = _summary(operation, len(selected), items, scalar, stats, incidents)
+    summary = _summary(operation, len(selected), items, scalar, stats)
     return AnalysisResult(
         operation=operation,
         row_count_considered=len(selected),
@@ -182,7 +182,6 @@ def _summary(
     items: tuple[AnalysisItem, ...],
     scalar: float | int | None,
     stats: dict[str, float],
-    incidents: tuple[str, ...],
 ) -> str:
     if scalar is not None:
         return f"The authorized dataset contains {int(scalar)} incident records."
@@ -196,7 +195,10 @@ def _summary(
             f"The leading {operation.value} category is {items[0].key}, "
             f"appearing in {items[0].count} authorized incidents."
         )
-        if operation is AnalysisOperation.RECURRING_ROOT_CAUSES and incidents:
-            return f"{summary} Supporting incidents: {', '.join(incidents[:10])}."
+        if operation is AnalysisOperation.RECURRING_ROOT_CAUSES and items[0].incident_ids:
+            return (
+                f"{summary} Supporting incidents for this category: "
+                f"{', '.join(items[0].incident_ids)}."
+            )
         return summary
     return "The authorized dataset produced no result items for the requested operation."

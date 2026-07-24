@@ -132,6 +132,15 @@ class GroundedResponse(ContractModel):
     model: str
     prompt_version: str
     deterministic_fallback_used: bool = False
+    deterministic_analysis_rendering_used: bool = False
     fallback_reason: FallbackReason | None = None
     insufficient_evidence: bool = False
     uncertainty: str | None = None
+
+    @model_validator(mode="after")
+    def deterministic_rendering_is_not_fallback(self) -> Self:
+        if self.deterministic_analysis_rendering_used and (
+            self.deterministic_fallback_used or self.fallback_reason is not None
+        ):
+            raise ValueError("successful deterministic analysis cannot be a fallback")
+        return self

@@ -32,6 +32,7 @@ SAFE_KEYS = frozenset(
         "completion_status",
         "citation_valid",
         "deterministic_fallback_used",
+        "deterministic_analysis_rendering_used",
         "fallback_used",
         "fallback_reason",
         "insufficient_evidence",

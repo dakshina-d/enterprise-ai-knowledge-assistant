@@ -669,6 +669,9 @@ def create_nodes(
                 "response_text": grounded.answer_text,
                 "provider_status": "completed",
                 "deterministic_fallback_used": grounded.deterministic_fallback_used,
+                "deterministic_analysis_rendering_used": (
+                    grounded.deterministic_analysis_rendering_used
+                ),
                 "fallback_reason": grounded.fallback_reason,
             }
         elif state.get("research_result") is not None:
@@ -1110,6 +1113,9 @@ def create_nodes(
                 state["grounded_response"].model if state.get("grounded_response") else None
             ),
             deterministic_fallback_used=state.get("deterministic_fallback_used", False),
+            deterministic_analysis_rendering_used=state.get(
+                "deterministic_analysis_rendering_used", False
+            ),
             fallback_reason=state.get("fallback_reason"),
             insufficient_evidence=(
                 state["grounded_response"].insufficient_evidence

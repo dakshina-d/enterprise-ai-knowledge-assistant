@@ -6,6 +6,7 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
+from enterprise_ai.llm.response_service import render_analysis_result
 from enterprise_ai.models.identity import UserRole
 from enterprise_ai.retrieval.config import RetrievalSettings
 from enterprise_ai.retrieval.evaluation import assessment_principal
@@ -88,7 +89,22 @@ async def test_authorized_real_dataset_is_role_filtered_and_deterministic() -> N
         maximum_distinct=500,
     )
     assert first == second
-    assert first.items
+    assert len(first.items) == 6
+    rendered = render_analysis_result(first)
+    positions = [rendered.index(f"| {item.key} | {item.count} |") for item in first.items]
+    assert positions == sorted(positions)
+    for item in first.items:
+        assert f"| {item.key} | {item.count} |" in rendered
+        for incident_id in item.incident_ids:
+            assert incident_id in rendered
+    leading = first.items[0]
+    assert f"appearing in {leading.count} authorized incidents" in first.summary
+    assert all(incident_id in first.summary for incident_id in leading.incident_ids)
+    assert all(
+        incident_id not in first.summary
+        for item in first.items[1:]
+        for incident_id in item.incident_ids
+    )
 
 
 @pytest.mark.asyncio

@@ -39,6 +39,7 @@ def _analysis() -> AnalysisResult:
         row_count_excluded=1,
         items=(
             AnalysisItem(key="database_lock_contention", count=2, incident_ids=("INC-1", "INC-2")),
+            AnalysisItem(key="retry_storm", count=1, incident_ids=("INC-3",)),
         ),
         summary="The trusted count is 2 for database_lock_contention.",
         provenance=AnalysisProvenance(
@@ -72,7 +73,14 @@ async def test_typed_analysis_deterministically_overrides_malicious_prose(
     response = await GroundedResponseService(provider, RetrievalSettings()).analysis_response(
         "question", _analysis()
     )
-    assert response.answer_text == _analysis().summary
+    assert response.answer_text.startswith(_analysis().summary)
+    assert "| database_lock_contention | 2 | INC-1, INC-2 |" in response.answer_text
+    assert "| retry_storm | 1 | INC-3 |" in response.answer_text
+    assert "Authorized rows considered: 2" in response.answer_text
+    assert "Rows excluded: 1" in response.answer_text
     assert malicious not in response.answer_text
-    assert response.deterministic_fallback_used and provider.calls == 1
+    assert response.deterministic_analysis_rendering_used
+    assert not response.deterministic_fallback_used
+    assert response.fallback_reason is None
+    assert provider.calls == 0
     assert not response.citations

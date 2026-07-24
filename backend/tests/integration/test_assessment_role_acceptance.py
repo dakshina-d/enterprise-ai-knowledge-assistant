@@ -56,6 +56,7 @@ def test_viewer_analyst_and_administrator_route_acceptance() -> None:
             "completed",
         ),
         ("demo-admin", "Who owns the payment-gateway service?", "mcp_tool", "completed"),
+        ("demo-admin", "Count payment incidents by root cause.", "python_analysis", "completed"),
         (
             "demo-viewer",
             "Show the restricted disaster-recovery topology.",
@@ -98,7 +99,34 @@ def test_viewer_analyst_and_administrator_route_acceptance() -> None:
                 assert output["evidence"] == []
                 assert output["citations"] == []
             elif route == "python_analysis":
-                assert output["analysis_result"] is not None
+                result = output["analysis_result"]
+                assert result is not None
+                assert result["operation"] == "recurring_root_causes"
+                assert result["items"]
+                if username == "demo-analyst":
+                    assert len(result["items"]) == 6
+                response_text = output["response_text"]
+                positions = [
+                    response_text.index(f"| {item['key']} | {item['count']} |")
+                    for item in result["items"]
+                ]
+                assert positions == sorted(positions)
+                for item in result["items"]:
+                    assert f"| {item['key']} | {item['count']} |" in response_text
+                    for incident_id in item["incident_ids"]:
+                        assert incident_id in response_text
+                leading = result["items"][0]
+                assert all(
+                    incident_id in result["summary"] for incident_id in leading["incident_ids"]
+                )
+                assert all(
+                    incident_id not in result["summary"]
+                    for item in result["items"][1:]
+                    for incident_id in item["incident_ids"]
+                )
+                assert output["deterministic_analysis_rendering_used"] is True
+                assert output["deterministic_fallback_used"] is False
+                assert output.get("fallback_reason") is None
                 assert output["evidence"] == []
                 assert output["citations"] == []
             elif route in {"simple_retrieval", "recursive_research"}:

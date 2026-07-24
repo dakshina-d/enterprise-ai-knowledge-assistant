@@ -89,10 +89,21 @@ class GraphOutput(ContractModel):
     response_provider: str | None = None
     response_model: str | None = None
     deterministic_fallback_used: bool = False
+    deterministic_analysis_rendering_used: bool = False
     fallback_reason: FallbackReason | None = None
     insufficient_evidence: bool = False
     mcp_result: MCPExecutionResult | None = None
     mcp_provenance: MCPProvenance | None = None
+
+    @model_validator(mode="after")
+    def deterministic_analysis_is_not_fallback(self) -> Self:
+        if self.deterministic_analysis_rendering_used and (
+            self.analysis_result is None
+            or self.deterministic_fallback_used
+            or self.fallback_reason is not None
+        ):
+            raise ValueError("deterministic analysis requires a successful analysis result")
+        return self
 
 
 class GraphStreamItem(ContractModel):

@@ -5,6 +5,15 @@ import streamlit as st
 from frontend.enterprise_ai_frontend.models import ActivityItem, ChatMessage
 
 
+def response_notices(message: ChatMessage) -> tuple[str, ...]:
+    notices: list[str] = []
+    if message.deterministic_fallback_used:
+        notices.append("A deterministic fallback response was used.")
+    if message.deterministic_analysis_rendering_used:
+        notices.append("Verified structured analysis was rendered deterministically.")
+    return tuple(notices)
+
+
 def render_message(message: ChatMessage) -> None:
     with st.chat_message(message.role):
         st.markdown(message.content)
@@ -12,8 +21,8 @@ def render_message(message: ChatMessage) -> None:
             st.caption(f"Completion: {message.completion_status.value.replace('_', ' ')}")
         if message.insufficient_evidence:
             st.warning("The available authorized evidence was insufficient.")
-        if message.deterministic_fallback_used:
-            st.info("A deterministic fallback response was used.")
+        for notice in response_notices(message):
+            st.info(notice)
         if message.citations:
             with st.expander("Sources", expanded=False):
                 for citation in message.citations:
@@ -32,6 +41,15 @@ def render_message(message: ChatMessage) -> None:
                 st.caption("Source: fictional read-only enterprise MCP data")
         if message.analysis_operation is not None:
             st.caption(f"Verified structured analysis: {message.analysis_operation}")
+        if message.analysis_result is not None:
+            result = message.analysis_result
+            with st.expander("Analysis provenance", expanded=False):
+                st.write(f"Operation: `{result.operation.value}`")
+                st.write(f"Authorized rows considered: {result.row_count_considered}")
+                st.write(f"Rows excluded: {result.row_count_excluded}")
+                st.write(f"Algorithm version: `{result.provenance.algorithm_version}`")
+                if result.provenance.taxonomy_version is not None:
+                    st.write(f"Taxonomy version: `{result.provenance.taxonomy_version}`")
         if message.request_id is not None:
             st.caption(f"Request ID: {message.request_id}")
 

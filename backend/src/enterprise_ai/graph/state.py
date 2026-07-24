@@ -73,6 +73,7 @@ class GraphState(TypedDict, total=False):
     response_repair_count: int
     provider_status: str
     deterministic_fallback_used: bool
+    deterministic_analysis_rendering_used: bool
     fallback_reason: FallbackReason
     research_result: ResearchResult
     mcp_execution: MCPExecutionResult

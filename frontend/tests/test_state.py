@@ -6,6 +6,11 @@ from uuid import uuid4
 from enterprise_ai.graph.schemas import GraphOutput
 from enterprise_ai.models.events import AgentEventStatus
 from enterprise_ai.models.identity import LoginResponse
+from enterprise_ai.tools.python_analysis.models import (
+    AnalysisOperation,
+    AnalysisProvenance,
+    AnalysisResult,
+)
 
 from frontend.enterprise_ai_frontend.models import ActivityItem
 from frontend.enterprise_ai_frontend.state import (
@@ -78,3 +83,38 @@ def test_activity_is_deduplicated_and_bounded() -> None:
         add_activity(state, item, maximum_items=3)
     add_activity(state, items[-1], maximum_items=3)
     assert [item.sequence for item in activity(state)] == [2, 3, 4]
+
+
+def test_structured_analysis_success_is_not_projected_as_fallback(
+    graph_output: GraphOutput,
+) -> None:
+    analysis = AnalysisResult(
+        operation=AnalysisOperation.RECURRING_ROOT_CAUSES,
+        row_count_considered=8,
+        row_count_excluded=4,
+        summary="Verified result.",
+        provenance=AnalysisProvenance(
+            source_document_ids=(),
+            supporting_incident_ids=(),
+            formula="authorized rows grouped by taxonomy",
+            taxonomy_version="1.0",
+            algorithm_version="structured-python-1.0",
+        ),
+        request_id=graph_output.request_id,
+        trace_id=graph_output.trace_id,
+    )
+    output = graph_output.model_copy(
+        update={
+            "analysis_result": analysis,
+            "deterministic_analysis_rendering_used": True,
+            "deterministic_fallback_used": False,
+            "fallback_reason": None,
+        }
+    )
+    state: dict[str, object] = {}
+    initialize(state)
+    assistant = complete(state, output)
+    assert assistant.analysis_result == analysis
+    assert assistant.deterministic_analysis_rendering_used
+    assert not assistant.deterministic_fallback_used
+    assert assistant.fallback_reason is None

@@ -121,7 +121,9 @@ def complete(state: StateStore, output: GraphOutput) -> ChatMessage:
         analysis_operation=operation,
         insufficient_evidence=output.insufficient_evidence,
         deterministic_fallback_used=output.deterministic_fallback_used,
+        deterministic_analysis_rendering_used=(output.deterministic_analysis_rendering_used),
         fallback_reason=output.fallback_reason,
+        analysis_result=output.analysis_result,
     )
     state[MESSAGES] = [*messages(state), assistant]
     state[SESSION_ID] = output.session_id

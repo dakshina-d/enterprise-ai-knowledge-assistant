@@ -10,6 +10,7 @@ from enterprise_ai.mcp_tools.models import MCPProvenance
 from enterprise_ai.models.common import ContractModel, ProcessingStatus, utc_now
 from enterprise_ai.models.events import AgentEventStatus
 from enterprise_ai.models.identity import UserRole
+from enterprise_ai.tools.python_analysis.models import AnalysisResult
 from pydantic import Field
 
 
@@ -31,7 +32,9 @@ class ChatMessage(ContractModel):
     analysis_operation: Annotated[str | None, Field(max_length=100)] = None
     insufficient_evidence: bool = False
     deterministic_fallback_used: bool = False
+    deterministic_analysis_rendering_used: bool = False
     fallback_reason: FallbackReason | None = None
+    analysis_result: AnalysisResult | None = None
 
 
 class ActivityItem(ContractModel):

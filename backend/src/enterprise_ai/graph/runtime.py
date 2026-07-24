@@ -65,6 +65,7 @@ class GraphRuntime:
                 report.result.value != "failed" for report in output.validation_reports
             ),
             "deterministic_fallback_used": output.deterministic_fallback_used,
+            "deterministic_analysis_rendering_used": (output.deterministic_analysis_rendering_used),
             "fallback_reason": output.fallback_reason,
             "insufficient_evidence": output.insufficient_evidence,
         }

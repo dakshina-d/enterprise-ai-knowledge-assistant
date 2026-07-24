@@ -26,7 +26,7 @@ from enterprise_ai.llm.models import (
     LLMGenerationResult,
     ResponseMode,
 )
-from enterprise_ai.llm.prompts import analysis_request, grounded_request
+from enterprise_ai.llm.prompts import grounded_request
 from enterprise_ai.llm.provider import LLMProvider
 from enterprise_ai.models.identity import AuthenticatedPrincipal
 from enterprise_ai.observability.tracing import SafeTracer
@@ -203,36 +203,14 @@ class GroundedResponseService:
         )
 
     async def analysis_response(self, question: str, analysis: AnalysisResult) -> GroundedResponse:
-        request = analysis_request(question, analysis, self.settings)
-        async with self.tracer.span(
-            "enterprise_ai.llm.generate",
-            "llm",
-            {"model": request.model, "llm_calls": 1},
-        ):
-            try:
-                result = await self._generate(request)
-            except asyncio.CancelledError:
-                raise
-            except Exception as error:
-                if not self.settings.llm_allow_deterministic_fallback:
-                    raise
-                reason = self._provider_fallback_reason(error)
-                self._log_fallback(reason)
-                return GroundedResponse(
-                    answer_text=analysis.summary[: self.settings.llm_max_answer_characters],
-                    provider="deterministic",
-                    model="none",
-                    prompt_version="1.0",
-                    deterministic_fallback_used=True,
-                    fallback_reason=reason,
-                )
-        # Typed calculations are rendered deterministically to prevent numerical drift.
+        # The model cannot add value here without risking drift from the verified typed result.
+        del question
         return GroundedResponse(
-            answer_text=analysis.summary[: self.settings.llm_max_answer_characters],
-            provider=result.metadata.provider,
-            model=result.metadata.model,
-            prompt_version="1.0",
-            deterministic_fallback_used=True,
+            answer_text=render_analysis_result(analysis)[: self.settings.llm_max_answer_characters],
+            provider="deterministic",
+            model="typed-analysis",
+            prompt_version="analysis-1.0",
+            deterministic_analysis_rendering_used=True,
         )
 
     async def research_response(
@@ -349,3 +327,44 @@ def render_draft(draft: GroundedAnswerDraft) -> str:
         markers = "".join(f"[{item}]" for item in dict.fromkeys(claim.supporting_evidence_ids))
         paragraphs.append(f"{claim.text} {markers}".rstrip())
     return "\n\n".join(paragraphs)
+
+
+def render_analysis_result(result: AnalysisResult) -> str:
+    """Render only verified typed values; result items are already server-limit bounded."""
+    sections = [result.summary]
+    if result.items:
+        label = "Root cause" if result.operation.value == "recurring_root_causes" else "Category"
+        rows = [f"| {label} | Count | Supporting incidents |", "|---|---:|---|"]
+        rows.extend(
+            "| {key} | {count} | {incidents} |".format(
+                key=_markdown_cell(item.key),
+                count=item.count,
+                incidents=", ".join(_markdown_cell(value) for value in item.incident_ids) or "—",
+            )
+            for item in result.items
+        )
+        sections.append("\n".join(rows))
+    elif result.scalar_value is not None:
+        sections.append(f"Result: {result.scalar_value}")
+    elif result.statistics:
+        rows = ["| Statistic | Value |", "|---|---:|"]
+        rows.extend(
+            f"| {_markdown_cell(name)} | {value} |" for name, value in result.statistics.items()
+        )
+        sections.append("\n".join(rows))
+    provenance = [
+        f"- Operation: `{result.operation.value}`",
+        f"- Authorized rows considered: {result.row_count_considered}",
+        f"- Rows excluded: {result.row_count_excluded}",
+        f"- Algorithm version: `{_markdown_cell(result.provenance.algorithm_version)}`",
+    ]
+    if result.provenance.taxonomy_version is not None:
+        provenance.append(
+            f"- Taxonomy version: `{_markdown_cell(result.provenance.taxonomy_version)}`"
+        )
+    sections.append("Provenance\n" + "\n".join(provenance))
+    return "\n\n".join(sections)
+
+
+def _markdown_cell(value: str) -> str:
+    return value.replace("|", r"\|").replace("\r", " ").replace("\n", " ")
