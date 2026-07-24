@@ -3,6 +3,10 @@
 from pathlib import Path
 
 import pytest
+from enterprise_ai.core.config import Settings
+from enterprise_ai.main import create_app
+from enterprise_ai.retrieval.config import RetrievalSettings
+from fastapi.testclient import TestClient
 
 from scripts import create_demo_env
 
@@ -58,3 +62,32 @@ def test_demo_environment_refuses_overwrite_before_prompting(
         )
 
     assert destination.read_text(encoding="utf-8") == "owner-content"
+
+
+def test_generated_ollama_environment_constructs_settings_and_application_runtime(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(create_demo_env, "_password_for", lambda *_args: "test-hash")
+    destination = tmp_path / ".env.demo"
+    create_demo_env.create_demo_environment(
+        destination,
+        force=False,
+        llm_provider="ollama",
+    )
+
+    retrieval_settings = RetrievalSettings(_env_file=destination)
+    assert retrieval_settings.llm_provider == "ollama"
+    assert retrieval_settings.ollama_temperature == 0.0
+    assert isinstance(retrieval_settings.ollama_temperature, float)
+
+    for line in destination.read_text(encoding="utf-8").splitlines():
+        if line and not line.startswith("#"):
+            name, value = line.split("=", 1)
+            monkeypatch.setenv(name, value)
+
+    application_settings = Settings(_env_file=None)
+    with TestClient(create_app(application_settings)) as client:
+        response = client.get("/health/live")
+
+    assert response.status_code == 200

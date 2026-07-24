@@ -91,10 +91,11 @@ async def test_native_request_uses_exact_schema_and_no_thinking() -> None:
     assert seen["format"] == ollama_json_schema()
     assert seen["format"]["additionalProperties"] is False  # type: ignore[index]
     assert seen["options"] == {
-        "temperature": 0,
+        "temperature": 0.0,
         "num_ctx": 8192,
         "num_predict": 128,
     }
+    assert isinstance(seen["options"]["temperature"], float)  # type: ignore[index]
     assert seen["keep_alive"] == "5m"
     assert result.metadata.provider == "ollama"
     assert result.usage.input_tokens == 12
@@ -109,6 +110,19 @@ def test_grounded_schema_requires_claim_and_evidence_relationship() -> None:
     claim = schema["$defs"]["GroundedClaim"]
     assert claim["properties"]["supporting_evidence_ids"]["minItems"] == 1
     assert "supporting_evidence_ids" in claim["required"]
+
+
+def test_zero_temperature_parses_from_string_environment_and_rejects_nonzero(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("OLLAMA_TEMPERATURE", "0")
+    settings = RetrievalSettings(_env_file=None)
+    assert settings.ollama_temperature == 0.0
+    assert isinstance(settings.ollama_temperature, float)
+
+    monkeypatch.setenv("OLLAMA_TEMPERATURE", "0.1")
+    with pytest.raises(ValidationError):
+        RetrievalSettings(_env_file=None)
 
 
 @pytest.mark.asyncio

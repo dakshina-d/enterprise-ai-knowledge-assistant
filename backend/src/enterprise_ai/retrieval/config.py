@@ -105,7 +105,7 @@ class RetrievalSettings(BaseSettings):
     ollama_request_timeout_seconds: float = Field(default=120, ge=1, le=300)
     ollama_num_ctx: int = Field(default=8_192, ge=512, le=65_536)
     ollama_num_predict: int = Field(default=800, ge=64, le=4_096)
-    ollama_temperature: Literal[0] = 0
+    ollama_temperature: float = Field(default=0.0, ge=0.0, le=0.0)
     ollama_keep_alive: str = Field(default="5m", pattern=r"^[1-9][0-9]{0,2}[smh]$")
     openai_api_key: SecretStr | None = None
     openai_response_model: str = "gpt-5.4-mini"
