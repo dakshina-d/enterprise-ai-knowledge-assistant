@@ -3,14 +3,13 @@
 Repository-wide GitHub Actions validation is implemented in `.github/workflows/ci.yml`, covering
 the deterministic offline corpus/retrieval pipeline, static quality gates, and full test suite.
 
-Status: **Mandatory PoC phases implemented through phase 24.** Each phase is an independently
-reviewable increment. Optional bonus/deployment phases remain separate and must keep Ruff, MyPy,
-Pytest, documentation, and secret scanning green.
+Status: **Mandatory PoC phases implemented through phase 24; bounded local deployment phase 25 is
+also implemented.** Each phase is an independently reviewable increment. Remaining optional phases
+must keep Ruff, MyPy, Pytest, documentation, and secret scanning green.
 
 Progress: phases 1–22 and the phase-24 acceptance hardening are implemented. The duplicate phase
-15 labels are retained as historical commit-plan labels. Phase 23 (HITL), phase 25 (Docker
-Compose), reranking, durable long-term memory, and feedback persistence are optional and not
-implemented.
+15 labels are retained as historical commit-plan labels. Phase 23 (HITL), reranking, durable
+long-term memory, and feedback persistence are optional and not implemented.
 
 | # | Proposed commit message | Scope | Dependencies | Acceptance criteria and tests | Traceability addressed | Primary risks |
 |---:|---|---|---|---|---|---|
@@ -39,8 +38,8 @@ implemented.
 | 22 | `feat: add Streamlit chat UI and agent activity panel` (implemented) | Login, per-session multi-turn display, POST SSE validation, activity, citations/provenance, safe failures and logout. | 3, 13, 21 | Offline client/state/parser/UI tests plus API regressions. | Streamlit chat and live activity | No durable replay, token refresh, cross-device history, or external IdP. |
 | 23 | `feat: add human approval graph checkpoint` | Configurable pause/resume/expiry for risky tools. | 16, 21, 22 | Approve/deny/timeout/replay tests. | Human-in-the-loop bonus | Stale approvals and confused deputy. |
 | 24 | `test: complete assessment hardening and failure coverage` (implemented) | Deterministic guardrails, structured outcome logging, dependency fault adapters, role/API acceptance and compliance audit. | 12–22 | LLM/retrieval/MCP/Python/API/tracing failures meet safe contracts; security and role matrices pass. | All mandatory failure/security requirements | Overclaiming beyond the bounded offline PoC. |
-| 25 | `build: add docker compose proof-of-concept stack` | API, UI, MCP, restricted runtime, local support stores. | 14, 15, 22 | Clean-machine health/E2E and isolation checks. | Docker Compose bonus | False production equivalence; secret handling. |
+| 25 | `build: finalize deployment and submission evidence` (implemented for bounded PoC) | One secure image, API/UI Compose services, Python health smoke, demo environment generator, final architecture and submission evidence. MCP/analysis remain honest local application boundaries rather than invented services. | 14, 15, 22, 24 | Compose config and local image build/start/API health/UI health/down lifecycle pass. | Docker Compose bonus plus assessment deliverables | False production equivalence; secret handling. |
 | 26 | `test: add retrieval and response quality evaluation` | Versioned dataset, metrics, regression thresholds, optional reranking experiment. | 5–19 | Reproducible report and authorization precision 100%. | Reranking bonus, retrieval/citation quality | Overfitting and weak ground truth. |
-| 27 | `docs: prepare final demo and assessment evidence` | Demo script, trace/test links, limitations, production gaps. | All selected phases | 45-minute rehearsal and honest traceability audit. | Full assessment and feedback-loop bonus status | Stale evidence or overstated readiness. |
+| 27 | `docs: prepare final demo and assessment evidence` (implemented documentation) | Final diagram, assumptions/trade-offs, 45-minute script, runbook, evidence checklist, submission and final checklist. | All selected phases | Links validate; public recording, video URL and final commit SHA remain manual. | Full assessment evidence | Stale evidence or overstated readiness. |
 
 Long-term memory and the feedback loop remain optional follow-on commits after session-memory/privacy and feedback-contract validation. If implemented, use separate commits: `feat: add consented long-term memory` and `feat: add feedback analysis loop`, each with deletion, isolation, audit, and evaluation tests. They must not be silently folded into unrelated phases.

@@ -175,17 +175,19 @@ Bonus status does not affect mandatory compliance.
 | Reranking | Bonus/not required; not implemented | No reranker | Hybrid fusion only |
 | Long-term memory | Bonus/not required; not implemented | Session memory only | No durable/semantic profile |
 | Persistent feedback loop | Bonus/not required; not implemented | No feedback persistence | Deliberately excluded |
-| Docker Compose | Bonus/not required; not implemented | Local commands only | No deployment equivalence claim |
+| Docker Compose | Implemented for bounded PoC | Secure Dockerfile/Compose, Python health checks, smoke and demo-env scripts; local build/start/API health/UI health/down passed | Local two-service proof only; no production orchestration or CI runtime gate |
 
 ## External and manual deliverables
 
 | Deliverable | Current evidence | Audit status | Limitation |
 |---|---|---|---|
-| GitHub Actions latest run | Workflow exists in `.github/workflows/ci.yml` | Not independently verified during this audit | Local environment had no usable `gh`; connected run lookup returned no PR-triggered run for current HEAD |
+| GitHub Actions hardening run | Workflow exists in `.github/workflows/ci.yml`; assignment owner manually confirmed commit `575768d` green | Confirmed by owner; final deployment commit still requires its own run | CI remains external evidence |
 | Live Pinecone | Optional adapter/CLI implemented | Not run; automated fake contracts used | Requires user-provided credential/index |
 | Live OpenAI | Optional Responses adapter implemented | Not run; automated fake contracts used | Requires user-provided credential |
 | Real LangSmith export | Prior credentialed smoke is documented | Not re-run; offline hierarchy/failure tests are authoritative for CI | Requires temporary runtime credential |
 | Production deployment/security review | Architecture and gaps documented | Not delivered | PoC is not production-ready |
+| Public demonstration video | Script, runbook, and evidence checklist implemented | Not recorded/uploaded | URL remains `TO BE ADDED AFTER RECORDING` |
+| Final submission commit | Submission document implemented | Not created by Codex | SHA placeholder must be populated after the owner commits |
 
 ## Overall conclusion
 

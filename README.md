@@ -2,198 +2,256 @@
 
 [![Repository CI](https://github.com/dakshina-d/enterprise-ai-knowledge-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/dakshina-d/enterprise-ai-knowledge-assistant/actions/workflows/ci.yml)
 
-A bounded, executable technical-assessment proof of concept for an enterprise knowledge assistant.
+A bounded executable assessment PoC for authorization-aware enterprise knowledge retrieval,
+recursive research, typed analysis, and read-only enterprise-data tools.
 
-## Current status
+The repository uses a deterministic 51-document corpus for the fictional Lanka Horizon Commercial
+Bank. It contains no real customer, employee, bank, or production data and is not presented as a
+production-ready system.
 
-Implemented: modular repository scaffolding, reusable validated domain/API contracts, proof-of-concept authentication, deterministic RBAC and rate limiting, health endpoints, a deterministic 51-document synthetic corpus, offline ingestion, and optional Pinecone dense indexing/retrieval with offline-tested security filters.
+## Assessment status
 
-Implemented runtime capabilities now include LangGraph orchestration, local BM25 and hybrid retrieval, bounded research, grounded responses, restricted Python analysis, session memory, privacy-safe LangSmith tracing, three authorized read-only MCP enterprise-data tools, authenticated JSON/SSE chat delivery, and an authenticated Streamlit chat and live Agent Activity Panel. Deterministic prompt/evidence and response guardrails, privacy-safe structured HTTP/graph logs, and dependency-failure containment are covered by offline acceptance tests. Reranking, HITL, and business workflows remain out of scope.
+Mandatory assessment capabilities are executable and covered by offline tests: Streamlit chat and
+live activity, FastAPI JSON/SSE, LangGraph Supervisor/Retrieval/Research/Response agents, bounded
+recursive research, local BM25 and optional Pinecone dense/hybrid retrieval, session memory,
+restricted analysis, local read-only MCP tools, grounded citations, RBAC, Token Bucket limits,
+guardrails, structured logging, safe tracing, and graceful dependency failures.
 
-The repository includes a deterministic 51-document synthetic corpus for the fictional Lanka Horizon Commercial Bank. All people, incidents, systems, dates, metrics, and identifiers are synthetic and do not describe any real financial institution.
+The final requirement-by-requirement evidence is in the
+[compliance audit](docs/assessment-compliance-audit.md). HITL, reranking, durable/long-term memory,
+persistent feedback, arbitrary Python, remote MCP OAuth, durable replay, and enterprise IdP
+integration are deliberately unimplemented.
 
 ## Architecture
 
-The system separates the Streamlit experience, FastAPI orchestration API, ingestion pipeline, and constrained local MCP server. Implemented modules provide agents, graph orchestration, hybrid retrieval, tools, memory, security, observability, models, and services. External providers and distributed production infrastructure remain optional or out of scope. See [docs/architecture.md](docs/architecture.md).
+[![Final assessment architecture](docs/assets/final-architecture.svg)](docs/final-architecture.md)
 
-Pinecone is disabled by default and never runs during API startup. After configuring `.env`, use the explicit `enterprise_ai.retrieval.cli` bootstrap, index, check, query, and evaluation commands documented in [dense retrieval design](docs/dense-retrieval-design.md).
+FastAPI is the non-bypassable policy boundary. Browser and model inputs cannot supply identity,
+permissions, routes, tools, namespaces, filters, or authorization policy. Retrieved documents are
+untrusted data and are reauthorized and validated before model context and citation completion.
+Memory, checkpoints, rate-limit buckets, restricted analysis, and MCP execution are process-local
+PoC boundaries.
 
-## Prerequisites
+See the [renderable Mermaid source and trust-boundary notes](docs/final-architecture.md).
 
-- Python 3.12
-- `pip` and `venv`
+## Key capabilities
 
-## Local setup
+- Authenticated multi-turn Streamlit chat using incremental native POST SSE.
+- Live Agent Activity Panel with safe node, retrieval, research, tool, validation, and memory events.
+- Typed LangGraph state and deterministic role/intent routing.
+- Simple retrieval and bounded recursive multi-document research.
+- Local BM25 sparse retrieval, optional Pinecone dense retrieval, transparent hybrid fusion,
+  namespace/metadata filters, attribution, and local post-query authorization rechecks.
+- Three official-SDK local read-only MCP tools and typed restricted incident analysis.
+- Fake/offline and optional OpenAI Responses providers with grounded structured output, citation
+  validation, response guardrails, timeout handling, and deterministic fallback.
+- Privacy-safe optional LangSmith hierarchy and structured HTTP/graph logs.
 
-```bash
+## Security model
+
+- Local assessment authentication uses Argon2id password hashes and pinned HS256 JWT validation.
+- Viewer, Analyst, and Administrator receive only explicitly defined backend permissions.
+- Every retrieval result and tool request is rechecked at the backend boundary.
+- Strict API schemas reject client-supplied role, permission, route, tool, namespace, or policy.
+- Direct prompt attacks and instruction-bearing retrieved evidence cannot alter graph/tool policy.
+- Restricted analysis accepts typed allowlisted operations, never caller-supplied Python.
+- Logs, traces, events, UI activity, and safe errors exclude raw prompts, evidence, credentials,
+  private reasoning, provider errors, and internal paths.
+
+This authentication model is for local demonstration only. Production requires organizational
+OIDC, MFA, revocation, managed keys, distributed authorization context, and operational controls.
+See [security design](docs/security-design.md).
+
+## Quick start
+
+Prerequisites: Python 3.12, `pip`, and optionally Docker Compose v2.
+
+```powershell
 python -m venv .venv
-# Windows PowerShell
 .venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
+python scripts/create_demo_env.py
 ```
 
-Optionally copy `.env.example` to `.env` and customize safe local values.
+The last command securely prompts for Viewer/Analyst/Administrator passwords and writes the ignored
+`.env.demo`. It never prints the passwords, signing secret, or Argon2 hashes.
 
-## Run the applications
+## Native local startup
 
-```bash
-uvicorn enterprise_ai.main:app --factory --reload
-streamlit run frontend/streamlit_app.py
+Load `.env.demo` into the API terminal without displaying it:
+
+```powershell
+Get-Content .env.demo | ForEach-Object {
+    if ($_ -and -not $_.StartsWith('#')) {
+        $name, $value = $_ -split '=', 2
+        [Environment]::SetEnvironmentVariable($name, $value, 'Process')
+    }
+}
+
+uvicorn enterprise_ai.main:app --factory --host 127.0.0.1 --port 8000
 ```
 
-FastAPI serves health, authentication, `POST /api/v1/chat`, and authenticated native-SSE
-`POST /api/v1/chat/stream` endpoints. Interactive API documentation is available at `/docs`.
-Run it with `uvicorn enterprise_ai.main:app --factory --host 127.0.0.1 --port 8000`; see
-[the chat/SSE design](docs/fastapi-chat-sse-design.md) for safe curl examples.
+In a second activated terminal:
 
-Streamlit logs in through the configured PoC authentication endpoint, keeps its bearer token only
-in per-session state, consumes the JSON POST stream incrementally, and renders validated responses,
-citations, provenance, and safe activity. The API origin defaults to `http://127.0.0.1:8000` and can
-be set with `FRONTEND_API_BASE_URL`. See the
-[Streamlit UI design](docs/streamlit-chat-ui-design.md).
-
-## Proof-of-concept authentication
-
-Authentication is disabled by default. To enable it, generate one Argon2id hash per demonstration user without echoing the password:
-
-```bash
-python scripts/generate_password_hash.py
+```powershell
+$env:FRONTEND_API_BASE_URL='http://127.0.0.1:8000'
+streamlit run frontend/streamlit_app.py --server.address=127.0.0.1 --server.port=8501
 ```
 
-Place only the resulting hashes and a random signing secret of at least 32 characters in a local `.env` using the variables shown in `.env.example`; never commit that file. Set `AUTH_ENABLED=true`, then use `POST /api/v1/auth/login` to obtain an HS256 bearer access token and `GET /api/v1/auth/me` to inspect the safe authenticated profile. Usernames are normalized by trimming surrounding whitespace and applying Unicode case-folding.
+Open:
 
-The configured viewer, analyst, and administrator users are assessment-only. There are no refresh tokens, revocation, account lockout, MFA, federation, or distributed session controls. Production must replace demonstration authentication and local JWT issuance with an organizational OIDC identity provider such as Microsoft Entra ID, Keycloak, or Auth0, while retaining backend authorization checks.
+- Streamlit: `http://127.0.0.1:8501`
+- API documentation: `http://127.0.0.1:8000/docs`
+- Liveness: `http://127.0.0.1:8000/health/live`
+- Readiness: `http://127.0.0.1:8000/health/ready`
 
-## Proof-of-concept rate limiting
+Do not use reload mode for the recorded assessment. Detailed native environment and shutdown
+instructions are in [local and container deployment](docs/local-container-deployment.md).
 
-Rate limiting is enabled by default; set `RATE_LIMIT_ENABLED=false` only as an explicit local/test choice. Login uses an anonymous network fingerprint bucket (capacity 5, refill 1/30 token per second, cost 1); `/api/v1/auth/me` and chat use a backend-derived user-ID bucket (capacity 30, refill 0.5 token per second, cost 1). An expensive policy contract (capacity 10, refill 1/15 token per second, cost 2) remains an unattached extension point.
+## Docker Compose startup
 
-Allowed responses include `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset`; reset is seconds until the current request cost is available and is `0` when allowed. Denials return `429`, the same informational headers, and `Retry-After` in whole seconds. Health endpoints remain unthrottled for orchestrator probes.
+The stack uses one secure Python 3.12 image and separate `api` and `ui` services. Both run non-root
+with read-only root filesystems, dropped capabilities, `no-new-privileges`, bounded temporary
+storage, Python health checks, and loopback-only host ports.
 
-The in-memory limiter is concurrency-safe only within one process, resets on restart, and does not coordinate workers. Production requires a shared Redis-compatible implementation using an atomic Lua script or transaction. Proxy headers are ignored by default; enable them only behind an explicitly allowlisted single-hop proxy.
+Infrastructure smoke mode uses fake/offline providers and leaves authentication disabled. It proves
+startup and health only; interactive Streamlit login requires authenticated mode.
 
-## Quality checks
-
-```bash
-ruff format --check .
-ruff check .
-mypy backend/src frontend ingestion/src scripts
-pytest
-pre-commit run --all-files
+```powershell
+docker compose config --quiet
+docker compose build
+docker compose up -d
+python scripts/container_smoke.py
+docker compose ps
+docker compose down --remove-orphans
 ```
 
-GitHub Actions runs the authoritative Python 3.12 validation on pushes to `main`, pull requests
-targeting `main`, and manual dispatch. It checks corpus and retrieval-artifact drift, offline sparse
-evaluation, Ruff, strict MyPy, and the complete Pytest suite using fake/offline providers. Pinecone
-and OpenAI live tests remain skipped. Failed runs retain the JUnit XML artifact for seven days.
+Authenticated demo mode:
 
-Repository settings should require the `Repository CI / Quality and tests` check before merging to
-`main`. CI uses `pull_request`, not `pull_request_target`, so untrusted pull-request code never runs
-with elevated target-repository permissions or secrets.
-
-## Sample corpus
-
-```bash
-py -3.12 scripts/generate_sample_documents.py
-py -3.12 scripts/generate_sample_documents.py --check
-py -3.12 scripts/validate_sample_documents.py
+```powershell
+python scripts/create_demo_env.py
+docker compose --env-file .env.demo up -d --build
+python scripts/container_smoke.py
 ```
 
-The valid Markdown corpus and body-hash manifest are under `data/sample_documents/`. Research/access benchmarks are under `data/evaluation/`. Malicious-test-only fixtures are isolated under `data/security_fixtures/` and excluded from the valid manifest. See [sample-data design](docs/sample-data-design.md).
+Stop and remove it:
 
-Build or verify deterministic retrieval-ready artifacts with:
-
-```bash
-py -3.12 -m enterprise_ai_ingestion build
-py -3.12 -m enterprise_ai_ingestion check
-py -3.12 -m enterprise_ai_ingestion validate
+```powershell
+docker compose --env-file .env.demo down --remove-orphans
+Remove-Item -LiteralPath .env.demo
 ```
 
-The commands are offline and provider-neutral. See [ingestion design](docs/ingestion-design.md) for safety boundaries, artifact contracts, and limitations.
+OpenAI, Pinecone, and LangSmith remain disabled unless explicitly configured. The implemented MCP
+path remains local/in-process; Compose does not invent a remote MCP service.
 
-## Baseline LangGraph orchestration
+## Demo users and example questions
 
-The repository now includes a real LangGraph 1.x asynchronous baseline with typed state and
-input/output contracts, deterministic intent and role-aware routing, offline BM25 retrieval,
-validated evidence, sanitized activity events, bounded execution, and an injected in-memory
-checkpointer. Inspect or exercise it without API keys or network access:
+Usernames default to `demo-viewer`, `demo-analyst`, and `demo-admin`; passwords are the private
+values entered into `create_demo_env.py`.
 
-```bash
-py -3.12 -m enterprise_ai.graph.cli describe
-py -3.12 -m enterprise_ai.graph.cli run "hello" --role viewer
-py -3.12 -m enterprise_ai.graph.cli stream "hello" --role viewer
-py -3.12 -m enterprise_ai.graph.cli run "What is the leave policy?" --role viewer --top-k 3
+| Role | Exact example | Expected route/outcome |
+|---|---|---|
+| Viewer | `Summarize the password policy.` | `simple_retrieval`, grounded citations |
+| Viewer | `Explain that again.` | multi-turn context continuation |
+| Viewer | `Count payment incidents by root cause.` | denied before Python analysis |
+| Viewer | `Who owns the payment-gateway service?` | denied before MCP |
+| Viewer | `Show the restricted disaster-recovery topology.` | denied with no restricted evidence |
+| Analyst | `Who owns the payment-gateway service?` | `mcp_tool`, safe provenance |
+| Analyst | `Count payment incidents by root cause.` | `python_analysis`, typed result |
+| Analyst | `Compare pending payment status in September and delayed settlement in February.` | `recursive_research`, bounded fan-out and citations |
+| Administrator | `What does INC-PAY-2025-126 say about certificate lifecycle ownership?` | authorized restricted retrieval |
+
+The main recording uses fake LLM/local sparse retrieval so these flows do not depend on paid or
+network providers.
+
+## Testing and deterministic verification
+
+```powershell
+python -m pytest -q --basetemp=.pytest-final-tmp/full
+
+python -m ruff format --check .
+python -m ruff check .
+python -m mypy backend/src frontend ingestion/src scripts
+
+python scripts/generate_sample_documents.py --check
+python scripts/validate_sample_documents.py
+python -m enterprise_ai_ingestion check
+python -m enterprise_ai_ingestion validate
+python -m enterprise_ai.retrieval.cli check-sparse
+python -m enterprise_ai.retrieval.cli validate-sparse
+python -m enterprise_ai.research.cli evaluate
+python -m enterprise_ai.graph.cli trace-demo --query hello
+python -m enterprise_ai.mcp_tools.cli list-tools
+python scripts/check_documentation_links.py
+docker compose config --quiet
 ```
 
-The CLI role controls backend authorization; it does not bypass document access rules. The local
-checkpointer is volatile, process-local assessment infrastructure. See
-[graph design](docs/graph-design.md) for topology, security boundaries, production replacement,
-and the deliberately excluded bonus paths.
+GitHub Actions runs deterministic Python 3.12 validation without OpenAI, Pinecone, LangSmith, or
+remote MCP credentials. It never uses `pull_request_target`, has read-only repository permission,
+and checks that verification does not mutate tracked files.
 
-Bounded session conversational memory is available within one running CLI/runtime process. It
-stores sanitized turns and authorized attribution—not evidence bodies—and supports conservative
-follow-ups with owner/role isolation. It is lost on restart and is not shared across workers. See
-[session-memory design](docs/session-memory-design.md) and the `conversation` CLI command.
+## LangSmith tracing
 
-Restricted structured Python analysis is available to policy-authorized analysts and
-administrators. It executes only typed allowlisted aggregate operations over authorized committed
-incident rows—never caller-supplied Python. See
-[python-analysis design](docs/python-analysis-tool-design.md).
+Tracing is disabled by default. The application exports allowlisted identifiers, counts, roles,
+routes, statuses, hierarchy, and outcome flags—not questions, prompts, evidence, drafts, secrets,
+private reasoning, or raw exceptions.
 
-Fictional enterprise service profiles, operational metrics, and change windows are available to
-analysts and administrators through an official-SDK MCP protocol path. Viewer requests are denied
-before server startup or discovery. See
-[MCP enterprise tools design](docs/mcp-enterprise-tools-design.md).
+Offline verification:
 
-Grounded response generation now uses an application-owned provider abstraction, typed drafts, and
-deterministic current-context citation validation. Offline development defaults to the fake
-provider; OpenAI Responses API mode is explicit and enforces `store=false`. See
-[LLM response design](docs/llm-response-agent-design.md) and [model selection](docs/model-selection.md).
+```powershell
+python -m enterprise_ai.graph.cli trace-demo --query hello
+```
 
-## Environment configuration
+For the manual trace demonstration, inject a temporary `LANGSMITH_API_KEY`, set
+`LANGSMITH_TRACING=true`, and use project `enterprise-ai-knowledge-assistant-dev`. Hide private
+trace URLs/identifiers during recording and revoke the key afterward. See
+[LangSmith tracing design](docs/langsmith-tracing-design.md) and the
+[demo runbook](docs/demo-runbook.md).
 
-Configuration is loaded from environment variables by `enterprise_ai.core.config.Settings`. Application settings include `APP_ENV`, `LOG_LEVEL`, `API_HOST`, `API_PORT`, and the documented authentication, provider, retrieval, tracing, and frontend variables. Offline fakes are the default; OpenAI, Pinecone, and LangSmith integrations activate only through explicit configuration.
+## Assignment evidence
 
-Never commit `.env`, API keys, credentials, or production configuration. Use a secrets manager in deployed environments and rotate any credential that is accidentally exposed.
+- [Final architecture](docs/final-architecture.md)
+- [Assessment compliance audit](docs/assessment-compliance-audit.md)
+- [Requirements traceability](docs/requirements-traceability.md)
+- [Model selection rationale](docs/model-selection.md)
+- [Assumptions and trade-offs](docs/assumptions-and-tradeoffs.md)
+- [45-minute demonstration script](docs/demo-script-45-minutes.md)
+- [Demonstration runbook](docs/demo-runbook.md)
+- [Demonstration evidence checklist](docs/demo-evidence-checklist.md)
+- [Final submission checklist](docs/final-submission-checklist.md)
+- [Submission document](docs/submission.md)
+- [Local/container deployment](docs/local-container-deployment.md)
+
+The public video URL and final commit SHA remain manual post-commit fields and are never invented.
+
+## Assumptions and limitations
+
+The architectural choices and production gaps are explained in
+[assumptions and trade-offs](docs/assumptions-and-tradeoffs.md). Principal limitations:
+
+- local assessment authentication, not enterprise OIDC;
+- process-local memory, checkpoints, session ownership, and Token Bucket;
+- no durable SSE replay or distributed workers;
+- local read-only MCP without remote OAuth;
+- typed aggregate analysis rather than arbitrary Python;
+- fake provider default and runtime-only optional cloud credentials;
+- structural citations/guardrails rather than universal semantic or safety proof;
+- no HITL, reranking, durable long-term memory, or persistent feedback; and
+- no production secrets, networking, telemetry, retention, governance, or scaling platform.
 
 ## Repository structure
 
 ```text
-backend/      FastAPI application and backend tests
-frontend/     Streamlit presentation layer
-ingestion/    Offline deterministic parsing and chunking component
-backend/src/enterprise_ai/mcp_tools/   Constrained MCP server/client and typed tools
-data/         Non-sensitive sample documents
-docs/         Architecture, security, decisions, and assessment evidence
-scripts/      Automation entry points
-tests/        Reserved cross-component tests
+backend/        FastAPI, LangGraph, retrieval, agents, tools, security, tracing, and tests
+frontend/       Streamlit presentation, SSE client, state, rendering, activity, and tests
+ingestion/      Offline deterministic parsing/chunking and artifact validation
+mcp_server/     MCP protocol tests and package boundary
+data/           Synthetic corpus, committed retrieval artifacts, evaluation, security fixtures
+docs/           Architecture, design, audit, demo, deployment, and submission evidence
+scripts/        Corpus, password/demo-env, smoke, and documentation-link utilities
+Dockerfile      Shared non-root Python application image
+compose.yaml    Local API/UI proof-of-concept stack
 ```
 
-## Current limitations
-
-The health responses are static process-level placeholders and do not check dependencies. The
-Streamlit UI is implemented against the native POST SSE endpoint, but durable stream replay,
-cross-device history, refresh tokens, and an enterprise identity provider are not. Dense and sparse
-retrieval, grounded response synthesis, recursive research, bounded session memory, restricted
-analysis, and optional LangSmith tracing can be exercised locally. Durable distributed memory and
-human approval remain unimplemented. MCP execution is local-only and read-only.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and [requirements traceability](docs/requirements-traceability.md) for implementation status.
-# Bounded recursive research
-
-Graph version 1.2 executes authorization-aware cross-document research and deterministic MCP enterprise-data routing alongside the grounded citation pipeline. See [the research design](docs/recursive-research-design.md) and [MCP design](docs/mcp-enterprise-tools-design.md). The API exposes that runtime through JSON and SSE without duplicating graph execution, and Streamlit consumes the public event/output contracts. Human approval and reranking remain out of scope.
-
-### LangSmith observability
-
-Application-owned tracing is disabled by default and requires no credentials. It exports allowlisted identifiers, counts, statuses, and hierarchy—not user questions, prompts, evidence, model drafts, secrets, or exception text. See [the tracing design](docs/langsmith-tracing-design.md).
-
-Run an entirely offline trace check with `python -m enterprise_ai.graph.cli trace-demo --query "hello"`. For a real smoke test, set `LANGSMITH_TRACING=true`, provide `LANGSMITH_API_KEY` at runtime, set the project, and run the normal graph CLI. Never store the key in the repository.
-
-The credential-free final-pipeline benchmark runs all 12 committed questions through the compiled graph, offline BM25, deterministic fake planning/generation, final citation validation, and typed analysis provenance checks:
-
-```powershell
-py -3.12 -m enterprise_ai.research.cli evaluate
-```
-
-The command returns non-zero for citation, analysis-provenance, or authorization integrity failures. Honest partial, insufficient, authorization-blocked, and budget-exhausted outcomes remain valid safe results. See [the evaluation methodology](docs/research-evaluation.md) and [assignment traceability](docs/requirements-traceability.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow.

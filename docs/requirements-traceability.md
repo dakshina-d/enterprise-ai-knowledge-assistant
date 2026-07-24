@@ -35,7 +35,8 @@ mandatory assessment.
 | Reranking | Bonus/not required | None | N/A | Not implemented |
 | Long-term memory | Bonus/not required | None | N/A | Not implemented |
 | Persistent feedback loop | Bonus/not required | None | N/A | Not implemented |
-| Docker Compose/deployment packaging | Bonus/not required | None | N/A | Not implemented |
+| Docker Compose/deployment packaging | Implemented for bounded PoC | `Dockerfile`, `compose.yaml`, smoke and demo-env scripts | Compose config plus local image build, API/UI health smoke, and teardown | Local two-service proof only; no production orchestration or CI runtime gate |
+| Final architecture and submission evidence | Implemented documentation | final architecture, assumptions, demo, runbook, evidence, submission/checklist documents | Offline documentation-link check | Video URL and final commit SHA remain manual |
 
 The implementation is not claimed production-ready. Production requires organizational OIDC,
 shared rate/session/checkpoint stores, durable replay, managed secrets, deployment-specific network

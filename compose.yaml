@@ -1,0 +1,102 @@
+name: enterprise-ai-knowledge-assistant
+
+x-app-environment: &app-environment
+  APP_ENV: development
+  LOG_LEVEL: INFO
+  AUTH_ENABLED: ${AUTH_ENABLED:-false}
+  AUTH_TOKEN_SECRET: ${AUTH_TOKEN_SECRET:-}
+  DEMO_VIEWER_USERNAME: ${DEMO_VIEWER_USERNAME:-demo-viewer}
+  DEMO_VIEWER_PASSWORD_HASH: ${DEMO_VIEWER_PASSWORD_HASH:-}
+  DEMO_ANALYST_USERNAME: ${DEMO_ANALYST_USERNAME:-demo-analyst}
+  DEMO_ANALYST_PASSWORD_HASH: ${DEMO_ANALYST_PASSWORD_HASH:-}
+  DEMO_ADMIN_USERNAME: ${DEMO_ADMIN_USERNAME:-demo-admin}
+  DEMO_ADMIN_PASSWORD_HASH: ${DEMO_ADMIN_PASSWORD_HASH:-}
+  RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+  PINECONE_ENABLED: ${PINECONE_ENABLED:-false}
+  PINECONE_API_KEY: ${PINECONE_API_KEY:-}
+  LLM_ENABLED: ${LLM_ENABLED:-true}
+  LLM_PROVIDER: ${LLM_PROVIDER:-fake}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  GRAPH_OFFLINE_RETRIEVAL_MODE: ${GRAPH_OFFLINE_RETRIEVAL_MODE:-sparse}
+  LANGSMITH_TRACING: ${LANGSMITH_TRACING:-false}
+  LANGSMITH_API_KEY: ${LANGSMITH_API_KEY:-}
+  LANGSMITH_PROJECT: ${LANGSMITH_PROJECT:-enterprise-ai-knowledge-assistant-dev}
+
+x-service-security: &service-security
+  init: true
+  read_only: true
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,size=64m
+
+services:
+  api:
+    <<: *service-security
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: enterprise-ai-knowledge-assistant:local
+    command:
+      - uvicorn
+      - enterprise_ai.main:app
+      - --factory
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+    environment:
+      <<: *app-environment
+      HOME: /tmp
+      API_HOST: 0.0.0.0
+      API_PORT: "8000"
+      API_ALLOWED_ORIGINS: '["http://127.0.0.1:8501","http://localhost:8501"]'
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import urllib.request;
+          urllib.request.urlopen("http://127.0.0.1:8000/health/ready", timeout=2).read()
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+
+  ui:
+    <<: *service-security
+    image: enterprise-ai-knowledge-assistant:local
+    command:
+      - streamlit
+      - run
+      - frontend/streamlit_app.py
+      - --server.address=0.0.0.0
+      - --server.port=8501
+      - --server.headless=true
+      - --browser.gatherUsageStats=false
+    environment:
+      HOME: /tmp
+      FRONTEND_API_BASE_URL: http://api:8000
+      FRONTEND_APPLICATION_TITLE: Enterprise AI Knowledge Assistant
+    ports:
+      - "127.0.0.1:8501:8501"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import urllib.request;
+          urllib.request.urlopen("http://127.0.0.1:8501/_stcore/health", timeout=2).read()
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 15s

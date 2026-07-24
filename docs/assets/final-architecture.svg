@@ -1,0 +1,159 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1180" viewBox="0 0 1600 1180" role="img" aria-labelledby="title desc">
+  <title id="title">Enterprise AI Knowledge Assistant final assessment architecture</title>
+  <desc id="desc">A layered architecture showing the browser, FastAPI policy boundary, LangGraph agents, authorized tools and retrieval, optional external providers, and the offline synthetic corpus pipeline.</desc>
+  <defs>
+    <style>
+      text { font-family: Arial, Helvetica, sans-serif; fill: #172033; }
+      .title { font-size: 30px; font-weight: 700; }
+      .subtitle { font-size: 16px; fill: #4c5870; }
+      .group { fill: #f8fafc; stroke: #8290a8; stroke-width: 2; rx: 18; }
+      .group-title { font-size: 18px; font-weight: 700; }
+      .node { stroke-width: 2; rx: 12; }
+      .implemented { fill: #e8f2ff; stroke: #245b9e; }
+      .local { fill: #fff4d6; stroke: #9a6700; }
+      .optional { fill: #f1e8ff; stroke: #6f42a8; stroke-dasharray: 7 5; }
+      .offline { fill: #e7f7ed; stroke: #267346; }
+      .untrusted { fill: #ffe8e8; stroke: #a33a3a; }
+      .label { font-size: 15px; font-weight: 700; text-anchor: middle; }
+      .small { font-size: 13px; font-weight: 400; text-anchor: middle; fill: #3e4960; }
+      .edge { fill: none; stroke: #53627a; stroke-width: 2; marker-end: url(#arrow); }
+      .dashed { stroke-dasharray: 7 5; }
+      .edge-label { font-size: 12px; fill: #44516a; text-anchor: middle; }
+      .legend { font-size: 13px; }
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#53627a"/>
+    </marker>
+  </defs>
+
+  <rect width="1600" height="1180" fill="#ffffff"/>
+  <text x="50" y="50" class="title">Enterprise AI Knowledge Assistant</text>
+  <text x="50" y="79" class="subtitle">Bounded executable assessment PoC — policy-owned orchestration with offline defaults</text>
+
+  <rect x="45" y="105" width="1510" height="145" class="group"/>
+  <text x="70" y="135" class="group-title">Browser trust boundary</text>
+  <rect x="100" y="157" width="260" height="66" class="node untrusted"/>
+  <text x="230" y="184" class="label">Enterprise user</text>
+  <text x="230" y="205" class="small">untrusted user input</text>
+  <rect x="485" y="147" width="420" height="86" class="node implemented"/>
+  <text x="695" y="177" class="label">Streamlit chat UI</text>
+  <text x="695" y="199" class="small">multi-turn chat • Live Agent Activity Panel</text>
+  <text x="695" y="218" class="small">validated citations and safe provenance</text>
+  <path d="M360 190 H485" class="edge"/>
+
+  <rect x="45" y="275" width="1510" height="170" class="group"/>
+  <text x="70" y="305" class="group-title">FastAPI policy boundary</text>
+  <rect x="90" y="330" width="275" height="82" class="node implemented"/>
+  <text x="228" y="360" class="label">FastAPI</text>
+  <text x="228" y="383" class="small">JSON + native POST SSE</text>
+  <rect x="440" y="330" width="330" height="82" class="node implemented"/>
+  <text x="605" y="358" class="label">Authentication + RBAC</text>
+  <text x="605" y="381" class="small">Viewer • Analyst • Administrator</text>
+  <rect x="845" y="330" width="290" height="82" class="node implemented"/>
+  <text x="990" y="358" class="label">Token Bucket + validation</text>
+  <text x="990" y="381" class="small">per-user • strict server-owned policy</text>
+  <rect x="1210" y="330" width="285" height="82" class="node implemented"/>
+  <text x="1353" y="358" class="label">Safe operations</text>
+  <text x="1353" y="381" class="small">error mapping • structured logs</text>
+  <path d="M695 233 V285 H228 V330" class="edge"/>
+  <text x="470" y="278" class="edge-label">Bearer + strict JSON / safe events</text>
+  <path d="M365 371 H440" class="edge"/>
+  <path d="M770 371 H845" class="edge"/>
+  <path d="M1135 371 H1210" class="edge"/>
+
+  <rect x="45" y="470" width="1510" height="250" class="group"/>
+  <text x="70" y="500" class="group-title">Application process — process-local PoC state</text>
+  <rect x="85" y="535" width="250" height="75" class="node local"/>
+  <text x="210" y="563" class="label">LangGraph</text>
+  <text x="210" y="586" class="small">typed graph state</text>
+  <rect x="400" y="525" width="220" height="65" class="node implemented"/>
+  <text x="510" y="554" class="label">Supervisor agent</text>
+  <text x="510" y="575" class="small">allowlisted routing</text>
+  <rect x="700" y="515" width="205" height="65" class="node implemented"/>
+  <text x="803" y="544" class="label">Retrieval agent</text>
+  <text x="803" y="565" class="small">authorized evidence</text>
+  <rect x="700" y="610" width="205" height="65" class="node implemented"/>
+  <text x="803" y="639" class="label">Research agent</text>
+  <text x="803" y="660" class="small">bounded recursion</text>
+  <rect x="985" y="555" width="205" height="65" class="node implemented"/>
+  <text x="1088" y="584" class="label">Response agent</text>
+  <text x="1088" y="605" class="small">grounded synthesis</text>
+  <rect x="1265" y="515" width="235" height="65" class="node implemented"/>
+  <text x="1383" y="544" class="label">Citation validation</text>
+  <text x="1383" y="565" class="small">current authorized context</text>
+  <rect x="400" y="625" width="220" height="65" class="node local"/>
+  <text x="510" y="654" class="label">Session memory</text>
+  <text x="510" y="675" class="small">bounded • in-memory</text>
+  <rect x="985" y="640" width="205" height="55" class="node implemented"/>
+  <text x="1088" y="673" class="label">Guardrails</text>
+  <path d="M990 412 V475 H210 V535" class="edge"/>
+  <path d="M335 572 H400" class="edge"/>
+  <path d="M620 557 H700" class="edge"/>
+  <path d="M620 572 L700 635" class="edge"/>
+  <path d="M905 547 L985 580" class="edge"/>
+  <path d="M905 642 L985 600" class="edge"/>
+  <path d="M1190 587 H1265" class="edge"/>
+  <path d="M335 590 L400 650" class="edge"/>
+  <path d="M620 658 H985" class="edge dashed"/>
+
+  <rect x="45" y="745" width="930" height="250" class="group"/>
+  <text x="70" y="775" class="group-title">Tool authorization and retrieval boundary</text>
+  <rect x="85" y="810" width="200" height="60" class="node implemented"/>
+  <text x="185" y="846" class="label">Knowledge search</text>
+  <rect x="350" y="810" width="220" height="60" class="node implemented"/>
+  <text x="460" y="838" class="label">Hybrid fusion</text>
+  <text x="460" y="858" class="small">application-owned</text>
+  <rect x="635" y="790" width="280" height="70" class="node optional"/>
+  <text x="775" y="818" class="label">Pinecone dense adapter</text>
+  <text x="775" y="840" class="small">optional • namespace + filters</text>
+  <rect x="635" y="885" width="280" height="70" class="node implemented"/>
+  <text x="775" y="914" class="label">Local BM25 sparse</text>
+  <text x="775" y="936" class="small">default offline retrieval</text>
+  <rect x="85" y="905" width="220" height="60" class="node local"/>
+  <text x="195" y="932" class="label">Local MCP tools</text>
+  <text x="195" y="952" class="small">three read-only methods</text>
+  <rect x="350" y="905" width="220" height="60" class="node local"/>
+  <text x="460" y="932" class="label">Restricted analysis</text>
+  <text x="460" y="952" class="small">typed operations only</text>
+  <path d="M285 840 H350" class="edge"/>
+  <path d="M570 830 H635" class="edge"/>
+  <path d="M570 850 L635 920" class="edge"/>
+  <path d="M803 580 V745 H185 V810" class="edge"/>
+
+  <rect x="1005" y="745" width="550" height="250" class="group"/>
+  <text x="1030" y="775" class="group-title">Optional external provider boundary</text>
+  <rect x="1045" y="810" width="215" height="65" class="node optional"/>
+  <text x="1153" y="839" class="label">OpenAI Responses</text>
+  <text x="1153" y="860" class="small">optional • store=false</text>
+  <rect x="1300" y="810" width="215" height="65" class="node optional"/>
+  <text x="1408" y="839" class="label">Pinecone service</text>
+  <text x="1408" y="860" class="small">optional credentials</text>
+  <rect x="1045" y="905" width="215" height="65" class="node optional"/>
+  <text x="1153" y="934" class="label">LangSmith</text>
+  <text x="1153" y="955" class="small">safe metadata only</text>
+  <rect x="1300" y="905" width="215" height="65" class="node offline"/>
+  <text x="1408" y="934" class="label">Fake providers</text>
+  <text x="1408" y="955" class="small">default offline mode</text>
+  <path d="M1088 620 V730 H1153 V810" class="edge dashed"/>
+  <path d="M915 825 H1300" class="edge dashed"/>
+  <path d="M1383 580 V730 H1153 V905" class="edge dashed"/>
+
+  <rect x="45" y="1020" width="1510" height="105" class="group"/>
+  <text x="70" y="1050" class="group-title">Offline pipeline</text>
+  <rect x="225" y="1060" width="290" height="48" class="node offline"/>
+  <text x="370" y="1090" class="label">Synthetic organizational corpus</text>
+  <rect x="655" y="1060" width="260" height="48" class="node offline"/>
+  <text x="785" y="1090" class="label">Validate • chunk • index</text>
+  <rect x="1055" y="1060" width="330" height="48" class="node untrusted"/>
+  <text x="1220" y="1081" class="label">Committed retrieval artifacts</text>
+  <text x="1220" y="1100" class="small">document content remains untrusted</text>
+  <path d="M515 1084 H655" class="edge"/>
+  <path d="M915 1084 H1055" class="edge"/>
+  <path d="M1220 1060 V1005 H775 V955" class="edge"/>
+
+  <rect x="50" y="1142" width="18" height="18" class="implemented"/><text x="76" y="1156" class="legend">Implemented</text>
+  <rect x="220" y="1142" width="18" height="18" class="local"/><text x="246" y="1156" class="legend">Process-local PoC</text>
+  <rect x="430" y="1142" width="18" height="18" class="optional"/><text x="456" y="1156" class="legend">Optional external integration</text>
+  <rect x="715" y="1142" width="18" height="18" class="offline"/><text x="741" y="1156" class="legend">Offline pipeline/default</text>
+  <rect x="940" y="1142" width="18" height="18" class="untrusted"/><text x="966" y="1156" class="legend">Untrusted input/content</text>
+</svg>

@@ -72,6 +72,11 @@ jobs:
           python -m enterprise_ai.retrieval.cli validate-sparse
           python -m enterprise_ai.retrieval.cli evaluate-sparse
 
+      - name: Validate documentation and Compose configuration
+        run: |
+          python scripts/check_documentation_links.py
+          docker compose config --quiet
+
       - name: Check formatting and lint
         run: |
           python -m ruff format --check .

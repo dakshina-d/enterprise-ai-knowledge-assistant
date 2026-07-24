@@ -6,6 +6,12 @@ Streamlit UI now run. Durable/distributed or semantic memory, human approval, an
 planned. Conversation memory is a replaceable store boundary distinct from the LangGraph
 checkpointer; see [session memory](session-memory-design.md).
 
+The consolidated reviewer diagram is
+[the final assessment architecture](final-architecture.md). `Dockerfile` and `compose.yaml`
+package the implemented API and UI as a local two-service PoC. Compose configuration is validated;
+the final image also passed a local build/start/API health/UI health/down lifecycle. This does not
+imply production orchestration.
+
 The restricted analysis boundary maps typed operations to trusted standard-library functions over
 manifest-authorized incident rows. It is not a code-execution sandbox.
 Grounded response generation depends on an application provider protocol; retrieval, authorization,

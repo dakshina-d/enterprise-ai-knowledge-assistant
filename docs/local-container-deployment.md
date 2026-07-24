@@ -1,0 +1,137 @@
+# Local and Container Deployment
+
+Status: **The final image and Compose files are implemented, statically validated, and locally
+verified through build, API/UI startup, both health endpoints, and teardown.** This is a local
+assessment stack, not a production deployment specification or a guarantee for every host.
+
+## Services
+
+The stack uses one `python:3.12-slim` application image:
+
+| Service | Container command | Host URL | Health endpoint |
+|---|---|---|---|
+| `api` | `uvicorn enterprise_ai.main:app --factory --host 0.0.0.0 --port 8000` | `http://127.0.0.1:8000` | `/health/ready` |
+| `ui` | `streamlit run frontend/streamlit_app.py --server.address=0.0.0.0 --server.port=8501 --server.headless=true --browser.gatherUsageStats=false` | `http://127.0.0.1:8501` | `/_stcore/health` |
+
+The UI calls `http://api:8000` over the internal Compose network. Host ports bind only to
+`127.0.0.1`. The UI waits for the API health check. Both services run as the image's non-root
+`app` user with a read-only root filesystem, all Linux capabilities dropped,
+`no-new-privileges`, and a small non-executable `/tmp`.
+
+The image copies only packaging metadata, backend/ingestion packages, frontend runtime files, and
+the committed synthetic corpus/retrieval artifacts. `.dockerignore` excludes Git state, local
+environments, credentials, caches, tests, documentation, logs, and generated test artifacts.
+
+## Mode 1: infrastructure smoke
+
+This mode verifies only image construction, API/UI process startup, and health. Authentication is
+disabled, so the Streamlit login cannot start an interactive chat. Fake LLM, local sparse
+retrieval, and disabled Pinecone/LangSmith are explicit defaults.
+
+```powershell
+docker compose config --quiet
+docker compose build
+docker compose up -d
+python scripts/container_smoke.py
+docker compose ps
+docker compose logs --no-color
+docker compose down --remove-orphans
+```
+
+Always run `docker compose down --remove-orphans` after the check, including after a failure.
+
+## Mode 2: authenticated assessment demo
+
+Create an ignored local `.env.demo`. The script prompts securely for three passwords, generates a
+random signing secret and Argon2id hashes, refuses to overwrite by default, and never prints the
+secret, hashes, or passwords:
+
+```powershell
+python scripts/create_demo_env.py
+```
+
+Use `--force` only when intentionally replacing the local file. On platforms that support POSIX
+permissions the script applies mode `0600`; Windows users should also verify the file ACL. The
+file is excluded by both `.gitignore` and `.dockerignore`.
+
+Start the authenticated stack:
+
+```powershell
+docker compose --env-file .env.demo config --quiet
+docker compose --env-file .env.demo build
+docker compose --env-file .env.demo up -d
+python scripts/container_smoke.py
+docker compose --env-file .env.demo ps
+```
+
+Open `http://127.0.0.1:8501` and use the locally chosen passwords for `demo-viewer`,
+`demo-analyst`, or `demo-admin`. Stop and remove the stack afterward:
+
+```powershell
+docker compose --env-file .env.demo down --remove-orphans
+Remove-Item -LiteralPath .env.demo
+```
+
+The Compose interpolation passes only the explicitly named authentication and optional-provider
+settings. It does not mount the environment file into either container.
+
+## Native startup
+
+From an activated Python 3.12 environment with `pip install -e ".[dev]"`:
+
+```powershell
+python scripts/create_demo_env.py
+
+Get-Content .env.demo | ForEach-Object {
+    if ($_ -and -not $_.StartsWith('#')) {
+        $name, $value = $_ -split '=', 2
+        [Environment]::SetEnvironmentVariable($name, $value, 'Process')
+    }
+}
+
+uvicorn enterprise_ai.main:app --factory --host 127.0.0.1 --port 8000
+```
+
+In a second activated terminal, load the same environment file and run:
+
+```powershell
+$env:FRONTEND_API_BASE_URL='http://127.0.0.1:8000'
+streamlit run frontend/streamlit_app.py --server.address=127.0.0.1 --server.port=8501
+```
+
+Do not use Uvicorn reload mode during the recorded assessment. Remove the process environment or
+close the terminals after the demo, then delete `.env.demo`.
+
+## Optional providers
+
+OpenAI, Pinecone, and LangSmith activate only through explicit runtime settings and credentials.
+They are not needed for container health or the main deterministic demo. The MCP path remains the
+implemented local in-process/official-SDK boundary; this stack intentionally has no remote MCP
+container or OAuth configuration.
+
+## Troubleshooting
+
+- `docker compose config --quiet` fails: verify Compose v2 and YAML syntax before building.
+- API unhealthy: inspect `docker compose logs --no-color api`; confirm the committed
+  `data/processed` artifacts are present in the build context.
+- UI unhealthy: inspect `docker compose logs --no-color ui`; confirm API is healthy first.
+- Login endpoint missing: authentication is disabled; use authenticated mode with `.env.demo`.
+- Configuration rejects authentication: all three password hashes and a signing secret are
+  mandatory when `AUTH_ENABLED=true`.
+- Cloud provider unavailable: leave Pinecone/LangSmith disabled and use `LLM_PROVIDER=fake` with
+  `GRAPH_OFFLINE_RETRIEVAL_MODE=sparse`.
+- Port already in use: stop the conflicting local process; do not expose Compose on a broader host
+  interface as a workaround.
+
+Process-local memory, checkpoints, rate limits, and MCP state reset on container restart. No
+durable replay, distributed state, enterprise IdP, remote MCP OAuth, or production secrets
+management is claimed.
+
+## CI trade-off
+
+CI validates repository-relative documentation links and `docker compose config --quiet`. The
+exact image lifecycle has also passed locally. A full Compose CI job remains intentionally omitted:
+the image build downloads Python packages and already encountered a recoverable package-index DNS
+failure during local verification, so making that network-sensitive duplicate path an authoritative
+gate would add avoidable flakiness. The existing CI installs and tests the Python package; the local
+commands above are the container-specific runtime proof.
