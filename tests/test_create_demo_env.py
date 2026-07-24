@@ -11,6 +11,16 @@ from fastapi.testclient import TestClient
 from scripts import create_demo_env
 
 
+def _generated_environment(path: Path) -> dict[str, str]:
+    values: dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line and not line.startswith("#"):
+            name, separator, value = line.partition("=")
+            assert separator and name
+            values[name] = value
+    return values
+
+
 @pytest.mark.parametrize("provider", ["fake", "ollama"])
 def test_demo_environment_writes_selected_provider_without_printing_secrets(
     tmp_path: Path,
@@ -76,15 +86,17 @@ def test_generated_ollama_environment_constructs_settings_and_application_runtim
         llm_provider="ollama",
     )
 
+    generated = _generated_environment(destination)
+    for name in generated:
+        monkeypatch.delenv(name, raising=False)
+
     retrieval_settings = RetrievalSettings(_env_file=destination)
     assert retrieval_settings.llm_provider == "ollama"
     assert retrieval_settings.ollama_temperature == 0.0
     assert isinstance(retrieval_settings.ollama_temperature, float)
 
-    for line in destination.read_text(encoding="utf-8").splitlines():
-        if line and not line.startswith("#"):
-            name, value = line.split("=", 1)
-            monkeypatch.setenv(name, value)
+    for name, value in generated.items():
+        monkeypatch.setenv(name, value)
 
     application_settings = Settings(_env_file=None)
     with TestClient(create_app(application_settings)) as client:
