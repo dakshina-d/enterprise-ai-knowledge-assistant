@@ -8,6 +8,7 @@ from enterprise_ai.graph.reducers import append_events, append_text, append_uniq
 from enterprise_ai.graph.schemas import GraphOutput
 from enterprise_ai.llm.models import (
     CitationValidationResult,
+    FallbackReason,
     GroundedAnswerDraft,
     GroundedResponse,
     ResponseMode,
@@ -72,5 +73,6 @@ class GraphState(TypedDict, total=False):
     response_repair_count: int
     provider_status: str
     deterministic_fallback_used: bool
+    fallback_reason: FallbackReason
     research_result: ResearchResult
     mcp_execution: MCPExecutionResult

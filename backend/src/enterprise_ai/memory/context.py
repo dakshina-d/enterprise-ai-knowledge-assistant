@@ -3,11 +3,12 @@
 import re
 
 from enterprise_ai.memory.models import ConversationTurn, MemoryContext
+from enterprise_ai.security.guardrails import contains_untrusted_instruction
 
 _INCIDENT = re.compile(r"\bINC-[A-Z0-9]+(?:-[A-Z0-9]+)+\b", re.I)
 _SERVICES = ("HorizonPay Gateway", "LedgerBridge", "CardAuth Hub", "OpsPulse")
 _FOLLOWUP = re.compile(
-    r"\b(that|those|these|previous|same|them|first|second)\b|which runbook did you use",
+    r"\b(that|those|these|previous|same|them|first|second|again)\b|which runbook did you use",
     re.I,
 )
 
@@ -24,9 +25,7 @@ def build_context(
     turns: tuple[ConversationTurn, ...], *, maximum_topics: int, maximum_identifiers: int
 ) -> MemoryContext:
     references = [reference for turn in turns for reference in turn.evidence_references]
-    messages = " ".join(
-        text for turn in turns for text in (turn.user_message, turn.assistant_message)
-    )
+    messages = " ".join(turn.user_message for turn in turns)
     incidents = _INCIDENT.findall(messages)
     services = [service for service in _SERVICES if service.casefold() in messages.casefold()]
     return MemoryContext(
@@ -53,8 +52,18 @@ def resolve_followup(
     detected = bool(_FOLLOWUP.search(query))
     if not detected or context.turn_count == 0:
         return query, detected, False
-    additions: list[str] = []
     lowered = query.casefold()
+    if (
+        context.last_user_question
+        and any(term in lowered for term in ("that", "previous", "again"))
+        and not contains_untrusted_instruction(context.last_user_question)
+    ):
+        resolved = (
+            "Explain again, in simpler terms, the answer to this prior user question: "
+            f"{context.last_user_question}"
+        )
+        return resolved[:maximum], True, True
+    additions: list[str] = []
     if "second" in lowered and len(context.recent_document_titles) >= 2:
         additions.append(context.recent_document_titles[1])
     elif "first" in lowered and context.recent_document_titles:
@@ -69,8 +78,6 @@ def resolve_followup(
         additions.extend(context.recent_incident_ids)
     elif "same service" in lowered and context.recent_service_names:
         additions.extend(context.recent_service_names)
-    elif context.last_user_question and any(term in lowered for term in ("previous", "again")):
-        additions.append(context.last_user_question)
     if not additions:
         return query, True, False
     enriched = f"{query} Context references: {'; '.join(additions)}"

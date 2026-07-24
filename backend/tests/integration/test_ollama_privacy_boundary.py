@@ -14,6 +14,7 @@ from enterprise_ai.graph.checkpointer import create_checkpointer
 from enterprise_ai.graph.dependencies import OfflineSparseAdapter
 from enterprise_ai.graph.runtime import GraphRuntime
 from enterprise_ai.graph.schemas import GraphOutput
+from enterprise_ai.llm.models import FallbackReason
 from enterprise_ai.llm.ollama_provider import OllamaChatProvider
 from enterprise_ai.llm.response_service import GroundedResponseService
 from enterprise_ai.main import create_app
@@ -88,6 +89,7 @@ def test_reasoning_is_rejected_before_every_public_or_persistent_boundary(
     assert "<think" not in response.text.casefold()
     output = GraphOutput.model_validate(response.json())
     assert output.response_provider == "deterministic"
+    assert output.fallback_reason is FallbackReason.PROHIBITED_REASONING
     assert output.citations
     envelope = ChatStreamEnvelope(
         event_id=uuid4(),

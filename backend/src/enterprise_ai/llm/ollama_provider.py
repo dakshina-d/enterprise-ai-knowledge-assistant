@@ -22,6 +22,7 @@ from enterprise_ai.llm.models import (
     LLMGenerationResult,
     LLMProviderMetadata,
     LLMUsage,
+    ResponseMode,
 )
 from enterprise_ai.retrieval.config import RetrievalSettings
 
@@ -77,16 +78,26 @@ class OllamaChatProvider:
             },
         )
         if payload.get("done") is not True:
-            raise LLMInvalidResponseError("Ollama response was incomplete")
+            raise LLMInvalidResponseError(
+                "Ollama response was incomplete", category="incomplete_response"
+            )
         message = payload.get("message")
         if not isinstance(message, dict):
-            raise LLMInvalidResponseError("Ollama response did not contain a message")
+            raise LLMInvalidResponseError(
+                "Ollama response did not contain a message", category="missing_message"
+            )
         self._reject_reasoning(payload, message)
         content = message.get("content")
         if not isinstance(content, str) or not content.strip():
-            raise LLMInvalidResponseError("Ollama response did not contain structured content")
+            raise LLMInvalidResponseError(
+                "Ollama response did not contain structured content",
+                category="missing_structured_content",
+            )
         if _THINK_BLOCK.search(content):
-            raise LLMInvalidResponseError("Ollama response contained prohibited reasoning markup")
+            raise LLMInvalidResponseError(
+                "Ollama response contained prohibited reasoning markup",
+                category="prohibited_reasoning",
+            )
         try:
             decoded = json.loads(content)
             draft = GroundedAnswerDraft.model_validate(decoded)
@@ -98,7 +109,16 @@ class OllamaChatProvider:
                 category=category,
             ) from None
         except (json.JSONDecodeError, TypeError):
-            raise LLMInvalidResponseError("Ollama structured output was invalid") from None
+            raise LLMInvalidResponseError(
+                "Ollama structured output was invalid", category="invalid_json"
+            ) from None
+        if request.mode is ResponseMode.GROUNDED_RETRIEVAL and (
+            len(draft.claims) != 1 or draft.claims[0].claim_id != "C1"
+        ):
+            raise LLMInvalidResponseError(
+                "Ollama grounded output violated the bounded claim contract",
+                category="validation_claim_contract",
+            )
         return LLMGenerationResult(
             draft=draft,
             metadata=LLMProviderMetadata(provider="ollama", model=request.model),
@@ -176,7 +196,8 @@ class OllamaChatProvider:
                 value = container.get(field)
                 if value not in (None, "", [], {}):
                     raise LLMInvalidResponseError(
-                        "Ollama response contained prohibited reasoning content"
+                        "Ollama response contained prohibited reasoning content",
+                        category="prohibited_reasoning",
                     )
 
 

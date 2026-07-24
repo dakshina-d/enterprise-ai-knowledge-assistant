@@ -59,6 +59,31 @@ def test_unknown_event_uses_a_neutral_label(graph_output: GraphOutput) -> None:
     assert item.label == "Agent activity"
 
 
+def test_fallback_warning_surfaces_only_safe_reason(graph_output: GraphOutput) -> None:
+    event = AgentEvent(
+        event_type=AgentEventType.RESPONSE_FALLBACK_USED,
+        sequence_number=0,
+        request_id=graph_output.request_id,
+        trace_id=graph_output.trace_id,
+        session_id=graph_output.session_id,
+        status=AgentEventStatus.WARNING,
+        public_message="A safe deterministic response was used.",
+        payload=PublicAgentEventPayload(error_code="provider_timeout"),
+    )
+    wrapped = ChatStreamEnvelope(
+        event_id=event.event_id,
+        sequence=1,
+        request_id=graph_output.request_id,
+        trace_id=graph_output.trace_id,
+        session_id=graph_output.session_id,
+        event_type=event.event_type.value,
+        agent_event=event,
+    )
+    item = activity_from_envelope(wrapped)
+    assert item.label == "Safe fallback response used"
+    assert item.detail == "Reason: provider_timeout"
+
+
 @pytest.mark.parametrize(
     ("event_type", "expected"),
     [

@@ -126,28 +126,26 @@ def test_authenticated_graph_scenarios_with_local_qwen() -> None:
     started = monotonic()
     with TestClient(create_app(chat_settings(), runtime_factory=runtime_factory)) as client:
         viewer = authorization_header(client, "demo-viewer")
-        supported = client.post(
-            "/api/v1/chat",
-            headers=viewer,
-            json={"message": supported_query},
-        )
-        assert supported.status_code == 200
-        supported_output = supported.json()
-        assert supported_output["evidence"][0]["title"] == "Payment Queue Backlog Recovery Runbook"
-        assert supported_output["citations"]
-        assert supported_output["response_provider"] == "ollama"
+        two_turn_runs = []
+        for _ in range(2):
+            supported = client.post(
+                "/api/v1/chat",
+                headers=viewer,
+                json={"message": supported_query},
+            )
+            follow_up = client.post(
+                "/api/v1/chat",
+                headers=viewer,
+                json={
+                    "message": "Explain that again.",
+                    "session_id": supported.json()["session_id"],
+                },
+            )
+            two_turn_runs.append((supported, follow_up))
         unsupported = client.post(
             "/api/v1/chat",
             headers=viewer,
             json={"message": "Summarize the password policy."},
-        )
-        follow_up = client.post(
-            "/api/v1/chat",
-            headers=viewer,
-            json={
-                "message": "What validation follows that recovery action?",
-                "session_id": supported.json()["session_id"],
-            },
         )
         analyst = authorization_header(client, "demo-analyst")
         mcp = client.post(
@@ -177,8 +175,16 @@ def test_authenticated_graph_scenarios_with_local_qwen() -> None:
     assert unsupported.status_code == 200
     assert unsupported.json()["insufficient_evidence"] is True
     assert unsupported.json()["citations"] == []
-    assert follow_up.status_code == 200
-    assert follow_up.json()["memory_used"] is True
+    for supported, follow_up in two_turn_runs:
+        assert supported.status_code == follow_up.status_code == 200
+        for response in (supported, follow_up):
+            output = response.json()
+            assert output["evidence"][0]["title"] == "Payment Queue Backlog Recovery Runbook"
+            assert output["citations"][0]["title"] == "Payment Queue Backlog Recovery Runbook"
+            assert output["response_provider"] == "ollama"
+            assert output["deterministic_fallback_used"] is False
+            assert output["fallback_reason"] is None
+        assert follow_up.json()["memory_used"] is True
     assert mcp.status_code == 200 and mcp.json()["mcp_result"] is not None
     assert analysis.status_code == 200 and analysis.json()["analysis_result"] is not None
     assert research.status_code == 200
@@ -186,7 +192,14 @@ def test_authenticated_graph_scenarios_with_local_qwen() -> None:
     assert research.json()["citations"]
     assert research_seconds < active.graph_timeout_seconds
     serialized = " ".join(
-        response.text for response in (supported, unsupported, follow_up, mcp, analysis, research)
+        response.text
+        for response in (
+            *(item for pair in two_turn_runs for item in pair),
+            unsupported,
+            mcp,
+            analysis,
+            research,
+        )
     ).casefold()
     assert "<think" not in serialized
     assert "private reasoning" not in serialized

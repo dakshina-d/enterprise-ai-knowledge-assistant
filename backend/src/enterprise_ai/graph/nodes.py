@@ -141,6 +141,7 @@ def create_nodes(
                                 ),
                                 "excluded_count": update.get("excluded_evidence_count"),
                                 "citation_valid": not bool(update.get("failure")),
+                                "fallback_reason": update.get("fallback_reason"),
                             }
                             if completion_status is not None:
                                 enrichment["completion_status"] = completion_status
@@ -660,7 +661,7 @@ def create_nodes(
         )
         if state.get("analysis_result") is not None:
             grounded = await responses.analysis_response(
-                state["original_query"], state["analysis_result"]
+                state["resolved_query"], state["analysis_result"]
             )
             update: dict[str, object] = {
                 "response_mode": ResponseMode.STRUCTURED_ANALYSIS,
@@ -668,6 +669,7 @@ def create_nodes(
                 "response_text": grounded.answer_text,
                 "provider_status": "completed",
                 "deterministic_fallback_used": grounded.deterministic_fallback_used,
+                "fallback_reason": grounded.fallback_reason,
             }
         elif state.get("research_result") is not None:
             (
@@ -677,7 +679,7 @@ def create_nodes(
                 repairs,
                 research_llm_calls,
             ) = await responses.research_response(
-                state["original_query"],
+                state["resolved_query"],
                 state.get("retrieved_evidence", ()),
                 state["principal"],
                 state["research_result"],
@@ -691,6 +693,7 @@ def create_nodes(
                 "response_text": grounded.answer_text,
                 "provider_status": "completed",
                 "deterministic_fallback_used": grounded.deterministic_fallback_used,
+                "fallback_reason": grounded.fallback_reason,
                 "research_result": state["research_result"].model_copy(
                     update={
                         "budget_usage": state["research_result"].budget_usage.model_copy(
@@ -710,7 +713,7 @@ def create_nodes(
             }
         else:
             grounded, draft, validation, repairs = await responses.retrieval_response(
-                state["original_query"], state.get("retrieved_evidence", ()), state["principal"]
+                state["resolved_query"], state.get("retrieved_evidence", ()), state["principal"]
             )
             update = {
                 "response_mode": ResponseMode.GROUNDED_RETRIEVAL,
@@ -721,9 +724,25 @@ def create_nodes(
                 "response_text": grounded.answer_text,
                 "provider_status": "completed",
                 "deterministic_fallback_used": grounded.deterministic_fallback_used,
+                "fallback_reason": grounded.fallback_reason,
             }
         temporary = cast(GraphState, dict(state))
         temporary["activity_events"] = (*state.get("activity_events", ()), started)
+        response_events: list[AgentEvent] = [started]
+        if grounded.fallback_reason is not None:
+            fallback_used = event(
+                temporary,
+                AgentEventType.RESPONSE_FALLBACK_USED,
+                AgentEventStatus.WARNING,
+                "A safe deterministic response was used.",
+                node="generate_response",
+                payload=PublicAgentEventPayload(error_code=grounded.fallback_reason.value),
+            )
+            response_events.append(fallback_used)
+            temporary["activity_events"] = (
+                *state.get("activity_events", ()),
+                *response_events,
+            )
         completed = event(
             temporary,
             AgentEventType.RESPONSE_GENERATION_COMPLETED,
@@ -733,7 +752,7 @@ def create_nodes(
         )
         update.update(
             {
-                "activity_events": (started, completed),
+                "activity_events": (*response_events, completed),
                 "visited_nodes": ("generate_response",),
             }
         )
@@ -1091,6 +1110,7 @@ def create_nodes(
                 state["grounded_response"].model if state.get("grounded_response") else None
             ),
             deterministic_fallback_used=state.get("deterministic_fallback_used", False),
+            fallback_reason=state.get("fallback_reason"),
             insufficient_evidence=(
                 state["grounded_response"].insufficient_evidence
                 if state.get("grounded_response")

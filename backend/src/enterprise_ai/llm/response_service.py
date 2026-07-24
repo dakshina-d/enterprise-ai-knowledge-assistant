@@ -1,12 +1,25 @@
 """Grounded generation, bounded citation repair, rendering, and fallback."""
 
 import asyncio
+import json
+import logging
+
+from pydantic import ValidationError
 
 from enterprise_ai.llm.citation_validator import citation_from_context, validate_citations
+from enterprise_ai.llm.exceptions import (
+    LLMDependencyUnavailableError,
+    LLMHTTPStatusError,
+    LLMInvalidResponseError,
+    LLMProviderError,
+    LLMRefusalError,
+    LLMTimeoutError,
+)
 from enterprise_ai.llm.grounding import build_evidence_context
 from enterprise_ai.llm.models import (
     CitationValidationResult,
     EvidenceContextItem,
+    FallbackReason,
     GroundedAnswerDraft,
     GroundedResponse,
     LLMGenerationRequest,
@@ -22,6 +35,8 @@ from enterprise_ai.retrieval.config import RetrievalSettings
 from enterprise_ai.retrieval.hybrid.models import HybridEvidence
 from enterprise_ai.security.guardrails import response_policy_violations
 from enterprise_ai.tools.python_analysis.models import AnalysisResult
+
+logger = logging.getLogger(__name__)
 
 
 class GroundedResponseService:
@@ -66,11 +81,10 @@ class GroundedResponseService:
                 0,
             )
         if maximum_provider_calls is not None and maximum_provider_calls <= 0:
-            async with self.tracer.span(
-                "enterprise_ai.deterministic_fallback",
-                metadata={"fallback_used": True, "evidence_count": len(context)},
-            ):
-                fallback = self._evidence_fallback(context)
+            fallback = await self._fallback_response(
+                context,
+                FallbackReason.PROVIDER_CALL_BUDGET_EXHAUSTED,
+            )
             return (
                 fallback,
                 GroundedAnswerDraft(answer_summary=fallback.answer_text),
@@ -87,10 +101,13 @@ class GroundedResponseService:
                 result = await self._generate(request)
             except asyncio.CancelledError:
                 raise
-            except Exception:
+            except Exception as error:
                 if not self.settings.llm_allow_deterministic_fallback:
                     raise
-                fallback = self._evidence_fallback(context)
+                fallback = await self._fallback_response(
+                    context,
+                    self._provider_fallback_reason(error),
+                )
                 return (
                     fallback,
                     GroundedAnswerDraft(answer_summary=fallback.answer_text),
@@ -115,9 +132,13 @@ class GroundedResponseService:
             repair = LLMGenerationRequest(
                 mode=ResponseMode.GROUNDED_RETRIEVAL,
                 instructions=request.instructions
-                + " Return corrected citations using only the allowed IDs.",
+                + " Citation validation failed. Return corrected citations using only the "
+                "explicitly allowed evidence IDs.",
                 input_text=(
-                    request.input_text + "\nVALIDATION FAILURES:\n" + "; ".join(validation.errors)
+                    request.input_text
+                    + "\n\nCITATION REPAIR:\n"
+                    + "validation_category=citation_validation_failed\n"
+                    + f"allowed_evidence_ids={json.dumps(request.allowed_evidence_ids)}"
                 )[: self.settings.llm_max_prompt_characters],
                 allowed_evidence_ids=request.allowed_evidence_ids,
                 model=request.model,
@@ -133,7 +154,10 @@ class GroundedResponseService:
                 except asyncio.CancelledError:
                     raise
                 except Exception:
-                    fallback = self._evidence_fallback(context)
+                    fallback = await self._fallback_response(
+                        context,
+                        FallbackReason.CITATION_VALIDATION_FAILED,
+                    )
                     return fallback, draft, validation, repairs
             validation = validate_citations(
                 draft,
@@ -143,20 +167,18 @@ class GroundedResponseService:
                 manifest_path=self.settings.ingestion_manifest_path,
             )
         if not validation.valid:
-            async with self.tracer.span(
-                "enterprise_ai.deterministic_fallback",
-                metadata={"fallback_used": True, "citation_valid": False},
-            ):
-                fallback = self._evidence_fallback(context)
+            fallback = await self._fallback_response(
+                context,
+                FallbackReason.CITATION_VALIDATION_FAILED,
+            )
             return fallback, draft, validation, repairs
         answer = render_draft(draft)
         violations = response_policy_violations(answer)
         if violations:
-            async with self.tracer.span(
-                "enterprise_ai.deterministic_fallback",
-                metadata={"fallback_used": True, "citation_valid": False},
-            ):
-                fallback = self._evidence_fallback(context)
+            fallback = await self._fallback_response(
+                context,
+                FallbackReason.RESPONSE_POLICY_REJECTED,
+            )
             return (
                 fallback,
                 draft,
@@ -191,15 +213,18 @@ class GroundedResponseService:
                 result = await self._generate(request)
             except asyncio.CancelledError:
                 raise
-            except Exception:
+            except Exception as error:
                 if not self.settings.llm_allow_deterministic_fallback:
                     raise
+                reason = self._provider_fallback_reason(error)
+                self._log_fallback(reason)
                 return GroundedResponse(
                     answer_text=analysis.summary[: self.settings.llm_max_answer_characters],
                     provider="deterministic",
                     model="none",
                     prompt_version="1.0",
                     deterministic_fallback_used=True,
+                    fallback_reason=reason,
                 )
         # Typed calculations are rendered deterministically to prevent numerical drift.
         return GroundedResponse(
@@ -270,6 +295,47 @@ class GroundedResponseService:
             prompt_version="1.0",
             deterministic_fallback_used=True,
         )
+
+    async def _fallback_response(
+        self,
+        context: tuple[EvidenceContextItem, ...],
+        reason: FallbackReason,
+    ) -> GroundedResponse:
+        async with self.tracer.span(
+            "enterprise_ai.deterministic_fallback",
+            metadata={
+                "fallback_used": True,
+                "fallback_reason": reason,
+                "evidence_count": len(context),
+            },
+        ):
+            self._log_fallback(reason)
+            return self._evidence_fallback(context).model_copy(update={"fallback_reason": reason})
+
+    @staticmethod
+    def _log_fallback(reason: FallbackReason) -> None:
+        logger.info(
+            "llm_deterministic_fallback",
+            extra={"fallback_reason": reason.value, "fallback_used": True},
+        )
+
+    @staticmethod
+    def _provider_fallback_reason(error: Exception) -> FallbackReason:
+        if isinstance(error, LLMDependencyUnavailableError):
+            return FallbackReason.PROVIDER_UNAVAILABLE
+        if isinstance(error, (LLMTimeoutError, TimeoutError)):
+            return FallbackReason.PROVIDER_TIMEOUT
+        if isinstance(error, LLMHTTPStatusError):
+            return FallbackReason.PROVIDER_HTTP_ERROR
+        if isinstance(error, LLMInvalidResponseError):
+            if error.category == "prohibited_reasoning":
+                return FallbackReason.PROHIBITED_REASONING
+            return FallbackReason.INVALID_STRUCTURED_OUTPUT
+        if isinstance(error, (LLMRefusalError, ValidationError)):
+            return FallbackReason.INVALID_STRUCTURED_OUTPUT
+        if isinstance(error, LLMProviderError):
+            return FallbackReason.UNKNOWN_PROVIDER_FAILURE
+        return FallbackReason.UNKNOWN_PROVIDER_FAILURE
 
     async def _generate(self, request: LLMGenerationRequest) -> LLMGenerationResult:
         async with asyncio.timeout(self.settings.selected_llm_timeout_seconds()):

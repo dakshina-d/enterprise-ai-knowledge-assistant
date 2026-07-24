@@ -11,7 +11,8 @@ from enterprise_ai.graph.builder import build_graph
 from enterprise_ai.graph.checkpointer import create_checkpointer
 from enterprise_ai.graph.runtime import GraphRuntime
 from enterprise_ai.graph.schemas import GraphInput
-from enterprise_ai.llm.models import LLMGenerationRequest, LLMGenerationResult
+from enterprise_ai.llm.exceptions import LLMDependencyUnavailableError
+from enterprise_ai.llm.models import FallbackReason, LLMGenerationRequest, LLMGenerationResult
 from enterprise_ai.llm.response_service import GroundedResponseService
 from enterprise_ai.memory.dependencies import create_memory_service
 from enterprise_ai.models.common import ProcessingStatus
@@ -90,7 +91,7 @@ def request(message: str) -> GraphInput:
 class UnavailableProvider:
     async def generate(self, request: LLMGenerationRequest) -> LLMGenerationResult:
         del request
-        raise ConnectionError(
+        raise LLMDependencyUnavailableError(
             "provider-private-marker Bearer provider-secret internal/provider/path"
         )
 
@@ -152,14 +153,20 @@ async def test_llm_unavailable_uses_safe_fallback_and_stores_completed_turn(
     assert output.completion_status is ProcessingStatus.COMPLETED
     assert output.selected_route is Route.SIMPLE_RETRIEVAL
     assert output.deterministic_fallback_used
+    assert output.fallback_reason is FallbackReason.PROVIDER_UNAVAILABLE
     assert output.response_provider == "deterministic"
     assert output.citations
     assert output.memory_update_status == "stored"
     assert [item.event_type for item in terminal] == [AgentEventType.RESPONSE_COMPLETED]
+    warning = next(
+        item for item in events if item.event_type is AgentEventType.RESPONSE_FALLBACK_USED
+    )
+    assert warning.payload.error_code == FallbackReason.PROVIDER_UNAVAILABLE.value
     assert len([item for item in items if item.output is not None]) == 1
     root = next(record for record in recorder.records if record.parent_id is None)
     assert root.status == "completed"
     assert root.metadata["completion_status"] == "completed"
+    assert root.metadata["fallback_reason"] == FallbackReason.PROVIDER_UNAVAILABLE.value
     serialized = repr((caplog.records, recorder.records, items))
     assert "provider-private-marker" not in serialized
     assert "provider-secret" not in serialized

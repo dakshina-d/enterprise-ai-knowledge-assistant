@@ -21,6 +21,18 @@ class Confidence(StrEnum):
     LOW = "low"
 
 
+class FallbackReason(StrEnum):
+    PROVIDER_UNAVAILABLE = "provider_unavailable"
+    PROVIDER_TIMEOUT = "provider_timeout"
+    PROVIDER_HTTP_ERROR = "provider_http_error"
+    INVALID_STRUCTURED_OUTPUT = "invalid_structured_output"
+    PROHIBITED_REASONING = "prohibited_reasoning"
+    CITATION_VALIDATION_FAILED = "citation_validation_failed"
+    RESPONSE_POLICY_REJECTED = "response_policy_rejected"
+    PROVIDER_CALL_BUDGET_EXHAUSTED = "provider_call_budget_exhausted"
+    UNKNOWN_PROVIDER_FAILURE = "unknown_provider_failure"
+
+
 class GroundedClaim(ContractModel):
     claim_id: Annotated[str, Field(pattern=r"^C[1-9][0-9]{0,2}$")]
     text: Annotated[str, Field(min_length=1, max_length=2_000, repr=False)]
@@ -120,5 +132,6 @@ class GroundedResponse(ContractModel):
     model: str
     prompt_version: str
     deterministic_fallback_used: bool = False
+    fallback_reason: FallbackReason | None = None
     insufficient_evidence: bool = False
     uncertainty: str | None = None

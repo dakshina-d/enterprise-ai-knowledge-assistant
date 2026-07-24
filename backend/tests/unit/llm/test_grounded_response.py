@@ -9,7 +9,7 @@ import pytest
 from enterprise_ai.llm.exceptions import LLMProviderError
 from enterprise_ai.llm.fake_provider import FakeLLMProvider
 from enterprise_ai.llm.grounding import build_evidence_context
-from enterprise_ai.llm.models import GroundedAnswerDraft, GroundedClaim
+from enterprise_ai.llm.models import FallbackReason, GroundedAnswerDraft, GroundedClaim
 from enterprise_ai.llm.ollama_provider import OllamaChatProvider
 from enterprise_ai.llm.response_service import GroundedResponseService
 from enterprise_ai.models.identity import AccessLevel, UserRole
@@ -146,6 +146,7 @@ async def test_invented_citation_is_repaired_once_then_falls_back(tmp_path: obje
     )
     assert not validation.valid and repairs == 1
     assert response.deterministic_fallback_used
+    assert response.fallback_reason is FallbackReason.CITATION_VALIDATION_FAILED
     assert "E999" not in response.answer_text
     assert len(provider.calls) == 2
     assert [record.name for record in recorder.records] == [
@@ -176,11 +177,16 @@ async def test_provider_close_is_explicit() -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "provider",
-    [UnavailableProvider(), TimeoutProvider(), MalformedProvider()],
+    ("provider", "reason"),
+    [
+        (UnavailableProvider(), FallbackReason.UNKNOWN_PROVIDER_FAILURE),
+        (TimeoutProvider(), FallbackReason.PROVIDER_TIMEOUT),
+        (MalformedProvider(), FallbackReason.INVALID_STRUCTURED_OUTPUT),
+    ],
 )
 async def test_provider_failures_use_evidence_fallback_without_raw_detail(
     provider: FakeLLMProvider,
+    reason: FallbackReason,
     tmp_path: object,
 ) -> None:
     configured = settings(tmp_path).model_copy(update={"openai_response_timeout_seconds": 0.01})
@@ -193,6 +199,7 @@ async def test_provider_failures_use_evidence_fallback_without_raw_detail(
     )
 
     assert response.deterministic_fallback_used
+    assert response.fallback_reason is reason
     assert response.citations
     assert validation.valid
     assert repairs == 0
@@ -220,9 +227,45 @@ async def test_unavailable_ollama_uses_grounded_deterministic_fallback(
         await provider.close()
 
     assert response.deterministic_fallback_used
+    assert response.fallback_reason is FallbackReason.PROVIDER_UNAVAILABLE
     assert response.citations
     assert validation.valid and repairs == 0
     assert "private endpoint detail" not in repr((response, draft, validation))
+
+
+@pytest.mark.asyncio
+async def test_invalid_ollama_schema_has_safe_reason_without_raw_output(
+    tmp_path: object,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    raw_sentinel = "RAW_MODEL_OUTPUT_MUST_NOT_ESCAPE"
+    configured = settings(tmp_path).model_copy(update={"llm_provider": "ollama"})
+    provider = OllamaChatProvider(
+        configured,
+        transport=httpx.MockTransport(
+            lambda _request: httpx.Response(
+                200,
+                json={
+                    "done": True,
+                    "message": {"content": f"not-json-{raw_sentinel}"},
+                },
+            )
+        ),
+    )
+    try:
+        response, draft, validation, _ = await GroundedResponseService(
+            provider, configured
+        ).retrieval_response(
+            "Question",
+            (evidence(),),
+            assessment_principal(UserRole.VIEWER),
+        )
+    finally:
+        await provider.close()
+
+    assert response.fallback_reason is FallbackReason.INVALID_STRUCTURED_OUTPUT
+    assert raw_sentinel not in repr((response, draft, validation))
+    assert raw_sentinel not in caplog.text
 
 
 @pytest.mark.asyncio
@@ -242,4 +285,42 @@ async def test_citation_repair_failure_uses_original_evidence_fallback(
     assert repairs == 1
     assert not validation.valid
     assert response.deterministic_fallback_used
+    assert response.fallback_reason is FallbackReason.CITATION_VALIDATION_FAILED
     assert "E999" not in response.answer_text
+
+
+@pytest.mark.asyncio
+async def test_invalid_citation_is_repaired_once_and_returns_provider_response(
+    tmp_path: object,
+) -> None:
+    attempts = 0
+
+    def draft(_request: object) -> GroundedAnswerDraft:
+        nonlocal attempts
+        attempts += 1
+        evidence_id = "E999" if attempts == 1 else "E1"
+        return GroundedAnswerDraft(
+            answer_summary="Repaired response.",
+            claims=(
+                GroundedClaim(
+                    claim_id="C1",
+                    text="Use the approved recovery gate.",
+                    supporting_evidence_ids=(evidence_id,),
+                ),
+            ),
+        )
+
+    provider = FakeLLMProvider(draft)
+    response, _, validation, repairs = await GroundedResponseService(
+        provider, settings(tmp_path)
+    ).retrieval_response(
+        "Question",
+        (evidence(),),
+        assessment_principal(UserRole.VIEWER),
+    )
+
+    assert attempts == 2 and repairs == 1 and validation.valid
+    assert response.provider == "fake"
+    assert not response.deterministic_fallback_used
+    assert response.fallback_reason is None
+    assert response.citations[0].marker == "E1"

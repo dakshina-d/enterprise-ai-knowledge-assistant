@@ -5,7 +5,7 @@ from typing import Annotated, Literal
 from uuid import UUID
 
 from enterprise_ai.graph.schemas import GraphOutput
-from enterprise_ai.llm.models import VerifiedCitation
+from enterprise_ai.llm.models import FallbackReason, VerifiedCitation
 from enterprise_ai.mcp_tools.models import MCPProvenance
 from enterprise_ai.models.common import ContractModel, ProcessingStatus, utc_now
 from enterprise_ai.models.events import AgentEventStatus
@@ -31,6 +31,7 @@ class ChatMessage(ContractModel):
     analysis_operation: Annotated[str | None, Field(max_length=100)] = None
     insufficient_evidence: bool = False
     deterministic_fallback_used: bool = False
+    fallback_reason: FallbackReason | None = None
 
 
 class ActivityItem(ContractModel):

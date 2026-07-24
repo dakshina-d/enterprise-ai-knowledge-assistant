@@ -33,6 +33,7 @@ SAFE_KEYS = frozenset(
         "citation_valid",
         "deterministic_fallback_used",
         "fallback_used",
+        "fallback_reason",
         "insufficient_evidence",
         "model",
         "build_fingerprint",

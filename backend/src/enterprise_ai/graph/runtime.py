@@ -65,6 +65,7 @@ class GraphRuntime:
                 report.result.value != "failed" for report in output.validation_reports
             ),
             "deterministic_fallback_used": output.deterministic_fallback_used,
+            "fallback_reason": output.fallback_reason,
             "insufficient_evidence": output.insufficient_evidence,
         }
 
@@ -164,6 +165,7 @@ class GraphRuntime:
             outcome="completed",
             route=output.selected_route.value,
             completion_status=output.completion_status.value,
+            fallback_reason=output.fallback_reason.value if output.fallback_reason else None,
         )
         return output
 
@@ -183,6 +185,11 @@ class GraphRuntime:
                         outcome="completed",
                         route=item.output.selected_route.value,
                         completion_status=item.output.completion_status.value,
+                        fallback_reason=(
+                            item.output.fallback_reason.value
+                            if item.output.fallback_reason
+                            else None
+                        ),
                     )
                 yield item
             if span is not None and not output_seen:
@@ -263,6 +270,7 @@ class GraphRuntime:
         completion_status: str | None = None,
         dependency_category: str | None = None,
         cancelled: bool = False,
+        fallback_reason: str | None = None,
     ) -> None:
         logger.info(
             "graph_request_outcome",
@@ -276,5 +284,6 @@ class GraphRuntime:
                 "dependency_category": dependency_category,
                 "outcome": outcome,
                 "cancelled": cancelled,
+                "fallback_reason": fallback_reason,
             },
         )

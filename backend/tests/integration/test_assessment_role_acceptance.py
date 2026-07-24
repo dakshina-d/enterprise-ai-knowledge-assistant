@@ -2,7 +2,18 @@
 
 import json
 
+import httpx
+from enterprise_ai.graph.builder import build_graph
+from enterprise_ai.graph.checkpointer import create_checkpointer
+from enterprise_ai.graph.dependencies import OfflineSparseAdapter
+from enterprise_ai.graph.runtime import GraphRuntime
+from enterprise_ai.llm.ollama_provider import OllamaChatProvider
+from enterprise_ai.llm.response_service import GroundedResponseService
 from enterprise_ai.main import create_app
+from enterprise_ai.memory.dependencies import create_memory_service
+from enterprise_ai.observability.tracing import SafeTracer
+from enterprise_ai.retrieval.config import RetrievalSettings
+from enterprise_ai.retrieval.sparse.retriever import SparseRetrievalService
 from fastapi.testclient import TestClient
 
 from backend.tests.integration.chat_api_support import authorization_header, chat_settings
@@ -145,6 +156,87 @@ def test_multi_turn_continuation_and_new_user_isolation() -> None:
     assert second.json()["memory_used"]
     assert cross_user.status_code == 409
     assert cross_user.json()["error"]["code"] == "session.ownership_conflict"
+
+
+def test_exact_viewer_followup_reaches_ollama_as_resolved_question() -> None:
+    previous_answer_sentinel = "PREVIOUS_ASSISTANT_TEXT_IS_NOT_EVIDENCE"
+    requests: list[dict[str, object]] = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(json.loads(request.content))
+        return httpx.Response(
+            200,
+            json={
+                "done": True,
+                "message": {
+                    "role": "assistant",
+                    "content": json.dumps(
+                        {
+                            "answer_summary": previous_answer_sentinel,
+                            "claims": [
+                                {
+                                    "claim_id": "C1",
+                                    "text": (
+                                        "Drain the backlog through controlled gates and verify "
+                                        "idempotency before normal processing resumes."
+                                    ),
+                                    "supporting_evidence_ids": ["E1"],
+                                    "factual": True,
+                                    "confidence": "high",
+                                    "qualification": None,
+                                }
+                            ],
+                            "warnings": [],
+                            "insufficient_evidence": False,
+                            "clarification_needed": False,
+                        }
+                    ),
+                },
+            },
+        )
+
+    active = RetrievalSettings(llm_provider="ollama")
+
+    def runtime_factory(_settings: RetrievalSettings) -> GraphRuntime:
+        tracer = SafeTracer()
+        memory = create_memory_service(active)
+        provider = OllamaChatProvider(active, transport=httpx.MockTransport(handler))
+        responses = GroundedResponseService(provider, active, tracer)
+        graph = build_graph(
+            active,
+            OfflineSparseAdapter(SparseRetrievalService(active)),
+            checkpointer=create_checkpointer(),
+            memory=memory,
+            responses=responses,
+            tracer=tracer,
+        )
+        return GraphRuntime(graph, active, memory, responses, tracer)
+
+    question = (
+        "What does the active Payment Queue Backlog Recovery Runbook require "
+        "for controlled backlog drain and idempotency verification?"
+    )
+    with TestClient(create_app(chat_settings(), runtime_factory=runtime_factory)) as client:
+        viewer = authorization_header(client, "demo-viewer")
+        first = client.post("/api/v1/chat", headers=viewer, json={"message": question})
+        second = client.post(
+            "/api/v1/chat",
+            headers=viewer,
+            json={"message": "Explain that again.", "session_id": first.json()["session_id"]},
+        )
+
+    assert first.status_code == second.status_code == 200
+    assert len(requests) == 2
+    first_output, second_output = first.json(), second.json()
+    assert first_output["citations"][0]["title"] == "Payment Queue Backlog Recovery Runbook"
+    assert second_output["memory_used"] and second_output["context_resolved"]
+    assert second_output["response_provider"] == "ollama"
+    assert second_output["deterministic_fallback_used"] is False
+    assert second_output["fallback_reason"] is None
+    assert second_output["citations"][0]["title"] == "Payment Queue Backlog Recovery Runbook"
+    second_prompt = requests[1]["messages"][1]["content"]  # type: ignore[index]
+    assert question in second_prompt
+    assert previous_answer_sentinel not in second_prompt
 
 
 def test_unsupported_password_policy_query_abstains_without_citations() -> None:

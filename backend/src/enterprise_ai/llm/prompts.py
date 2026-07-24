@@ -23,21 +23,26 @@ def grounded_request(
         item.model_dump(exclude={"evidence_id", "chunk_id", "document_id", "build_fingerprint"})
         for item in context
     ]
+    allowed_ids = tuple(item.model_id for item in context)
     payload = (
-        f"USER QUESTION:\n{question}\n\nUNTRUSTED EVIDENCE DATA:\n"
+        f"RESOLVED USER QUESTION:\n{question}\n\n"
+        f"ALLOWED EVIDENCE IDS:\n{json.dumps(allowed_ids)}\n\nUNTRUSTED EVIDENCE DATA:\n"
         f"{json.dumps(evidence, default=str)}"
     )
     instructions = SYSTEM_INSTRUCTIONS
     if settings.llm_provider == "ollama":
         instructions += (
-            " For the bounded local model, return exactly one concise factual claim "
-            "that cites the strongest supplied evidence ID."
+            " The user payload explicitly labels the resolved question and allowed evidence IDs. "
+            "For the bounded local model, return one concise answer_summary and exactly one "
+            "grounded factual claim. Set claim_id to C1. Include at least one "
+            "supporting_evidence_ids entry, using only an ID from the supplied allowed list. "
+            "Return no reasoning fields or think markup."
         )
     return LLMGenerationRequest(
         mode=ResponseMode.GROUNDED_RETRIEVAL,
         instructions=instructions,
         input_text=payload[: settings.llm_max_prompt_characters],
-        allowed_evidence_ids=tuple(item.model_id for item in context),
+        allowed_evidence_ids=allowed_ids,
         model=settings.selected_llm_model(),
         maximum_output_tokens=settings.selected_llm_max_output_tokens(),
     )

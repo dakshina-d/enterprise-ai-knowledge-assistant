@@ -88,6 +88,7 @@ def activity_from_envelope(envelope: ChatStreamEnvelope) -> ActivityItem:
             ("Results", payload.result_count),
             ("Evidence", payload.evidence_count),
             ("Round", payload.round_number),
+            ("Reason", payload.error_code),
         )
         detail = " · ".join(f"{label}: {value}" for label, value in values if value is not None)
     elif envelope.event_type in {"response.failed", "stream.error"}:
