@@ -15,6 +15,10 @@ from enterprise_ai.models.retrieval import DocumentMetadata, DocumentType
 from enterprise_ai.retrieval.config import RetrievalSettings
 from enterprise_ai.retrieval.exceptions import RetrievalDataIntegrityError, RetrievalValidationError
 from enterprise_ai.retrieval.filters import DenseQueryFilters, build_authorization_filter
+from enterprise_ai.retrieval.identifiers import (
+    extract_enterprise_identifiers,
+    matching_document_ids,
+)
 from enterprise_ai.retrieval.indexer import load_current_chunks
 from enterprise_ai.retrieval.sparse.analyzer import analyze
 from enterprise_ai.retrieval.sparse.artifacts import validate_sparse
@@ -105,6 +109,14 @@ class SparseRetrievalService:
             for chunk_id, chunk in chunk_by_id.items()
             if self._authorized(principal, chunk, filters)
         }
+        identifiers = extract_enterprise_identifiers(query)
+        if identifiers:
+            exact_document_ids = matching_document_ids(tuple(authorized.values()), identifiers)
+            authorized = {
+                chunk_id: chunk
+                for chunk_id, chunk in authorized.items()
+                if chunk.document_id in exact_document_ids
+            }
         documents = {
             chunk_id: (
                 int(value["length"]),

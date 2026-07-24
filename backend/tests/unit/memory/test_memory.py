@@ -210,6 +210,33 @@ def test_prior_injection_is_not_promoted_into_followup_instructions() -> None:
     assert detected and not used
 
 
+def test_explicit_identifier_overrides_prior_incident_context() -> None:
+    turn = ConversationTurn(
+        turn_id=uuid4(),
+        request_id=uuid4(),
+        session_id=uuid4(),
+        user_id=uuid4(),
+        sequence_number=1,
+        user_message="Who owns INC-PAY-2025-097 and what is its status?",
+        assistant_message="Safe grounded response.",
+        intent=Intent.KNOWLEDGE_LOOKUP,
+        selected_route=Route.SIMPLE_RETRIEVAL,
+        completion_status=ProcessingStatus.COMPLETED,
+        created_at=NOW,
+    )
+    context = build_context((turn,), maximum_topics=5, maximum_identifiers=5)
+    current = (
+        "According to INC-PAY-2025-126, who is the primary owner and what is its follow-up status?"
+    )
+
+    resolved, detected, used = resolve_followup(current, context)
+
+    assert resolved == current
+    assert not detected
+    assert not used
+    assert "INC-PAY-2025-097" not in resolved
+
+
 @pytest.mark.asyncio
 async def test_graph_memory_survives_invocations_and_is_idempotent(tmp_path: object) -> None:
     manifest = tmp_path / "manifest.json"

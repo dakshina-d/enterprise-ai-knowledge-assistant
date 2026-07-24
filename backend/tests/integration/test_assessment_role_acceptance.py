@@ -163,6 +163,185 @@ def test_viewer_analyst_and_administrator_route_acceptance() -> None:
                 assert forbidden not in serialized
 
 
+def test_exact_incident_is_entity_aligned_and_restricted_by_role() -> None:
+    requests: list[LLMGenerationRequest] = []
+
+    def exact_draft(request: LLMGenerationRequest) -> GroundedAnswerDraft:
+        requests.append(request)
+        if "INC-PAY-2025-126" in request.input_text:
+            return GroundedAnswerDraft(
+                answer_summary="INC-PAY-2025-126 ownership and follow-up are grounded.",
+                claims=(
+                    GroundedClaim(
+                        claim_id="C1",
+                        text=(
+                            "The primary owner is Cybersecurity service owner; supporting "
+                            "owners are Technology Operations, Cybersecurity, and Risk and "
+                            "Compliance; the follow-up status is partially complete."
+                        ),
+                        supporting_evidence_ids=request.allowed_evidence_ids,
+                    ),
+                ),
+            )
+        return GroundedAnswerDraft(
+            answer_summary="The earlier incident is grounded.",
+            claims=(
+                GroundedClaim(
+                    claim_id="C1",
+                    text="The earlier incident record was found.",
+                    supporting_evidence_ids=request.allowed_evidence_ids[:1],
+                ),
+            ),
+        )
+
+    active = RetrievalSettings()
+
+    def runtime_factory(_settings: RetrievalSettings) -> GraphRuntime:
+        tracer = SafeTracer()
+        memory = create_memory_service(active)
+        responses = GroundedResponseService(FakeLLMProvider(exact_draft), active, tracer)
+        graph = build_graph(
+            active,
+            OfflineSparseAdapter(SparseRetrievalService(active)),
+            checkpointer=create_checkpointer(),
+            memory=memory,
+            responses=responses,
+            tracer=tracer,
+        )
+        return GraphRuntime(graph, active, memory, responses, tracer)
+
+    query = (
+        "According to INC-PAY-2025-126, who is the primary owner, which supporting "
+        "owners are listed, and what is the follow-up status?"
+    )
+    with TestClient(create_app(chat_settings(), runtime_factory=runtime_factory)) as client:
+        administrator = authorization_header(client, "demo-admin")
+        first = client.post(
+            "/api/v1/chat",
+            headers=administrator,
+            json={"message": "Who owns INC-PAY-2025-097 and what is its status?"},
+        )
+        admin = client.post(
+            "/api/v1/chat",
+            headers=administrator,
+            json={"message": query, "session_id": first.json()["session_id"]},
+        )
+        analyst = client.post(
+            "/api/v1/chat",
+            headers=authorization_header(client, "demo-analyst"),
+            json={"message": query},
+        )
+        viewer = client.post(
+            "/api/v1/chat",
+            headers=authorization_header(client, "demo-viewer"),
+            json={"message": query},
+        )
+        unknown = client.post(
+            "/api/v1/chat",
+            headers=administrator,
+            json={"message": "What does INC-PAY-2099-999 say?"},
+        )
+
+    assert (
+        first.status_code
+        == admin.status_code
+        == analyst.status_code
+        == viewer.status_code
+        == unknown.status_code
+        == 200
+    )
+    output = admin.json()
+    assert output["selected_route"] == "simple_retrieval"
+    assert output["completion_status"] == "completed"
+    assert output["memory_used"] is True
+    assert output["context_resolved"] is False
+    assert {item["title"] for item in output["citations"]} == {
+        "Payment Gateway Certificate Rejection"
+    }
+    assert all(
+        item["title"] != "Pending Payment Status Accumulation" for item in output["citations"]
+    )
+    answer = output["response_text"]
+    for expected in (
+        "Cybersecurity service owner",
+        "Technology Operations",
+        "Cybersecurity",
+        "Risk and Compliance",
+        "partially complete",
+    ):
+        assert expected in answer
+    assert "Payments service owner" not in answer
+    assert output["deterministic_fallback_used"] is False
+    assert any(
+        finding["code"] == "graph.evidence.exact_identifier_matched"
+        for report in output["validation_reports"]
+        for finding in report["findings"]
+    )
+    assert requests[-1].allowed_evidence_ids
+
+    for denied in (analyst.json(), viewer.json()):
+        serialized = json.dumps(denied).casefold()
+        assert denied["insufficient_evidence"] is True
+        assert denied["evidence"] == denied["citations"] == []
+        assert "payment gateway certificate rejection" not in serialized
+        assert "cybersecurity service owner" not in serialized
+        assert "pending payment status accumulation" not in serialized
+    unknown_output = unknown.json()
+    assert unknown_output["insufficient_evidence"] is True
+    assert unknown_output["evidence"] == unknown_output["citations"] == []
+    assert "payments service owner" not in unknown_output["response_text"].casefold()
+    assert len(requests) == 2
+
+
+def test_persistent_identifier_citation_misalignment_repairs_once_then_abstains() -> None:
+    provider = FakeLLMProvider(
+        lambda _request: GroundedAnswerDraft(
+            answer_summary="Unvalidated entity answer.",
+            claims=(
+                GroundedClaim(
+                    claim_id="C1",
+                    text="A different incident owns this answer.",
+                    supporting_evidence_ids=("E999",),
+                ),
+            ),
+        )
+    )
+    active = RetrievalSettings()
+
+    def runtime_factory(_settings: RetrievalSettings) -> GraphRuntime:
+        tracer = SafeTracer()
+        memory = create_memory_service(active)
+        responses = GroundedResponseService(provider, active, tracer)
+        graph = build_graph(
+            active,
+            OfflineSparseAdapter(SparseRetrievalService(active)),
+            checkpointer=create_checkpointer(),
+            memory=memory,
+            responses=responses,
+            tracer=tracer,
+        )
+        return GraphRuntime(graph, active, memory, responses, tracer)
+
+    query = (
+        "According to INC-PAY-2025-126, who is the primary owner and what is the follow-up status?"
+    )
+    with TestClient(create_app(chat_settings(), runtime_factory=runtime_factory)) as client:
+        response = client.post(
+            "/api/v1/chat",
+            headers=authorization_header(client, "demo-admin"),
+            json={"message": query},
+        )
+
+    assert response.status_code == 200
+    output = response.json()
+    assert len(provider.calls) == 2
+    assert output["deterministic_fallback_used"] is True
+    assert output["fallback_reason"] == "entity_alignment_validation_failed"
+    assert output["insufficient_evidence"] is True
+    assert output["citations"] == []
+    assert "different incident" not in output["response_text"].casefold()
+
+
 def test_multi_turn_continuation_and_new_user_isolation() -> None:
     with TestClient(create_app(chat_settings())) as client:
         analyst_headers = authorization_header(client, "demo-analyst")

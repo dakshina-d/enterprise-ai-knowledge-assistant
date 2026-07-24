@@ -22,6 +22,7 @@ from enterprise_ai.models.identity import AuthenticatedPrincipal
 from enterprise_ai.research.models import ResearchResult
 from enterprise_ai.retrieval.filters import DenseQueryFilters
 from enterprise_ai.retrieval.hybrid.models import HybridEvidence
+from enterprise_ai.retrieval.identifiers import EnterpriseIdentifier
 from enterprise_ai.tools.python_analysis.models import AnalysisRequest, AnalysisResult
 
 
@@ -34,6 +35,7 @@ class GraphState(TypedDict, total=False):
     original_query: str
     resolved_query: str
     normalized_query: str
+    requested_enterprise_identifiers: tuple[EnterpriseIdentifier, ...]
     detected_intent: Intent
     task_complexity: str
     selected_route: Route

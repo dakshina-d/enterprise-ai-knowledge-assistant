@@ -49,6 +49,7 @@ from enterprise_ai.research.structured_conflicts import (
 )
 from enterprise_ai.retrieval.filters import DenseQueryFilters
 from enterprise_ai.retrieval.hybrid.models import CompletionStatus, HybridEvidence
+from enterprise_ai.retrieval.identifiers import EnterpriseIdentifier, EnterpriseIdentifierKind
 from enterprise_ai.tools.python_analysis.models import (
     AnalysisOperation,
     AnalysisRequest,
@@ -74,6 +75,8 @@ CHECKPOINT_ALLOWED_TYPES = (
     DateInterval,
     DenseQueryFilters,
     DocumentType,
+    EnterpriseIdentifier,
+    EnterpriseIdentifierKind,
     GraphError,
     GraphOutput,
     GroundedAnswerDraft,

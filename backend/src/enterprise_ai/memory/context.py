@@ -3,6 +3,7 @@
 import re
 
 from enterprise_ai.memory.models import ConversationTurn, MemoryContext
+from enterprise_ai.retrieval.identifiers import extract_enterprise_identifiers
 from enterprise_ai.security.guardrails import contains_untrusted_instruction
 
 _INCIDENT = re.compile(r"\bINC-[A-Z0-9]+(?:-[A-Z0-9]+)+\b", re.I)
@@ -50,6 +51,8 @@ def resolve_followup(
     query: str, context: MemoryContext, *, maximum: int = 4_000
 ) -> tuple[str, bool, bool]:
     detected = bool(_FOLLOWUP.search(query))
+    if extract_enterprise_identifiers(query):
+        return query, detected, False
     if not detected or context.turn_count == 0:
         return query, detected, False
     lowered = query.casefold()

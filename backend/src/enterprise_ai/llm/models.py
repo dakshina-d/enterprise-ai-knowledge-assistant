@@ -29,6 +29,7 @@ class FallbackReason(StrEnum):
     INVALID_STRUCTURED_OUTPUT = "invalid_structured_output"
     PROHIBITED_REASONING = "prohibited_reasoning"
     CITATION_VALIDATION_FAILED = "citation_validation_failed"
+    ENTITY_ALIGNMENT_VALIDATION_FAILED = "entity_alignment_validation_failed"
     RESEARCH_DIMENSION_VALIDATION_FAILED = "research_dimension_validation_failed"
     RESPONSE_POLICY_REJECTED = "response_policy_rejected"
     PROVIDER_CALL_BUDGET_EXHAUSTED = "provider_call_budget_exhausted"

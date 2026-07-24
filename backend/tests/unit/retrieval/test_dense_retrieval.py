@@ -348,6 +348,56 @@ def test_retriever_enforces_filters_drops_unauthorized_and_never_requests_vector
     assert gateway.query_arguments["metadata_filter"]["$and"]
 
 
+def test_dense_exact_identifier_filters_provider_and_rejects_off_target_results(
+    tmp_path: Path,
+) -> None:
+    settings = _artifact_settings(tmp_path)
+    manifest, chunks = load_current_chunks(settings)
+    requested = next(item for item in chunks if item.source_file.endswith("inc-pay-2025-126.md"))
+    wrong = next(item for item in chunks if item.source_file.endswith("inc-pay-2025-097.md"))
+    gateway = FakeGateway()
+    gateway.matches = [
+        {
+            "id": str(item.chunk_id),
+            "score": score,
+            "metadata": chunk_metadata(
+                item,
+                build_fingerprint=manifest.build_fingerprint,
+                maximum_bytes=35_000,
+            ),
+        }
+        for item, score in ((wrong, 0.99), (requested, 0.50))
+    ]
+    embeddings = FakeEmbeddings()
+    service = DenseRetrievalService(settings, embeddings, gateway)
+
+    result = asyncio.run(
+        service.retrieve(
+            assessment_principal(UserRole.ADMINISTRATOR),
+            "According to INC-PAY-2025-126, who is the primary owner?",
+            top_k=5,
+        )
+    )
+
+    assert [item.document_id for item in result.evidence] == [requested.document_id]
+    assert result.dropped_unauthorized == 1
+    assert {"document_id": {"$in": [str(requested.document_id)]}} in gateway.query_arguments[
+        "metadata_filter"
+    ]["$and"]
+
+    gateway.query_arguments = {}
+    unknown = asyncio.run(
+        service.retrieve(
+            assessment_principal(UserRole.ADMINISTRATOR),
+            "What does INC-PAY-2099-999 say?",
+            top_k=5,
+        )
+    )
+    assert unknown.evidence == ()
+    assert len(embeddings.query_calls) == 1
+    assert gateway.query_arguments == {}
+
+
 @pytest.mark.parametrize(
     ("role", "access", "allowed_roles"),
     [

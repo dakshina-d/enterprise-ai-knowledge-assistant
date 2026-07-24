@@ -99,17 +99,56 @@ def test_sparse_retrieval_exact_identifier_and_rbac(tmp_path: Path) -> None:
     settings = _settings(tmp_path)
     build_sparse(settings)
     service = SparseRetrievalService(settings)
+    administrator = asyncio.run(
+        service.retrieve(
+            assessment_principal(UserRole.ADMINISTRATOR),
+            "INC-PAY-2026-031",
+            top_k=5,
+        )
+    )
     analyst = asyncio.run(
         service.retrieve(assessment_principal(UserRole.ANALYST), "INC-PAY-2026-031", top_k=5)
     )
     viewer = asyncio.run(
         service.retrieve(assessment_principal(UserRole.VIEWER), "INC-PAY-2026-031", top_k=5)
     )
-    assert analyst.evidence
-    assert all(item.access_level is not AccessLevel.RESTRICTED for item in analyst.evidence)
-    assert all(
-        item.access_level in {AccessLevel.PUBLIC, AccessLevel.INTERNAL} for item in viewer.evidence
+    assert administrator.evidence
+    assert analyst.evidence == viewer.evidence == ()
+
+
+def test_exact_restricted_incident_cannot_be_replaced_or_leaked(tmp_path: Path) -> None:
+    settings = _settings(tmp_path)
+    build_sparse(settings)
+    service = SparseRetrievalService(settings)
+    query = (
+        "According to INC-PAY-2025-126, who is the primary owner, which supporting "
+        "owners are listed, and what is the follow-up status?"
     )
+
+    administrator = asyncio.run(
+        service.retrieve(assessment_principal(UserRole.ADMINISTRATOR), query, top_k=5)
+    )
+    analyst = asyncio.run(service.retrieve(assessment_principal(UserRole.ANALYST), query, top_k=5))
+    viewer = asyncio.run(service.retrieve(assessment_principal(UserRole.VIEWER), query, top_k=5))
+    unknown = asyncio.run(
+        service.retrieve(
+            assessment_principal(UserRole.ADMINISTRATOR),
+            "What does INC-PAY-2099-999 say?",
+            top_k=5,
+        )
+    )
+
+    assert administrator.evidence
+    assert all(
+        item.source_file.endswith("incidents/inc-pay-2025-126.md")
+        for item in administrator.evidence
+    )
+    assert {item.title for item in administrator.evidence} == {
+        "Payment Gateway Certificate Rejection"
+    }
+    assert any("Cybersecurity service owner" in item.text for item in administrator.evidence)
+    assert all("Payments service owner" not in item.text for item in administrator.evidence)
+    assert analyst.evidence == viewer.evidence == unknown.evidence == ()
 
 
 def test_sparse_relevance_abstains_for_unsupported_and_generic_queries(tmp_path: Path) -> None:

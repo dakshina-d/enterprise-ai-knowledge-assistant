@@ -6,6 +6,10 @@ from uuid import uuid4
 
 import httpx
 import pytest
+from enterprise_ai.llm.citation_validator import (
+    validate_citations,
+    validate_identifier_alignment,
+)
 from enterprise_ai.llm.exceptions import LLMProviderError
 from enterprise_ai.llm.fake_provider import FakeLLMProvider
 from enterprise_ai.llm.grounding import build_evidence_context
@@ -125,6 +129,43 @@ async def test_valid_citation_maps_to_application_metadata(tmp_path: object) -> 
     assert validation.valid and repairs == 0
     assert response.citations[0].marker == "E1"
     assert "[E1]" in response.answer_text
+
+
+def test_textually_valid_off_target_citation_fails_identifier_alignment(
+    tmp_path: object,
+) -> None:
+    configured = settings(tmp_path)
+    context = build_evidence_context(
+        (evidence("Incident 097"), evidence("Incident 126")), configured
+    )
+    draft = GroundedAnswerDraft(
+        answer_summary="Answer for INC-PAY-2025-126.",
+        claims=(
+            GroundedClaim(
+                claim_id="C1",
+                text="The incident has an owner.",
+                supporting_evidence_ids=("E1",),
+            ),
+        ),
+    )
+    ordinary = validate_citations(
+        draft,
+        context,
+        assessment_principal(UserRole.ADMINISTRATOR),
+        maximum_citations=5,
+        manifest_path=configured.ingestion_manifest_path,
+    )
+
+    aligned = validate_identifier_alignment(
+        draft,
+        ordinary,
+        context,
+        (("INC-PAY-2025-126", ("E2",)),),
+    )
+
+    assert ordinary.valid
+    assert not aligned.valid
+    assert any("entity_alignment_validation_failed" in error for error in aligned.errors)
 
 
 @pytest.mark.asyncio

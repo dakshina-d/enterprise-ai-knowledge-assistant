@@ -48,6 +48,11 @@ from enterprise_ai.research.models import ResearchRequest
 from enterprise_ai.research.service import ResearchService
 from enterprise_ai.retrieval.config import RetrievalSettings
 from enterprise_ai.retrieval.exceptions import RetrievalError
+from enterprise_ai.retrieval.identifiers import (
+    extract_enterprise_identifiers,
+    matching_document_ids,
+)
+from enterprise_ai.retrieval.indexer import load_current_chunks
 from enterprise_ai.security.authorization import AuthorizationService
 from enterprise_ai.security.guardrails import contains_untrusted_instruction
 from enterprise_ai.tools.python_analysis.service import PythonAnalysisTool, plan_analysis
@@ -212,8 +217,10 @@ def create_nodes(
                 ),
             ),
         )
+        normalized_query = " ".join(state["user_message"].split())
         return {
-            "normalized_query": " ".join(state["user_message"].split()),
+            "normalized_query": normalized_query,
+            "requested_enterprise_identifiers": extract_enterprise_identifiers(normalized_query),
             "validation_reports": (report,),
             "failure": not valid,
             "visited_nodes": ("validate_request",),
@@ -325,11 +332,16 @@ def create_nodes(
         }
 
     async def simple_retrieval(state: GraphState) -> dict[str, object]:
+        identifiers = state.get("requested_enterprise_identifiers", ())
         started = event(
             state,
             AgentEventType.RETRIEVAL_STARTED,
             AgentEventStatus.STARTED,
-            "Authorized retrieval started.",
+            (
+                "Authorized retrieval started; exact identifier constraint applied."
+                if identifiers
+                else "Authorized retrieval started."
+            ),
             node="simple_retrieval",
         )
         try:
@@ -391,6 +403,11 @@ def create_nodes(
             await asyncio.to_thread(settings.ingestion_manifest_path.read_text, encoding="utf-8")
         )
         expected_fingerprint = str(manifest["build_fingerprint"])
+        identifiers = state.get("requested_enterprise_identifiers", ())
+        exact_document_ids: frozenset[UUID] = frozenset()
+        if identifiers:
+            _, chunks = await asyncio.to_thread(load_current_chunks, settings)
+            exact_document_ids = matching_document_ids(chunks, identifiers)
         for item in state.get("retrieved_evidence", ()):
             evidence = item.evidence
             if (
@@ -403,21 +420,42 @@ def create_nodes(
                 or not math.isfinite(item.hybrid_score)
                 or evidence.build_fingerprint != expected_fingerprint
                 or contains_untrusted_instruction(evidence.text)
+                or (identifiers and evidence.document_id not in exact_document_ids)
             ):
                 rejected += 1
                 continue
             seen.add(evidence.chunk_id)
             valid.append(item)
+        exact_match_missing = bool(identifiers and not valid)
+        report_result = (
+            ValidationResult.WARNING if rejected or exact_match_missing else ValidationResult.PASSED
+        )
         report = ValidationReport(
-            result=ValidationResult.WARNING if rejected else ValidationResult.PASSED,
+            result=report_result,
             findings=(
                 ValidationFinding(
-                    code="graph.evidence.valid",
-                    result=ValidationResult.WARNING if rejected else ValidationResult.PASSED,
+                    code=(
+                        "graph.evidence.exact_identifier_missing"
+                        if exact_match_missing
+                        else (
+                            "graph.evidence.exact_identifier_matched"
+                            if identifiers
+                            else "graph.evidence.valid"
+                        )
+                    ),
+                    result=report_result,
                     public_message=(
-                        f"Validated {len(valid)} evidence items; rejected {rejected}."
-                        if rejected
-                        else f"Validated {len(valid)} evidence items."
+                        "No authorized exact match found."
+                        if exact_match_missing
+                        else (
+                            "Authorized matching evidence validated."
+                            if identifiers
+                            else (
+                                f"Validated {len(valid)} evidence items; rejected {rejected}."
+                                if rejected
+                                else f"Validated {len(valid)} evidence items."
+                            )
+                        )
                     ),
                 ),
             ),
@@ -433,9 +471,13 @@ def create_nodes(
         return {
             "retrieved_evidence": tuple(valid),
             "warnings": (
-                (f"Rejected {rejected} unauthorized or malformed evidence items.",)
-                if rejected
-                else ()
+                ("No authorized exact match found.",)
+                if exact_match_missing
+                else (
+                    (f"Rejected {rejected} unauthorized or malformed evidence items.",)
+                    if rejected
+                    else ()
+                )
             ),
             "validation_reports": (report,),
             "activity_events": (validation_event,),

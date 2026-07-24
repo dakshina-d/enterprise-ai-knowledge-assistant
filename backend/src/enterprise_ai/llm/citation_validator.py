@@ -70,3 +70,38 @@ def citation_from_context(item: EvidenceContextItem) -> VerifiedCitation:
         department=item.department,
         document_type=item.document_type,
     )
+
+
+def validate_identifier_alignment(
+    draft: GroundedAnswerDraft,
+    validation: CitationValidationResult,
+    context: tuple[EvidenceContextItem, ...],
+    requirements: tuple[tuple[str, tuple[str, ...]], ...],
+) -> CitationValidationResult:
+    """Require citations to the authorized primary record for every requested identifier."""
+    if not requirements:
+        return validation
+    context_by_id = {item.model_id: item for item in context}
+    cited_ids = {item.marker for item in validation.citations}
+    allowed_ids = {model_id for _, model_ids in requirements for model_id in model_ids}
+    errors = list(validation.errors)
+    for identifier, model_ids in requirements:
+        if not model_ids:
+            errors.append(
+                f"entity_alignment_validation_failed: no authorized evidence for {identifier}"
+            )
+        elif not cited_ids.intersection(model_ids):
+            errors.append(
+                f"entity_alignment_validation_failed: requested identifier {identifier} is uncited"
+            )
+    for claim in draft.claims:
+        if not claim.factual:
+            continue
+        if any(
+            model_id not in allowed_ids or model_id not in context_by_id
+            for model_id in claim.supporting_evidence_ids
+        ):
+            errors.append(
+                f"{claim.claim_id}: entity_alignment_validation_failed: off-target evidence"
+            )
+    return validation.model_copy(update={"valid": not errors, "errors": tuple(errors)})

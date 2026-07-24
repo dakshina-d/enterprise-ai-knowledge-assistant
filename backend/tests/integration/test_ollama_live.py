@@ -171,6 +171,25 @@ def test_authenticated_graph_scenarios_with_local_qwen() -> None:
         )
         research_seconds = monotonic() - research_started
         print(f"ollama_live_research_seconds={research_seconds:.2f}")
+        exact_query = (
+            "According to INC-PAY-2025-126, who is the primary owner, which supporting "
+            "owners are listed, and what is the follow-up status?"
+        )
+        exact_admin = client.post(
+            "/api/v1/chat",
+            headers=authorization_header(client, "demo-admin"),
+            json={"message": exact_query},
+        )
+        exact_analyst = client.post(
+            "/api/v1/chat",
+            headers=analyst,
+            json={"message": exact_query},
+        )
+        exact_viewer = client.post(
+            "/api/v1/chat",
+            headers=viewer,
+            json={"message": exact_query},
+        )
 
     assert unsupported.status_code == 200
     assert unsupported.json()["insufficient_evidence"] is True
@@ -209,6 +228,30 @@ def test_authenticated_graph_scenarios_with_local_qwen() -> None:
     assert "database_lock_contention" not in research_answer
     assert "no february evidence" not in research_answer
     assert research_seconds < active.graph_timeout_seconds
+    exact_output = exact_admin.json()
+    assert exact_admin.status_code == 200
+    assert exact_output["selected_route"] == "simple_retrieval"
+    assert exact_output["completion_status"] == "completed"
+    assert {item["title"] for item in exact_output["citations"]} == {
+        "Payment Gateway Certificate Rejection"
+    }
+    exact_answer = exact_output["response_text"].casefold()
+    for expected in (
+        "cybersecurity service owner",
+        "technology operations",
+        "cybersecurity",
+        "risk and compliance",
+        "partially complete",
+    ):
+        assert expected in exact_answer
+    assert "payments service owner" not in exact_answer
+    assert exact_output["deterministic_fallback_used"] is False
+    for denied in (exact_analyst, exact_viewer):
+        denied_output = denied.json()
+        assert denied.status_code == 200
+        assert denied_output["insufficient_evidence"] is True
+        assert denied_output["evidence"] == denied_output["citations"] == []
+        assert "payment gateway certificate rejection" not in denied.text.casefold()
     serialized = " ".join(
         response.text
         for response in (
@@ -217,6 +260,9 @@ def test_authenticated_graph_scenarios_with_local_qwen() -> None:
             mcp,
             analysis,
             research,
+            exact_admin,
+            exact_analyst,
+            exact_viewer,
         )
     ).casefold()
     assert "<think" not in serialized

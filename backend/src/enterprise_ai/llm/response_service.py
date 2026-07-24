@@ -4,10 +4,15 @@ import asyncio
 import json
 import logging
 import re
+from uuid import UUID
 
 from pydantic import ValidationError
 
-from enterprise_ai.llm.citation_validator import citation_from_context, validate_citations
+from enterprise_ai.llm.citation_validator import (
+    citation_from_context,
+    validate_citations,
+    validate_identifier_alignment,
+)
 from enterprise_ai.llm.exceptions import (
     LLMDependencyUnavailableError,
     LLMHTTPStatusError,
@@ -38,6 +43,11 @@ from enterprise_ai.research.models import ResearchResult
 from enterprise_ai.research.planner import analysis_requested
 from enterprise_ai.retrieval.config import RetrievalSettings
 from enterprise_ai.retrieval.hybrid.models import HybridEvidence
+from enterprise_ai.retrieval.identifiers import (
+    extract_enterprise_identifiers,
+    identifier_document_ids,
+)
+from enterprise_ai.retrieval.indexer import load_current_chunks
 from enterprise_ai.security.guardrails import response_policy_violations
 from enterprise_ai.tools.python_analysis.models import AnalysisResult
 
@@ -78,7 +88,32 @@ class GroundedResponseService:
         comparison_evidence_ids: tuple[tuple[str, tuple[str, ...]], ...] = (),
         comparison_shared_facets: tuple[str, ...] = (),
     ) -> tuple[GroundedResponse, GroundedAnswerDraft, CitationValidationResult, int]:
+        identifiers = extract_enterprise_identifiers(question)
+        identifier_documents: dict[str, frozenset[UUID]] = {}
+        exact_document_ids: frozenset[UUID] = frozenset()
+        if identifiers:
+            _, chunks = load_current_chunks(self.settings)
+            identifier_documents = identifier_document_ids(chunks, identifiers)
+            exact_document_ids = frozenset(
+                document_id
+                for document_ids in identifier_documents.values()
+                for document_id in document_ids
+            )
         context = context_override or build_evidence_context(evidence, self.settings)
+        if identifiers:
+            context = tuple(item for item in context if item.document_id in exact_document_ids)
+        identifier_evidence_ids = tuple(
+            (
+                identifier.normalized,
+                tuple(
+                    item.model_id
+                    for item in context
+                    if item.document_id
+                    in identifier_documents.get(identifier.normalized, frozenset())
+                ),
+            )
+            for identifier in identifiers
+        )
         if not context:
             response = GroundedResponse(
                 answer_text="No sufficient authorized evidence was found for this request.",
@@ -118,6 +153,24 @@ class GroundedResponseService:
             )
         else:
             request = grounded_request(question, context, self.settings)
+        if identifiers:
+            requested_identifiers = tuple(item.normalized for item in identifiers)
+            request = request.model_copy(
+                update={
+                    "instructions": (
+                        request.instructions
+                        + " Answer only the requested normalized enterprise identifiers. "
+                        "Every factual claim must cite evidence belonging to a requested "
+                        "identifier; do not substitute a semantically similar record."
+                    ),
+                    "input_text": append_prompt_section(
+                        request.input_text,
+                        "\n\nREQUESTED NORMALIZED IDENTIFIERS:\n"
+                        + json.dumps(requested_identifiers),
+                        self.settings.llm_max_prompt_characters,
+                    ),
+                }
+            )
         required_evidence_ids = request.allowed_evidence_ids if require_all_evidence_ids else ()
         repairs = 0
         async with self.tracer.span(
@@ -190,6 +243,12 @@ class GroundedResponseService:
             comparison_shared_facets,
         )
         validation = _require_citations(validation, required_evidence_ids)
+        validation = validate_identifier_alignment(
+            draft,
+            validation,
+            context,
+            identifier_evidence_ids,
+        )
         while (
             not validation.valid
             and repairs < self.settings.llm_citation_repair_attempts
@@ -199,7 +258,12 @@ class GroundedResponseService:
             repair = self._grounding_repair_request(
                 request,
                 missing_dimensions,
-                category="grounding_validation_failed",
+                category=(
+                    "entity_alignment_validation_failed"
+                    if identifiers
+                    else "grounding_validation_failed"
+                ),
+                requested_identifiers=tuple(item.normalized for item in identifiers),
             )
             async with self.tracer.span(
                 "enterprise_ai.citation_repair",
@@ -230,12 +294,21 @@ class GroundedResponseService:
                 comparison_shared_facets,
             )
             validation = _require_citations(validation, required_evidence_ids)
+            validation = validate_identifier_alignment(
+                draft,
+                validation,
+                context,
+                identifier_evidence_ids,
+            )
         if not validation.valid:
             if comparison_dimensions:
                 fallback = await self._comparison_fallback_response(
                     context,
                     missing_dimensions or comparison_dimensions,
                 )
+                return fallback, draft, validation, repairs
+            if identifiers:
+                fallback = await self._identifier_fallback_response(context)
                 return fallback, draft, validation, repairs
             fallback = await self._fallback_response(
                 context,
@@ -419,6 +492,34 @@ class GroundedResponseService:
                 uncertainty="generated_comparison_not_validated",
             )
 
+    async def _identifier_fallback_response(
+        self,
+        context: tuple[EvidenceContextItem, ...],
+    ) -> GroundedResponse:
+        reason = FallbackReason.ENTITY_ALIGNMENT_VALIDATION_FAILED
+        async with self.tracer.span(
+            "enterprise_ai.deterministic_fallback",
+            metadata={
+                "fallback_used": True,
+                "fallback_reason": reason,
+                "evidence_count": len(context),
+            },
+        ):
+            self._log_fallback(reason)
+            return GroundedResponse(
+                answer_text=(
+                    "Authorized matching evidence was found, but a grounded answer for the "
+                    "requested identifier could not be validated."
+                ),
+                provider="deterministic",
+                model="none",
+                prompt_version="1.0",
+                deterministic_fallback_used=True,
+                fallback_reason=reason,
+                insufficient_evidence=True,
+                uncertainty="entity_alignment_not_validated",
+            )
+
     @staticmethod
     def _log_fallback(reason: FallbackReason) -> None:
         logger.info(
@@ -455,11 +556,14 @@ class GroundedResponseService:
         missing_dimensions: tuple[str, ...],
         *,
         category: str,
+        requested_identifiers: tuple[str, ...] = (),
     ) -> LLMGenerationRequest:
         suffix = (
             "\n\nBOUNDED GROUNDING REPAIR:\n"
             + f"validation_category={category}\n"
             + f"allowed_evidence_ids={json.dumps(request.allowed_evidence_ids)}"
+            + "\nrequested_identifiers="
+            + json.dumps(requested_identifiers)
             + "\nmissing_comparison_dimensions="
             + json.dumps(missing_dimensions)
         )

@@ -7,7 +7,6 @@ from datetime import date
 from typing import Annotated, Any
 from uuid import UUID
 
-from enterprise_ai_ingestion.models import IngestionManifest
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from enterprise_ai.models.identity import AccessLevel, AuthenticatedPrincipal, UserRole
@@ -20,6 +19,11 @@ from enterprise_ai.retrieval.exceptions import (
     RetrievalValidationError,
 )
 from enterprise_ai.retrieval.filters import DenseQueryFilters, build_authorization_filter
+from enterprise_ai.retrieval.identifiers import (
+    extract_enterprise_identifiers,
+    matching_document_ids,
+)
+from enterprise_ai.retrieval.indexer import load_current_chunks
 from enterprise_ai.retrieval.metadata import REQUIRED_RESULT_FIELDS
 from enterprise_ai.retrieval.pinecone_client import PineconeGateway
 from enterprise_ai.retrieval.retry import with_retries
@@ -98,9 +102,16 @@ class DenseRetrievalService:
         selected_top_k = top_k or self.settings.pinecone_query_top_k
         if not 1 <= selected_top_k <= 100:
             raise RetrievalValidationError("retrieval top-k is outside allowed bounds")
-        manifest = IngestionManifest.model_validate_json(
-            self.settings.ingestion_manifest_path.read_text(encoding="utf-8")
-        )
+        manifest, chunks = load_current_chunks(self.settings)
+        identifiers = extract_enterprise_identifiers(normalized)
+        exact_document_ids = matching_document_ids(chunks, identifiers)
+        if identifiers and not exact_document_ids:
+            return DenseRetrievalResult(
+                evidence=(),
+                total_provider_matches=0,
+                dropped_unauthorized=0,
+                malformed_results=0,
+            )
         try:
             async with asyncio.timeout(self.settings.pinecone_request_timeout_seconds):
                 vector = await self.embeddings.embed_query(normalized)
@@ -112,6 +123,10 @@ class DenseRetrievalService:
         mandatory_filter = build_authorization_filter(
             principal, manifest.build_fingerprint, filters, self.authorization
         )
+        if identifiers:
+            mandatory_filter["$and"].append(
+                {"document_id": {"$in": sorted(str(value) for value in exact_document_ids)}}
+            )
         logger.info(
             "dense query started",
             extra={
@@ -167,6 +182,9 @@ class DenseRetrievalService:
                     "unauthorized provider result dropped",
                     extra={"request_id": request_id, "trace_id": trace_id},
                 )
+                continue
+            if identifiers and item.document_id not in exact_document_ids:
+                dropped += 1
                 continue
             evidence.append(item)
         return DenseRetrievalResult(
