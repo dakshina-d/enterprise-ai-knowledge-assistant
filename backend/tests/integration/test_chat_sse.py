@@ -1,14 +1,19 @@
 """Native SSE chat delivery integration tests."""
 
 import json
+from uuid import UUID
 
 from enterprise_ai.graph.builder import build_graph
 from enterprise_ai.graph.checkpointer import create_checkpointer
 from enterprise_ai.graph.runtime import GraphRuntime
 from enterprise_ai.main import create_app
+from enterprise_ai.models.identity import AuthenticatedPrincipal
 from enterprise_ai.retrieval.config import RetrievalSettings
 from enterprise_ai.retrieval.exceptions import RetrievalValidationError
 from enterprise_ai.retrieval.hybrid.models import HybridRetrievalResult
+from enterprise_ai.tools.python_analysis.exceptions import AnalysisValidationError
+from enterprise_ai.tools.python_analysis.models import AnalysisRequest, AnalysisResult
+from enterprise_ai.tools.python_analysis.service import PythonAnalysisTool
 from fastapi.testclient import TestClient
 
 from backend.tests.integration.chat_api_support import (
@@ -84,6 +89,19 @@ class FailingRetriever:
         raise RetrievalValidationError("private missing retrieval artifact path")
 
 
+class FailingAnalysisTool(PythonAnalysisTool):
+    async def execute(
+        self,
+        principal: AuthenticatedPrincipal,
+        request: AnalysisRequest,
+        *,
+        request_id: UUID,
+        trace_id: UUID,
+    ) -> AnalysisResult:
+        del principal, request, request_id, trace_id
+        raise AnalysisValidationError("private-analysis-marker internal/analysis/path")
+
+
 def test_native_retrieval_failure_matches_json_safe_graph_outcome() -> None:
     retrieval_settings = RetrievalSettings()
     runtime = GraphRuntime(
@@ -143,3 +161,84 @@ def test_native_retrieval_failure_matches_json_safe_graph_outcome() -> None:
     ):
         assert ordinary_output[field] == output[field]
     assert "private missing retrieval artifact path" not in streamed.text
+
+
+def test_native_analysis_failure_preserves_json_and_sse_safe_outcome() -> None:
+    retrieval_settings = RetrievalSettings()
+    runtime = GraphRuntime(
+        build_graph(
+            retrieval_settings,
+            FailingRetriever(),
+            checkpointer=create_checkpointer(),
+            analysis=FailingAnalysisTool(retrieval_settings),
+        ),
+        retrieval_settings,
+    )
+    with TestClient(
+        create_app(chat_settings(), runtime_factory=lambda _settings: runtime)
+    ) as client:
+        headers = authorization_header(client, "demo-analyst")
+        streamed = client.post(
+            "/api/v1/chat/stream",
+            headers=headers,
+            json={"message": "Count payment incidents by root cause."},
+        )
+        ordinary = client.post(
+            "/api/v1/chat",
+            headers=headers,
+            json={"message": "Count payment incidents by root cause."},
+        )
+
+    events = _events(streamed.text)
+    terminal = events[-1]
+    output = terminal["data"]["response"]
+    activity = [
+        item["data"].get("agent_event")
+        for item in events
+        if item["data"].get("agent_event") is not None
+    ]
+    kinds = [item["event_type"] for item in activity]
+
+    assert streamed.status_code == ordinary.status_code == 200
+    assert "stream.error" not in [item["event"] for item in events]
+    assert terminal["event"] == "response.failed"
+    assert output["selected_route"] == "failure"
+    assert output["completion_status"] == "failed"
+    assert output["response_text"] == "The request failed safely."
+    assert output.get("analysis_result") is None
+    assert output["evidence"] == output["citations"] == []
+    expected = [
+        "tool.authorization_started",
+        "tool.authorized",
+        "tool.started",
+        "tool.failed",
+    ]
+    positions = [kinds.index(kind) for kind in expected]
+    assert positions == sorted(positions)
+    assert any(
+        item["event_type"] == "node.started" and item["node"] == "handle_failure"
+        for item in activity
+    )
+    assert any(
+        item["event_type"] == "node.completed"
+        and item["node"] == "handle_failure"
+        and item["public_message"] == "Failure handled safely."
+        for item in activity
+    )
+    assert kinds[-1] == "response.failed"
+    assert sum(kind == "response.failed" for kind in kinds) == 1
+    agent_sequences = [item["sequence_number"] for item in activity]
+    assert agent_sequences == list(range(len(agent_sequences)))
+    ordinary_output = ordinary.json()
+    for field in (
+        "selected_route",
+        "completion_status",
+        "response_text",
+        "analysis_result",
+        "evidence",
+        "citations",
+    ):
+        assert ordinary_output.get(field) == output.get(field)
+    serialized = repr((events, ordinary_output))
+    assert "private-analysis-marker" not in serialized
+    assert "internal/analysis/path" not in serialized

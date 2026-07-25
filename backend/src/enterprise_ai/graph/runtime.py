@@ -212,6 +212,8 @@ class GraphRuntime:
                         public_event = AgentEvent.model_validate(data)
                     except ValidationError:
                         continue
+                    if terminal_seen:
+                        continue
                     if (
                         public_event.sequence_number != expected_sequence
                         or public_event.request_id != graph_input.request_id

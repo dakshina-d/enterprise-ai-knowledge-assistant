@@ -152,11 +152,35 @@ async def test_mcp_failure_is_safe_and_does_not_create_false_success() -> None:
     service = MCPEnterpriseService(
         client_factory=lambda: UnavailableClient.__new__(UnavailableClient)
     )
-    output = await runtime(mcp_service=service).ainvoke(
-        graph_input(UserRole.ANALYST, "Who owns the payment-gateway service?")
-    )
+    items = [
+        item
+        async for item in runtime(mcp_service=service).astream(
+            graph_input(UserRole.ANALYST, "Who owns the payment-gateway service?")
+        )
+    ]
+    events = [item.event for item in items if item.event is not None]
+    output = next(item.output for item in items if item.output is not None)
+    kinds = [item.event_type for item in events]
 
     assert output.completion_status is ProcessingStatus.FAILED
     assert output.selected_route is Route.FAILURE
     assert output.mcp_result is None
     assert "sensitive protocol detail" not in output.response_text
+    assert (
+        kinds.index(AgentEventType.MCP_STARTED)
+        < kinds.index(AgentEventType.MCP_TOOL_SELECTED)
+        < kinds.index(AgentEventType.MCP_FAILED)
+    )
+    assert any(
+        item.node == "handle_failure" and item.event_type is AgentEventType.NODE_STARTED
+        for item in events
+    )
+    assert any(
+        item.node == "handle_failure" and item.event_type is AgentEventType.NODE_COMPLETED
+        for item in events
+    )
+    assert kinds[-1] is AgentEventType.RESPONSE_FAILED
+    assert [item.sequence_number for item in events] == list(range(len(events)))
+    assert sum(kind is AgentEventType.RESPONSE_FAILED for kind in kinds) == 1
+    assert sum(item.output is not None for item in items) == 1
+    assert "sensitive protocol detail" not in repr(items)

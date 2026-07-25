@@ -9,7 +9,7 @@ from typing import cast
 from uuid import UUID
 
 from enterprise_ai.graph.dependencies import KnowledgeRetriever
-from enterprise_ai.graph.events import event
+from enterprise_ai.graph.events import EventJournal, collect_node_events, event
 from enterprise_ai.graph.routing import classify, requests_inaccessible_access, supervise
 from enterprise_ai.graph.schemas import GraphEvidenceAttribution, GraphOutput
 from enterprise_ai.graph.state import GraphState
@@ -78,6 +78,54 @@ def _node_events(state: GraphState, node: str, message: str) -> tuple[object, ..
     return started, completed
 
 
+def _failed_node_event(
+    state: GraphState,
+    node_name: str,
+    journal: EventJournal,
+) -> AgentEvent | None:
+    if any(
+        item.node == node_name and item.status is AgentEventStatus.FAILED
+        for item in journal.emitted
+    ):
+        return None
+    event_type, message = {
+        "python_analysis": (
+            AgentEventType.TOOL_FAILED,
+            "Structured Python analysis failed safely.",
+        ),
+        "execute_mcp_tool": (
+            AgentEventType.MCP_FAILED,
+            "Enterprise data operation failed safely.",
+        ),
+        "cross_document_research": (
+            AgentEventType.RESEARCH_FAILED,
+            "Research failed safely.",
+        ),
+        "generate_response": (
+            AgentEventType.RESPONSE_GENERATION_FAILED,
+            "Response generation failed safely.",
+        ),
+        "validate_citations": (
+            AgentEventType.CITATION_VALIDATION_FAILED,
+            "Citation validation failed safely.",
+        ),
+        "update_memory": (
+            AgentEventType.MEMORY_FAILED,
+            "Conversation memory update failed safely.",
+        ),
+    }.get(
+        node_name,
+        (AgentEventType.NODE_FAILED, "Workflow step failed safely."),
+    )
+    return event(
+        state,
+        event_type,
+        AgentEventStatus.FAILED,
+        message,
+        node=node_name,
+    )
+
+
 def create_nodes(
     settings: RetrievalSettings,
     retriever: KnowledgeRetriever,
@@ -121,64 +169,74 @@ def create_nodes(
                 "validate_citations": ("enterprise_ai.citation_validation", "chain"),
                 "update_memory": ("enterprise_ai.memory", "chain"),
             }
-            try:
-                name, run_type = trace_names.get(node_name, ("", "chain"))
-                metadata = {
-                    "request_id": state.get("request_id"),
-                    "trace_id": state.get("trace_id"),
-                    "session_id": state.get("session_id"),
-                    "user_role": state["principal"].identity.role,
-                    "route": state.get("selected_route"),
-                    "top_k": state.get("requested_top_k"),
-                    "filter_present": bool(state.get("retrieval_filters")),
-                    "exact_identifier_present": bool(state.get("requested_enterprise_identifiers")),
-                    "aggregate_intent_present": state.get("aggregate_intent_present", False),
-                    "security_denial_category": state.get("security_denial_category"),
-                    "identifier_constraint_active": bool(
-                        state.get("requested_enterprise_identifiers")
-                        and state.get("selected_route") is Route.SIMPLE_RETRIEVAL
-                    ),
-                }
-                if name:
-                    async with traces.span(name, run_type, metadata) as span:
-                        update = await node(state)
-                        if span is not None:
-                            retrieved = update.get("retrieved_evidence", ())
-                            completion_status = update.get("processing_status")
-                            if (
-                                node_name == "supervisor"
-                                and update.get("selected_route") is Route.DENY
-                            ):
-                                completion_status = ProcessingStatus.DENIED
-                            enrichment = {
-                                "route": update.get("selected_route"),
-                                "evidence_count": (
-                                    len(retrieved) if isinstance(retrieved, tuple) else 0
-                                ),
-                                "excluded_count": update.get("excluded_evidence_count"),
-                                "citation_valid": not bool(update.get("failure")),
-                                "fallback_reason": update.get("fallback_reason"),
-                            }
-                            if completion_status is not None:
-                                enrichment["completion_status"] = completion_status
-                            span.update_metadata(enrichment)
-                else:
-                    update = await node(state)
-                update.setdefault("execution_step_count", state.get("execution_step_count", 0) + 1)
-                return update
-            except Exception:
-                return {
-                    "failure": True,
-                    "errors": (
-                        GraphError(
-                            code=f"graph.{node_name}_failed",
-                            safe_message=f"{node_name} failed safely.",
-                            retryable=False,
-                            node=node_name,
+            with collect_node_events(state) as journal:
+                try:
+                    name, run_type = trace_names.get(node_name, ("", "chain"))
+                    metadata = {
+                        "request_id": state.get("request_id"),
+                        "trace_id": state.get("trace_id"),
+                        "session_id": state.get("session_id"),
+                        "user_role": state["principal"].identity.role,
+                        "route": state.get("selected_route"),
+                        "top_k": state.get("requested_top_k"),
+                        "filter_present": bool(state.get("retrieval_filters")),
+                        "exact_identifier_present": bool(
+                            state.get("requested_enterprise_identifiers")
                         ),
-                    ),
-                    "visited_nodes": (node_name,),
-                }
+                        "aggregate_intent_present": state.get("aggregate_intent_present", False),
+                        "security_denial_category": state.get("security_denial_category"),
+                        "identifier_constraint_active": bool(
+                            state.get("requested_enterprise_identifiers")
+                            and state.get("selected_route") is Route.SIMPLE_RETRIEVAL
+                        ),
+                    }
+                    if name:
+                        async with traces.span(name, run_type, metadata) as span:
+                            update = await node(state)
+                            if span is not None:
+                                retrieved = update.get("retrieved_evidence", ())
+                                completion_status = update.get("processing_status")
+                                if (
+                                    node_name == "supervisor"
+                                    and update.get("selected_route") is Route.DENY
+                                ):
+                                    completion_status = ProcessingStatus.DENIED
+                                enrichment = {
+                                    "route": update.get("selected_route"),
+                                    "evidence_count": (
+                                        len(retrieved) if isinstance(retrieved, tuple) else 0
+                                    ),
+                                    "excluded_count": update.get("excluded_evidence_count"),
+                                    "citation_valid": not bool(update.get("failure")),
+                                    "fallback_reason": update.get("fallback_reason"),
+                                }
+                                if completion_status is not None:
+                                    enrichment["completion_status"] = completion_status
+                                span.update_metadata(enrichment)
+                    else:
+                        update = await node(state)
+                    if journal.emitted:
+                        update["activity_events"] = tuple(journal.emitted)
+                    update.setdefault(
+                        "execution_step_count",
+                        state.get("execution_step_count", 0) + 1,
+                    )
+                    return update
+                except Exception:
+                    _failed_node_event(state, node_name, journal)
+                    return {
+                        "failure": True,
+                        "errors": (
+                            GraphError(
+                                code=f"graph.{node_name}_failed",
+                                safe_message=f"{node_name} failed safely.",
+                                retryable=False,
+                                node=node_name,
+                            ),
+                        ),
+                        "activity_events": tuple(journal.emitted),
+                        "visited_nodes": (node_name,),
+                    }
 
         return run
 
