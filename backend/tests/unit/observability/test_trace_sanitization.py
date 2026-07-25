@@ -13,6 +13,9 @@ def test_sanitizer_only_keeps_bounded_allowlisted_scalar_values() -> None:
             "aggregate_intent_present": False,
             "security_denial_category": "credential_exfiltration",
             "identifier_constraint_active": True,
+            "fallback_strategy": "extractive_grounded",
+            "selected_passage_count": 2,
+            "supported_concept_count": 2,
             "api_key": "secret-value",
             "authorization": "Bearer jwt-value",
             "raw_evidence": "confidential text",
@@ -25,9 +28,12 @@ def test_sanitizer_only_keeps_bounded_allowlisted_scalar_values() -> None:
         "aggregate_intent_present": False,
         "evidence_count": 2,
         "exact_identifier_present": True,
+        "fallback_strategy": "extractive_grounded",
         "identifier_constraint_active": True,
         "request_id": "r" * 256,
+        "selected_passage_count": 2,
         "security_denial_category": "credential_exfiltration",
+        "supported_concept_count": 2,
     }
     assert "secret-value" not in repr(result)
     assert "confidential text" not in repr(result)

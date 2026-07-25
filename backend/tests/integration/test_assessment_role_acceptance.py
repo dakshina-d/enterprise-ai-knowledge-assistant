@@ -336,7 +336,7 @@ def test_exact_incident_is_entity_aligned_and_restricted_by_role() -> None:
     assert len(requests) == 3
 
 
-def test_persistent_identifier_citation_misalignment_repairs_once_then_abstains() -> None:
+def test_persistent_identifier_misalignment_uses_aligned_extractive_fallback() -> None:
     provider = FakeLLMProvider(
         lambda _request: GroundedAnswerDraft(
             answer_summary="Unvalidated entity answer.",
@@ -380,8 +380,12 @@ def test_persistent_identifier_citation_misalignment_repairs_once_then_abstains(
     assert len(provider.calls) == 2
     assert output["deterministic_fallback_used"] is True
     assert output["fallback_reason"] == "entity_alignment_validation_failed"
-    assert output["insufficient_evidence"] is True
-    assert output["citations"] == []
+    assert output["insufficient_evidence"] is False
+    assert {item["title"] for item in output["citations"]} == {
+        "Payment Gateway Certificate Rejection"
+    }
+    assert "Cybersecurity service owner" in output["response_text"]
+    assert "partially complete" in output["response_text"]
     assert "different incident" not in output["response_text"].casefold()
 
 

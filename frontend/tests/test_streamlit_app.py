@@ -145,3 +145,54 @@ def test_denied_security_response_renders_status_without_private_detail() -> Non
     assert "Completion: denied" in visible
     assert "cannot be disclosed" in visible
     assert "in-memory-test-token" not in visible
+
+
+def test_useful_extractive_fallback_renders_warning_and_source_once() -> None:
+    citation = VerifiedCitation(
+        marker="E1",
+        evidence_id=uuid4(),
+        chunk_id=uuid4(),
+        document_id=uuid4(),
+        title="Queue Recovery Runbook",
+        section="Decision and recovery",
+        source_file="private/path/runbook.md",
+        source_line_start=10,
+        source_line_end=20,
+        version="1.0",
+        updated_date="2026-01-01",
+        access_level="internal",
+        department="payments",
+        document_type="runbook",
+    )
+    fallback = ChatMessage(
+        message_id=uuid4(),
+        role="assistant",
+        content=(
+            "A degraded deterministic answer was extracted from authorized evidence.\n\n"
+            "Backlog drain proceeds in bounded batches with idempotency verification. [E1]"
+        ),
+        completion_status=ProcessingStatus.COMPLETED,
+        request_id=uuid4(),
+        citations=(citation,),
+        deterministic_fallback_used=True,
+    )
+    app = AppTest.from_file(str(APP_PATH))
+    app.session_state[ACCESS_TOKEN] = "in-memory-test-token"
+    app.session_state[USER] = FrontendUser(
+        username="demo-viewer",
+        display_name="Demo Viewer",
+        role=UserRole.VIEWER,
+    )
+    app.session_state[MESSAGES] = [fallback]
+    app.run()
+
+    visible = "\n".join(
+        str(element.value)
+        for collection in (app.markdown, app.caption, app.info)
+        for element in collection
+    )
+    assert "bounded batches with idempotency verification" in visible
+    assert "A deterministic fallback response was used." in visible
+    assert visible.count("Queue Recovery Runbook") == 1
+    assert "Authorized evidence was found:" not in visible
+    assert "private/path" not in visible

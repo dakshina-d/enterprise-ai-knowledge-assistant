@@ -10,7 +10,7 @@ from enterprise_ai.core.logging import JsonFormatter
 from enterprise_ai.graph.routing import classify, supervise
 from enterprise_ai.llm.fake_provider import FakeLLMProvider
 from enterprise_ai.llm.grounding import build_evidence_context
-from enterprise_ai.llm.models import GroundedAnswerDraft
+from enterprise_ai.llm.models import FallbackReason, GroundedAnswerDraft
 from enterprise_ai.llm.response_service import GroundedResponseService
 from enterprise_ai.models.graph import Intent, Route
 from enterprise_ai.models.identity import UserRole
@@ -128,8 +128,10 @@ async def test_brand_and_invalid_response_policy_uses_safe_fallback(
     assert response_policy_violations(unsafe_output)
     assert response.deterministic_fallback_used
     assert unsafe_output not in response.answer_text
-    assert not validation.valid
-    assert response.citations
+    assert validation.valid
+    assert response.fallback_reason is FallbackReason.RESPONSE_POLICY_REJECTED
+    assert response.insufficient_evidence
+    assert response.citations == ()
 
 
 def test_structured_json_logs_keep_allowlisted_context_and_drop_private_detail() -> None:

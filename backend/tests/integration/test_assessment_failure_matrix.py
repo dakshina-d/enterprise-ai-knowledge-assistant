@@ -58,7 +58,7 @@ class StaticRetriever:
             document_type=DocumentType.POLICY,
             department="people",
             status="active",
-            text="Approved policy evidence.",
+            text="The approved leave policy requires manager review before submission.",
             chunk_content_hash="a" * 64,
             build_fingerprint=self.build_fingerprint,
         )
@@ -156,6 +156,8 @@ async def test_llm_unavailable_uses_safe_fallback_and_stores_completed_turn(
     assert output.fallback_reason is FallbackReason.PROVIDER_UNAVAILABLE
     assert output.response_provider == "deterministic"
     assert output.citations
+    assert "manager review" in output.response_text
+    assert "Authorized evidence was found:" not in output.response_text
     assert output.memory_update_status == "stored"
     assert [item.event_type for item in terminal] == [AgentEventType.RESPONSE_COMPLETED]
     warning = next(
@@ -167,6 +169,14 @@ async def test_llm_unavailable_uses_safe_fallback_and_stores_completed_turn(
     assert root.status == "completed"
     assert root.metadata["completion_status"] == "completed"
     assert root.metadata["fallback_reason"] == FallbackReason.PROVIDER_UNAVAILABLE.value
+    fallback = next(
+        record
+        for record in recorder.records
+        if record.name == "enterprise_ai.deterministic_fallback"
+    )
+    assert fallback.metadata["fallback_strategy"] == "extractive_grounded"
+    assert fallback.metadata["selected_passage_count"] == 1
+    assert fallback.metadata["supported_concept_count"] == 1
     serialized = repr((caplog.records, recorder.records, items))
     assert "provider-private-marker" not in serialized
     assert "provider-secret" not in serialized

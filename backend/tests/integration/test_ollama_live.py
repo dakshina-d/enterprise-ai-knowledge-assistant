@@ -103,6 +103,117 @@ async def test_qwen_real_grounded_request_contract() -> None:
     os.getenv("OLLAMA_LIVE_TESTS", "").casefold() != "true",
     reason="set OLLAMA_LIVE_TESTS=true to run local Ollama integration tests",
 )
+def test_authenticated_runbook_fallback_and_restored_qwen() -> None:
+    question = (
+        "What does the active Payment Queue Backlog Recovery Runbook require "
+        "for controlled backlog drain and idempotency verification?"
+    )
+    common = {
+        "llm_provider": "ollama",
+        "ollama_num_ctx": 4_096,
+        "ollama_num_predict": 256,
+        "llm_max_evidence_items": 1,
+        "llm_max_evidence_characters": 2_000,
+        "llm_max_evidence_item_characters": 2_000,
+        "llm_max_prompt_characters": 4_000,
+        "graph_timeout_seconds": 300,
+    }
+
+    unavailable = RetrievalSettings(
+        **{
+            **common,
+            "llm_max_evidence_items": 5,
+            "llm_max_evidence_characters": 12_000,
+            "llm_max_evidence_item_characters": 4_000,
+        },
+        ollama_base_url="http://127.0.0.1:65534",
+        ollama_request_timeout_seconds=2,
+    )
+    with TestClient(
+        create_app(
+            chat_settings(),
+            runtime_factory=lambda _settings: create_api_runtime(unavailable),
+        )
+    ) as client:
+        degraded = client.post(
+            "/api/v1/chat",
+            headers=authorization_header(client, "demo-viewer"),
+            json={"message": question},
+        )
+
+    degraded_output = degraded.json()
+    assert degraded.status_code == 200
+    assert degraded_output["selected_route"] == "simple_retrieval"
+    assert degraded_output["completion_status"] == "completed"
+    assert degraded_output["deterministic_fallback_used"] is True
+    assert degraded_output["fallback_reason"] in {
+        "provider_unavailable",
+        "provider_timeout",
+    }
+    assert degraded_output["response_provider"] == "deterministic"
+    assert {item["title"] for item in degraded_output["citations"]} == {
+        "Payment Queue Backlog Recovery Runbook"
+    }
+    degraded_answer = degraded_output["response_text"].casefold()
+    assert any(
+        detail in degraded_answer
+        for detail in (
+            "stop automatic retries",
+            "error rate",
+            "queue age",
+            "rollback",
+            "recovery indicators",
+        )
+    )
+    assert any(
+        detail in degraded_answer
+        for detail in (
+            "payment state",
+            "quarantine",
+            "resubmitting",
+            "transaction-state agreement",
+            "replay",
+        )
+    )
+    assert (
+        degraded_answer.strip()
+        != "drain backlog in controlled batches with idempotency verification. [e1]"
+    )
+    assert "127.0.0.1" not in degraded.text
+    assert "65534" not in degraded.text
+    assert "authorized evidence was found:" not in degraded_answer
+
+    restored = RetrievalSettings(**common, ollama_request_timeout_seconds=300)
+    with TestClient(
+        create_app(
+            chat_settings(),
+            runtime_factory=lambda _settings: create_api_runtime(restored),
+        )
+    ) as client:
+        normal = client.post(
+            "/api/v1/chat",
+            headers=authorization_header(client, "demo-viewer"),
+            json={"message": question},
+        )
+
+    normal_output = normal.json()
+    assert normal.status_code == 200
+    assert normal_output["selected_route"] == "simple_retrieval"
+    assert normal_output["completion_status"] == "completed"
+    assert normal_output["deterministic_fallback_used"] is False
+    assert normal_output["fallback_reason"] is None
+    assert normal_output["response_provider"] == "ollama"
+    assert {item["title"] for item in normal_output["citations"]} == {
+        "Payment Queue Backlog Recovery Runbook"
+    }
+    normal_answer = normal_output["response_text"].casefold()
+    assert "controlled" in normal_answer and "idempotency" in normal_answer
+
+
+@pytest.mark.skipif(
+    os.getenv("OLLAMA_LIVE_TESTS", "").casefold() != "true",
+    reason="set OLLAMA_LIVE_TESTS=true to run local Ollama integration tests",
+)
 def test_authenticated_graph_scenarios_with_local_qwen() -> None:
     active = RetrievalSettings(
         llm_provider="ollama",

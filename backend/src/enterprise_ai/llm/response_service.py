@@ -21,6 +21,7 @@ from enterprise_ai.llm.exceptions import (
     LLMRefusalError,
     LLMTimeoutError,
 )
+from enterprise_ai.llm.extractive_fallback import build_extractive_fallback
 from enterprise_ai.llm.grounding import build_evidence_context
 from enterprise_ai.llm.models import (
     CitationValidationResult,
@@ -133,14 +134,17 @@ class GroundedResponseService:
                 0,
             )
         if maximum_provider_calls is not None and maximum_provider_calls <= 0:
-            fallback = await self._fallback_response(
+            fallback, fallback_draft, fallback_validation = await self._fallback_response(
+                question,
                 context,
                 FallbackReason.PROVIDER_CALL_BUDGET_EXHAUSTED,
+                principal,
+                identifier_evidence_ids,
             )
             return (
                 fallback,
-                GroundedAnswerDraft(answer_summary=fallback.answer_text),
-                CitationValidationResult(valid=True, citations=fallback.citations),
+                fallback_draft,
+                fallback_validation,
                 0,
             )
         if comparison_dimensions:
@@ -202,30 +206,37 @@ class GroundedResponseService:
                     except Exception as repair_error:
                         if not self.settings.llm_allow_deterministic_fallback:
                             raise
-                        fallback = await self._fallback_response(
+                        (
+                            fallback,
+                            fallback_draft,
+                            fallback_validation,
+                        ) = await self._fallback_response(
+                            question,
                             context,
                             self._provider_fallback_reason(repair_error),
+                            principal,
+                            identifier_evidence_ids,
                         )
                         return (
                             fallback,
-                            GroundedAnswerDraft(answer_summary=fallback.answer_text),
-                            CitationValidationResult(
-                                valid=True,
-                                citations=fallback.citations,
-                            ),
+                            fallback_draft,
+                            fallback_validation,
                             repairs,
                         )
                 else:
                     if not self.settings.llm_allow_deterministic_fallback:
                         raise
-                    fallback = await self._fallback_response(
+                    fallback, fallback_draft, fallback_validation = await self._fallback_response(
+                        question,
                         context,
                         self._provider_fallback_reason(error),
+                        principal,
+                        identifier_evidence_ids,
                     )
                     return (
                         fallback,
-                        GroundedAnswerDraft(answer_summary=fallback.answer_text),
-                        CitationValidationResult(valid=True, citations=fallback.citations),
+                        fallback_draft,
+                        fallback_validation,
                         repairs,
                     )
         draft = result.draft
@@ -275,11 +286,14 @@ class GroundedResponseService:
                 except asyncio.CancelledError:
                     raise
                 except Exception:
-                    fallback = await self._fallback_response(
+                    fallback, fallback_draft, fallback_validation = await self._fallback_response(
+                        question,
                         context,
                         FallbackReason.CITATION_VALIDATION_FAILED,
+                        principal,
+                        identifier_evidence_ids,
                     )
-                    return fallback, draft, validation, repairs
+                    return fallback, fallback_draft, fallback_validation, repairs
             validation = validate_citations(
                 draft,
                 context,
@@ -307,28 +321,33 @@ class GroundedResponseService:
                     missing_dimensions or comparison_dimensions,
                 )
                 return fallback, draft, validation, repairs
-            if identifiers:
-                fallback = await self._identifier_fallback_response(context)
-                return fallback, draft, validation, repairs
-            fallback = await self._fallback_response(
-                context,
-                FallbackReason.CITATION_VALIDATION_FAILED,
+            reason = (
+                FallbackReason.ENTITY_ALIGNMENT_VALIDATION_FAILED
+                if identifiers
+                else FallbackReason.CITATION_VALIDATION_FAILED
             )
-            return fallback, draft, validation, repairs
+            fallback, fallback_draft, fallback_validation = await self._fallback_response(
+                question,
+                context,
+                reason,
+                principal,
+                identifier_evidence_ids,
+            )
+            return fallback, fallback_draft, fallback_validation, repairs
         answer = render_draft(draft)
         violations = response_policy_violations(answer)
         if violations:
-            fallback = await self._fallback_response(
+            fallback, fallback_draft, fallback_validation = await self._fallback_response(
+                question,
                 context,
                 FallbackReason.RESPONSE_POLICY_REJECTED,
+                principal,
+                identifier_evidence_ids,
             )
             return (
                 fallback,
-                draft,
-                CitationValidationResult(
-                    valid=False,
-                    errors=tuple(f"response policy: {code}" for code in violations),
-                ),
+                fallback_draft,
+                fallback_validation,
                 repairs,
             )
         return (
@@ -429,35 +448,82 @@ class GroundedResponseService:
             calls,
         )
 
-    def _evidence_fallback(self, context: tuple[EvidenceContextItem, ...]) -> GroundedResponse:
-        items = context[:3]
-        text = "Authorized evidence was found: " + "; ".join(
-            f"{item.title} ({item.section}) [{item.model_id}]" for item in items
-        )
-        return GroundedResponse(
-            answer_text=text,
-            citations=tuple(citation_from_context(item) for item in items),
-            provider="deterministic",
-            model="none",
-            prompt_version="1.0",
-            deterministic_fallback_used=True,
-        )
-
     async def _fallback_response(
         self,
+        question: str,
         context: tuple[EvidenceContextItem, ...],
         reason: FallbackReason,
-    ) -> GroundedResponse:
+        principal: AuthenticatedPrincipal,
+        identifier_evidence_ids: tuple[tuple[str, tuple[str, ...]], ...] = (),
+    ) -> tuple[GroundedResponse, GroundedAnswerDraft, CitationValidationResult]:
+        extracted = build_extractive_fallback(
+            question,
+            context,
+            maximum_passages=min(4, self.settings.llm_max_citations),
+            maximum_answer_characters=self.settings.llm_max_answer_characters,
+        )
+        draft = extracted.draft
+        validation = validate_citations(
+            draft,
+            context,
+            principal,
+            maximum_citations=self.settings.llm_max_citations,
+            manifest_path=self.settings.ingestion_manifest_path,
+        )
+        validation = validate_identifier_alignment(
+            draft,
+            validation,
+            context,
+            identifier_evidence_ids,
+        )
+        if not validation.valid:
+            draft = GroundedAnswerDraft(
+                answer_summary=(
+                    "The authorized evidence could not be rendered with verified citations."
+                ),
+                insufficient_evidence=True,
+            )
+            validation = validate_citations(
+                draft,
+                context,
+                principal,
+                maximum_citations=self.settings.llm_max_citations,
+                manifest_path=self.settings.ingestion_manifest_path,
+            )
+            extracted = extracted.__class__(
+                draft=draft,
+                selected_passage_count=0,
+                supported_concept_count=0,
+                requested_concept_count=extracted.requested_concept_count,
+            )
+        answer = render_draft(draft)[: self.settings.llm_max_answer_characters]
         async with self.tracer.span(
             "enterprise_ai.deterministic_fallback",
             metadata={
                 "fallback_used": True,
                 "fallback_reason": reason,
+                "fallback_strategy": "extractive_grounded",
                 "evidence_count": len(context),
+                "selected_passage_count": extracted.selected_passage_count,
+                "supported_concept_count": extracted.supported_concept_count,
             },
         ):
             self._log_fallback(reason)
-            return self._evidence_fallback(context).model_copy(update={"fallback_reason": reason})
+            return (
+                GroundedResponse(
+                    answer_text=answer,
+                    citations=validation.citations,
+                    provider="deterministic",
+                    model="none",
+                    prompt_version="extractive-1.0",
+                    deterministic_fallback_used=True,
+                    fallback_reason=reason,
+                    insufficient_evidence=draft.insufficient_evidence,
+                    uncertainty="degraded_deterministic_rendering",
+                ),
+                draft,
+                validation,
+            )
 
     async def _comparison_fallback_response(
         self,
@@ -490,34 +556,6 @@ class GroundedResponseService:
                 fallback_reason=FallbackReason.RESEARCH_DIMENSION_VALIDATION_FAILED,
                 insufficient_evidence=True,
                 uncertainty="generated_comparison_not_validated",
-            )
-
-    async def _identifier_fallback_response(
-        self,
-        context: tuple[EvidenceContextItem, ...],
-    ) -> GroundedResponse:
-        reason = FallbackReason.ENTITY_ALIGNMENT_VALIDATION_FAILED
-        async with self.tracer.span(
-            "enterprise_ai.deterministic_fallback",
-            metadata={
-                "fallback_used": True,
-                "fallback_reason": reason,
-                "evidence_count": len(context),
-            },
-        ):
-            self._log_fallback(reason)
-            return GroundedResponse(
-                answer_text=(
-                    "Authorized matching evidence was found, but a grounded answer for the "
-                    "requested identifier could not be validated."
-                ),
-                provider="deterministic",
-                model="none",
-                prompt_version="1.0",
-                deterministic_fallback_used=True,
-                fallback_reason=reason,
-                insufficient_evidence=True,
-                uncertainty="entity_alignment_not_validated",
             )
 
     @staticmethod
