@@ -4,7 +4,9 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 from enterprise_ai.graph.schemas import GraphOutput
+from enterprise_ai.models.common import ProcessingStatus
 from enterprise_ai.models.events import AgentEventStatus
+from enterprise_ai.models.graph import Route
 from enterprise_ai.models.identity import LoginResponse
 from enterprise_ai.tools.python_analysis.models import (
     AnalysisOperation,
@@ -17,6 +19,7 @@ from frontend.enterprise_ai_frontend.state import (
     ACCESS_TOKEN,
     ACTIVITY,
     MESSAGES,
+    PENDING,
     SESSION_ID,
     USER,
     activity,
@@ -63,6 +66,30 @@ def test_user_and_assistant_messages_are_added_once(
     assert first == second
     assert [item.role for item in messages(state)] == ["user", "assistant"]
     assert state[SESSION_ID] == graph_output.session_id
+
+
+def test_failed_graph_output_is_stored_as_a_completed_failed_turn(
+    graph_output: GraphOutput,
+) -> None:
+    failed = graph_output.model_copy(
+        update={
+            "completion_status": ProcessingStatus.FAILED,
+            "selected_route": Route.FAILURE,
+            "response_text": "The request failed safely.",
+            "citations": (),
+        }
+    )
+    state: dict[str, object] = {}
+    initialize(state)
+    state[PENDING] = True
+
+    assistant = complete(state, failed)
+
+    assert assistant.completion_status is ProcessingStatus.FAILED
+    assert assistant.selected_route is Route.FAILURE
+    assert assistant.request_id == failed.request_id
+    assert assistant.citations == ()
+    assert state[PENDING] is False
 
 
 def test_activity_is_deduplicated_and_bounded() -> None:

@@ -95,12 +95,19 @@ def activity_from_envelope(envelope: ChatStreamEnvelope) -> ActivityItem:
         status = "failed"
     elif envelope.event_type == "response.completed":
         status = "completed"
+    label = LABELS.get(envelope.event_type, "Agent activity")
+    if event is not None and event.node == "handle_failure":
+        label = (
+            "Failure handled safely"
+            if envelope.event_type == "node.completed"
+            else "Safe failure handling started"
+        )
     return ActivityItem(
         event_id=envelope.event_id,
         sequence=envelope.sequence,
         timestamp=envelope.timestamp,
         event_type=envelope.event_type,
-        label=LABELS.get(envelope.event_type, "Agent activity"),
+        label=label,
         status=status,
         detail=detail or None,
     )

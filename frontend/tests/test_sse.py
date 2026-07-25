@@ -4,6 +4,8 @@ from uuid import uuid4
 
 import pytest
 from enterprise_ai.graph.schemas import GraphOutput
+from enterprise_ai.models.common import ProcessingStatus
+from enterprise_ai.models.graph import Route
 
 from frontend.enterprise_ai_frontend.errors import SSEProtocolError
 from frontend.enterprise_ai_frontend.sse import (
@@ -118,6 +120,50 @@ def test_validator_accepts_one_monotonic_terminal(
         validator.accept(item)
     validator.finish()
     assert validator.terminal_event == "response.completed"
+
+
+def test_validator_accepts_consistent_failed_terminal_output(
+    graph_output: GraphOutput,
+) -> None:
+    failed_output = graph_output.model_copy(
+        update={
+            "completion_status": ProcessingStatus.FAILED,
+            "selected_route": Route.FAILURE,
+            "response_text": "The request failed safely.",
+        }
+    )
+    failed = envelope(
+        sequence=0,
+        event_type="response.failed",
+        request_id=failed_output.request_id,
+        trace_id=failed_output.trace_id,
+        session_id=failed_output.session_id,
+        output=failed_output,
+    )
+    validator = StreamContractValidator()
+
+    validator.accept(failed)
+    validator.finish()
+
+    assert validator.terminal_event == "response.failed"
+
+
+@pytest.mark.parametrize("include_output", [False, True])
+def test_validator_rejects_missing_or_inconsistent_failed_output(
+    graph_output: GraphOutput,
+    include_output: bool,
+) -> None:
+    failed = envelope(
+        sequence=0,
+        event_type="response.failed",
+        request_id=graph_output.request_id,
+        trace_id=graph_output.trace_id,
+        session_id=graph_output.session_id,
+        output=graph_output if include_output else None,
+    )
+
+    with pytest.raises(SSEProtocolError):
+        StreamContractValidator().accept(failed)
 
 
 def test_validator_rejects_duplicates_decreasing_ids_and_changed_context(

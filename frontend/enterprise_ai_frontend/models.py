@@ -9,6 +9,7 @@ from enterprise_ai.llm.models import FallbackReason, VerifiedCitation
 from enterprise_ai.mcp_tools.models import MCPProvenance
 from enterprise_ai.models.common import ContractModel, ProcessingStatus, utc_now
 from enterprise_ai.models.events import AgentEventStatus
+from enterprise_ai.models.graph import Route
 from enterprise_ai.models.identity import UserRole
 from enterprise_ai.tools.python_analysis.models import AnalysisResult
 from pydantic import Field
@@ -26,6 +27,7 @@ class ChatMessage(ContractModel):
     content: Annotated[str, Field(min_length=1, max_length=32_000)]
     created_at: datetime = Field(default_factory=utc_now)
     completion_status: ProcessingStatus | None = None
+    selected_route: Route | None = None
     request_id: UUID | None = None
     citations: tuple[VerifiedCitation, ...] = ()
     mcp_provenance: MCPProvenance | None = None

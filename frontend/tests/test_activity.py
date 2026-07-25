@@ -84,6 +84,35 @@ def test_fallback_warning_surfaces_only_safe_reason(graph_output: GraphOutput) -
     assert item.detail == "Reason: provider_timeout"
 
 
+def test_failure_handler_completion_has_a_specific_safe_label(
+    graph_output: GraphOutput,
+) -> None:
+    event = AgentEvent(
+        event_type=AgentEventType.NODE_COMPLETED,
+        sequence_number=0,
+        request_id=graph_output.request_id,
+        trace_id=graph_output.trace_id,
+        session_id=graph_output.session_id,
+        node="handle_failure",
+        status=AgentEventStatus.COMPLETED,
+        public_message="Failure handled safely.",
+    )
+    wrapped = ChatStreamEnvelope(
+        event_id=event.event_id,
+        sequence=1,
+        request_id=graph_output.request_id,
+        trace_id=graph_output.trace_id,
+        session_id=graph_output.session_id,
+        event_type=event.event_type.value,
+        agent_event=event,
+    )
+
+    item = activity_from_envelope(wrapped)
+
+    assert item.label == "Failure handled safely"
+    assert item.status is AgentEventStatus.COMPLETED
+
+
 @pytest.mark.parametrize(
     ("event_type", "expected"),
     [

@@ -2,15 +2,18 @@
 
 from datetime import UTC, datetime
 from pathlib import Path
+from unittest.mock import patch
 from uuid import uuid4
 
 from enterprise_ai.llm.models import VerifiedCitation
 from enterprise_ai.mcp_tools.models import MCPProvenance
 from enterprise_ai.models.common import ProcessingStatus
 from enterprise_ai.models.events import AgentEventStatus
+from enterprise_ai.models.graph import Route
 from enterprise_ai.models.identity import UserRole
 from streamlit.testing.v1 import AppTest
 
+from frontend.enterprise_ai_frontend.errors import FrontendError
 from frontend.enterprise_ai_frontend.models import ActivityItem, ChatMessage, FrontendUser
 from frontend.enterprise_ai_frontend.state import (
     ACCESS_TOKEN,
@@ -196,3 +199,60 @@ def test_useful_extractive_fallback_renders_warning_and_source_once() -> None:
     assert visible.count("Queue Recovery Runbook") == 1
     assert "Authorized evidence was found:" not in visible
     assert "private/path" not in visible
+
+
+def test_failed_graph_turn_renders_safe_message_status_route_and_no_sources() -> None:
+    failed = ChatMessage(
+        message_id=uuid4(),
+        role="assistant",
+        content="The request failed safely.",
+        completion_status=ProcessingStatus.FAILED,
+        selected_route=Route.FAILURE,
+        request_id=uuid4(),
+    )
+    app = AppTest.from_file(str(APP_PATH))
+    app.session_state[ACCESS_TOKEN] = "in-memory-test-token"
+    app.session_state[USER] = FrontendUser(
+        username="demo-viewer",
+        display_name="Demo Viewer",
+        role=UserRole.VIEWER,
+    )
+    app.session_state[MESSAGES] = [failed]
+    app.run()
+
+    visible = "\n".join(
+        str(element.value) for collection in (app.markdown, app.caption) for element in collection
+    )
+    assert "The request failed safely." in visible
+    assert "Completion: failed" in visible
+    assert "Route: failure" in visible
+    assert "No document citations were provided." in visible
+
+
+def test_transport_error_is_rendered_during_the_current_streamlit_run() -> None:
+    class InterruptedClient:
+        def __init__(self, _settings: object) -> None:
+            pass
+
+        def stream_chat(self, **_kwargs: object) -> object:
+            raise FrontendError(
+                "The activity stream was interrupted.",
+                code="frontend.stream_interrupted",
+                retryable=True,
+            )
+
+    app = AppTest.from_file(str(APP_PATH))
+    app.session_state[ACCESS_TOKEN] = "in-memory-test-token"
+    app.session_state[USER] = FrontendUser(
+        username="demo-viewer",
+        display_name="Demo Viewer",
+        role=UserRole.VIEWER,
+    )
+    with patch("frontend.enterprise_ai_frontend.app.APIClient", InterruptedClient):
+        app.run()
+        app.chat_input[0].set_value("Find the recovery runbook.").run()
+
+    visible_errors = [str(item.value) for item in app.error]
+    assert visible_errors == ["The activity stream was interrupted."]
+    assert app.session_state["request_pending"] is False
+    assert app.session_state[LAST_ERROR] == "The activity stream was interrupted."

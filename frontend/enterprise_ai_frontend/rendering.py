@@ -19,6 +19,8 @@ def render_message(message: ChatMessage) -> None:
         st.markdown(message.content)
         if message.completion_status is not None:
             st.caption(f"Completion: {message.completion_status.value.replace('_', ' ')}")
+        if message.selected_route is not None:
+            st.caption(f"Route: {message.selected_route.value}")
         if message.insufficient_evidence:
             st.warning("The available authorized evidence was insufficient.")
         for notice in response_notices(message):

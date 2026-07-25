@@ -26,6 +26,7 @@ from frontend.enterprise_ai_frontend.state import (
     initialize,
     messages,
     new_conversation,
+    record_error,
     session_id,
     token,
 )
@@ -103,32 +104,39 @@ def run() -> None:
     with st.chat_message("user"):
         st.markdown(prompt)
     status = st.status("Assistant is working...", expanded=True)
+    graph_failed = False
     try:
         for envelope in client.stream_chat(
             access_token=st.session_state[ACCESS_TOKEN],
             message=prompt,
             session_id=st.session_state[SESSION_ID],
         ):
-            item, _ = handle_envelope(
+            item, terminal = handle_envelope(
                 state,
                 envelope,
                 maximum_activity_items=settings.maximum_activity_items,
             )
             with status:
                 render_activity_item(item)
-        status.update(label="Request completed", state="complete", expanded=False)
+            if terminal and envelope.event_type == "response.failed":
+                graph_failed = True
+        if graph_failed:
+            status.update(label="Request failed safely", state="error", expanded=True)
+        else:
+            status.update(label="Request completed", state="complete", expanded=False)
     except AuthenticationExpiredError as error:
         clear_all(state)
         st.session_state[LAST_ERROR] = error.public_message
         st.rerun()
     except FrontendError as error:
-        st.session_state[PENDING] = False
         suffix = (
             f" Try again in {error.retry_after_seconds} seconds."
             if error.retry_after_seconds is not None
             else ""
         )
-        st.session_state[LAST_ERROR] = f"{error.public_message}{suffix}"
+        safe_message = f"{error.public_message}{suffix}"
+        record_error(state, safe_message)
         status.update(label="Request failed", state="error", expanded=True)
+        st.error(safe_message)
     else:
         st.rerun()

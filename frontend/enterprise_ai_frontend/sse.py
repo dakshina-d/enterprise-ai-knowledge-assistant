@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from enterprise_ai.api.schemas import ChatStreamEnvelope
+from enterprise_ai.models.common import ProcessingStatus
+from enterprise_ai.models.graph import Route
 from pydantic import ValidationError
 
 from frontend.enterprise_ai_frontend.errors import SSEProtocolError
@@ -148,6 +150,14 @@ class StreamContractValidator:
             self._terminal_event = envelope.event_type
             if envelope.event_type == "response.completed" and response is None:
                 raise SSEProtocolError("The completed stream did not contain a final response.")
+            if envelope.event_type == "response.failed":
+                if response is None:
+                    raise SSEProtocolError("The failed stream did not contain a final response.")
+                if (
+                    response.completion_status is not ProcessingStatus.FAILED
+                    or response.selected_route is not Route.FAILURE
+                ):
+                    raise SSEProtocolError("The failed stream contained an inconsistent response.")
             if envelope.event_type == "stream.error" and envelope.error is None:
                 raise SSEProtocolError()
 

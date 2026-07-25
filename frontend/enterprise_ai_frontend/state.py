@@ -115,6 +115,7 @@ def complete(state: StateStore, output: GraphOutput) -> ChatMessage:
         role="assistant",
         content=output.response_text,
         completion_status=output.completion_status,
+        selected_route=output.selected_route,
         request_id=output.request_id,
         citations=output.citations,
         mcp_provenance=output.mcp_provenance,
@@ -136,6 +137,13 @@ def complete(state: StateStore, output: GraphOutput) -> ChatMessage:
     state[PENDING] = False
     state[LAST_ERROR] = None
     return assistant
+
+
+def record_error(state: StateStore, public_message: str) -> None:
+    """Finish a transport-failed request without inventing an assistant turn."""
+
+    state[PENDING] = False
+    state[LAST_ERROR] = public_message
 
 
 def messages(state: StateStore) -> list[ChatMessage]:
