@@ -68,7 +68,7 @@ Abbreviations used below: `role acceptance` =
 | Dense retrieval | Implemented for bounded PoC | dense retriever and Pinecone gateway | dense/provider suites | opt-in retrieval CLI | Live provider needs credentials |
 | Sparse/BM25 retrieval | Implemented | sparse artifacts/retriever | sparse suites and CLI checks | `check-sparse` | Local corpus only |
 | Hybrid ranking | Implemented | hybrid service/normalization/fusion | sparse-hybrid/failure suites | graph in hybrid mode | No reranker |
-| Pinecone integration | Implemented for bounded PoC | Pinecone gateway/bootstrap/index/query CLIs | offline fake-provider contracts | opt-in bootstrap/query | No required live CI call |
+| Pinecone integration | Implemented for bounded PoC | FastAPI `create_api_retriever` runtime selection plus gateway/bootstrap/index/query CLIs | runtime selection/failure, dense/filter, hybrid/fusion fake-provider contracts | opt-in bootstrap/index/check and authenticated hybrid query | Live proof requires a temporary credential |
 | Namespace use | Implemented | configured namespace gateway | filter/gateway tests | inspect CLI config | Single corpus namespace |
 | Metadata filtering | Implemented | server-built filter models | filter/provider tests | role retrieval scenarios | Provider syntax is adapter-specific |
 | Document attribution | Implemented | evidence/citation models and rendering | attribution/citation/frontend tests | inspect response sources | Structural source attribution |

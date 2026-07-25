@@ -14,6 +14,15 @@ x-app-environment: &app-environment
   RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
   PINECONE_ENABLED: ${PINECONE_ENABLED:-false}
   PINECONE_API_KEY: ${PINECONE_API_KEY:-}
+  PINECONE_INDEX_NAME: ${PINECONE_INDEX_NAME:-lhcb-knowledge-dev}
+  PINECONE_INDEX_HOST: ${PINECONE_INDEX_HOST:-}
+  PINECONE_NAMESPACE: ${PINECONE_NAMESPACE:-lhcb-knowledge-dev-v1}
+  PINECONE_CLOUD: ${PINECONE_CLOUD:-aws}
+  PINECONE_REGION: ${PINECONE_REGION:-us-east-1}
+  PINECONE_METRIC: ${PINECONE_METRIC:-cosine}
+  PINECONE_DENSE_MODEL: ${PINECONE_DENSE_MODEL:-llama-text-embed-v2}
+  PINECONE_DENSE_DIMENSION: ${PINECONE_DENSE_DIMENSION:-1024}
+  RETRIEVAL_MODE: ${RETRIEVAL_MODE:-sparse}
   LLM_ENABLED: ${LLM_ENABLED:-true}
   LLM_PROVIDER: ${LLM_PROVIDER:-fake}
   OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
@@ -24,10 +33,11 @@ x-app-environment: &app-environment
   OLLAMA_TEMPERATURE: ${OLLAMA_TEMPERATURE:-0}
   OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-5m}
   OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-  GRAPH_OFFLINE_RETRIEVAL_MODE: ${GRAPH_OFFLINE_RETRIEVAL_MODE:-sparse}
   LANGSMITH_TRACING: ${LANGSMITH_TRACING:-false}
   LANGSMITH_API_KEY: ${LANGSMITH_API_KEY:-}
   LANGSMITH_PROJECT: ${LANGSMITH_PROJECT:-enterprise-ai-knowledge-assistant-dev}
+  LANGSMITH_ENDPOINT: ${LANGSMITH_ENDPOINT:-https://api.smith.langchain.com}
+  LANGSMITH_WORKSPACE_ID: ${LANGSMITH_WORKSPACE_ID:-}
 
 x-service-security: &service-security
   init: true
@@ -61,7 +71,7 @@ services:
       API_PORT: "8000"
       API_ALLOWED_ORIGINS: '["http://127.0.0.1:8501","http://localhost:8501"]'
     ports:
-      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:${API_PUBLISHED_PORT:-8000}:8000"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:
@@ -88,13 +98,14 @@ services:
       - --server.port=8501
       - --server.headless=true
       - --browser.gatherUsageStats=false
+      - --browser.serverAddress=127.0.0.1
     environment:
       HOME: /tmp
       FRONTEND_API_BASE_URL: http://api:8000
       FRONTEND_APPLICATION_TITLE: Enterprise AI Knowledge Assistant
       FRONTEND_STREAM_TIMEOUT_SECONDS: ${FRONTEND_STREAM_TIMEOUT_SECONDS:-90}
     ports:
-      - "127.0.0.1:8501:8501"
+      - "127.0.0.1:${UI_PUBLISHED_PORT:-8501}:8501"
     depends_on:
       api:
         condition: service_healthy

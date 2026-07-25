@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Literal, Self
 from urllib.parse import urlsplit
 
-from pydantic import Field, SecretStr, field_validator, model_validator
+from pydantic import AliasChoices, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from enterprise_ai.retrieval.exceptions import RetrievalConfigurationError
@@ -12,7 +12,11 @@ from enterprise_ai.retrieval.exceptions import RetrievalConfigurationError
 
 class RetrievalSettings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="", env_file=".env", env_file_encoding="utf-8", extra="ignore"
+        env_prefix="",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+        populate_by_name=True,
     )
 
     pinecone_enabled: bool = False
@@ -72,7 +76,13 @@ class RetrievalSettings(BaseSettings):
     graph_max_warnings: int = Field(default=20, ge=1, le=100)
     graph_max_errors: int = Field(default=10, ge=1, le=100)
     graph_checkpoint_mode: Literal["memory"] = "memory"
-    graph_offline_retrieval_mode: Literal["sparse", "hybrid"] = "sparse"
+    retrieval_mode: Literal["sparse", "pinecone_hybrid"] = Field(
+        default="sparse",
+        validation_alias=AliasChoices(
+            "RETRIEVAL_MODE",
+            "GRAPH_OFFLINE_RETRIEVAL_MODE",
+        ),
+    )
     memory_enabled: bool = True
     memory_max_sessions: int = Field(default=1_000, ge=1, le=100_000)
     memory_max_turns_per_session: int = Field(default=12, ge=1, le=100)
@@ -166,6 +176,11 @@ class RetrievalSettings(BaseSettings):
             raise ValueError("OLLAMA_BASE_URL contains an invalid port")
         return value.rstrip("/")
 
+    @field_validator("retrieval_mode", mode="before")
+    @classmethod
+    def normalize_legacy_retrieval_mode(cls, value: object) -> object:
+        return "pinecone_hybrid" if value == "hybrid" else value
+
     @model_validator(mode="after")
     def validate_enabled(self) -> Self:
         if self.hybrid_dense_weight + self.hybrid_sparse_weight <= 0:
@@ -174,6 +189,10 @@ class RetrievalSettings(BaseSettings):
             self.pinecone_api_key is None or not self.pinecone_api_key.get_secret_value()
         ):
             raise ValueError("PINECONE_API_KEY is required when Pinecone is enabled")
+        if self.retrieval_mode == "pinecone_hybrid" and not self.pinecone_enabled:
+            raise ValueError(
+                "PINECONE_ENABLED=true is required when RETRIEVAL_MODE=pinecone_hybrid"
+            )
         if (
             self.llm_enabled
             and self.llm_provider == "openai"

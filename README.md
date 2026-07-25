@@ -12,7 +12,8 @@ production-ready system.
 ## Assessment status
 
 Mandatory assessment capabilities are executable and covered by offline tests: Streamlit chat and
-live activity, FastAPI JSON/SSE, LangGraph Supervisor/Retrieval/Research/Response agents, bounded
+real-time workflow and Agent Activity streaming through SSE, FastAPI JSON/SSE,
+LangGraph Supervisor/Retrieval/Research/Response agents, bounded
 recursive research, local BM25 and optional Pinecone dense/hybrid retrieval, session memory,
 restricted analysis, local read-only MCP tools, grounded citations, RBAC, Token Bucket limits,
 guardrails, structured logging, safe tracing, and graceful dependency failures.
@@ -40,7 +41,7 @@ See the [renderable Mermaid source and trust-boundary notes](docs/final-architec
 - Live Agent Activity Panel with safe node, retrieval, research, tool, validation, and memory events.
 - Typed LangGraph state and deterministic role/intent routing.
 - Simple retrieval and bounded recursive multi-document research.
-- Local BM25 sparse retrieval, optional Pinecone dense retrieval, transparent hybrid fusion,
+- Runtime-selectable local BM25 sparse retrieval or Pinecone dense+BM25 hybrid retrieval,
   namespace/metadata filters, attribution, and local post-query authorization rechecks.
 - Three official-SDK local read-only MCP tools and typed restricted incident analysis.
 - Native local Ollama/Qwen, fake/offline, and optional OpenAI Responses providers with grounded
@@ -111,6 +112,29 @@ Open:
 Do not use reload mode for the recorded assessment. Detailed native environment and shutdown
 instructions are in [local and container deployment](docs/local-container-deployment.md).
 
+### Optional Pinecone hybrid startup
+
+Sparse mode is the credential-free default: `RETRIEVAL_MODE=sparse`. To use Pinecone for actual
+FastAPI chat, bootstrap and verify the existing configured index first, then start the API with both
+Pinecone and hybrid runtime selection enabled:
+
+```powershell
+$env:PINECONE_API_KEY='<SET_LOCALLY>'
+$env:PINECONE_ENABLED='true'
+$env:RETRIEVAL_MODE='pinecone_hybrid'
+$env:PINECONE_INDEX_NAME='lhcb-knowledge-dev'
+$env:PINECONE_NAMESPACE='lhcb-knowledge-dev-v1'
+
+python -m enterprise_ai.retrieval.cli bootstrap-index
+python -m enterprise_ai.retrieval.cli index
+python -m enterprise_ai.retrieval.cli check-index
+uvicorn enterprise_ai.main:app --factory --host 127.0.0.1 --port 8000
+```
+
+Do not place a real key in source, `.env.example`, terminal output, screenshots, or the recording.
+The complete Viewer/Admin/RBAC live-check and restoration procedure is in the
+[demonstration runbook](docs/demo-runbook.md).
+
 ## Docker Compose startup
 
 The stack uses one secure Python 3.12 image and separate `api` and `ui` services. Both run non-root
@@ -146,7 +170,8 @@ Remove-Item -LiteralPath .env.demo
 
 The API container reaches host Ollama at `http://host.docker.internal:11434`; Compose neither
 starts Ollama nor downloads or embeds the model. OpenAI, Pinecone, and LangSmith remain disabled
-unless explicitly configured. The implemented MCP path remains local/in-process; Compose does not
+unless explicitly configured. Pinecone chat also requires `RETRIEVAL_MODE=pinecone_hybrid`.
+The implemented MCP path remains local/in-process; Compose does not
 invent a remote MCP service.
 
 ## Demo users and example questions
@@ -216,8 +241,9 @@ Offline verification:
 python -m enterprise_ai.graph.cli trace-demo --query hello
 ```
 
-For the manual trace demonstration, inject a temporary `LANGSMITH_API_KEY`, set
-`LANGSMITH_TRACING=true`, and use project `enterprise-ai-knowledge-assistant-dev`. Hide private
+For the manual trace demonstration, privately set
+`LANGSMITH_API_KEY='<SET_LOCALLY>'`, `LANGSMITH_TRACING=true`, and
+`LANGSMITH_PROJECT=enterprise-ai-knowledge-assistant-dev`. Hide private
 trace URLs/identifiers during recording and revoke the key afterward. See
 [LangSmith tracing design](docs/langsmith-tracing-design.md) and the
 [demo runbook](docs/demo-runbook.md).

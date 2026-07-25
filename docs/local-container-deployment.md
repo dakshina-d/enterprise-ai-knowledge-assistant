@@ -1,7 +1,8 @@
 # Local and Container Deployment
 
 Status: **The final image and Compose files are implemented, statically validated, and locally
-verified through build, API/UI startup, both health endpoints, and teardown.** This is a local
+verified through build, API/UI startup, both health endpoints, UI-to-API connectivity, API restart
+recovery, and teardown.** This is a local
 assessment stack, not a production deployment specification or a guarantee for every host.
 
 ## Services
@@ -17,6 +18,10 @@ The UI calls `http://api:8000` over the internal Compose network. Host ports bin
 `127.0.0.1`. The UI waits for the API health check. Both services run as the image's non-root
 `app` user with a read-only root filesystem, all Linux capabilities dropped,
 `no-new-privileges`, and a small non-executable `/tmp`.
+
+If default host ports are occupied, set `API_PUBLISHED_PORT` and `UI_PUBLISHED_PORT` before
+Compose startup. These change only loopback host publication; container ports and
+`FRONTEND_API_BASE_URL=http://api:8000` remain unchanged.
 
 The image copies only packaging metadata, backend/ingestion packages, frontend runtime files, and
 the committed synthetic corpus/retrieval artifacts. `.dockerignore` excludes Git state, local
@@ -114,8 +119,11 @@ image and Compose stack do not install Ollama, start it, pull a model, or copy m
 ## Provider modes
 
 Local Qwen/Ollama is the primary authenticated manual-assessment mode. Fake is the CI and
-infrastructure-smoke default. OpenAI, Pinecone, and LangSmith activate only through explicit
-runtime settings and credentials. The MCP path remains the implemented local
+infrastructure-smoke default. `RETRIEVAL_MODE=sparse` is the credential-free retrieval default.
+Pinecone-backed FastAPI chat requires `PINECONE_ENABLED=true`,
+`RETRIEVAL_MODE=pinecone_hybrid`, a private key, and a verified index/namespace. OpenAI and
+LangSmith likewise activate only through explicit runtime settings and credentials. The MCP path
+remains the implemented local
 in-process/official-SDK boundary; this stack intentionally has no remote MCP container or OAuth
 configuration.
 
@@ -129,7 +137,7 @@ configuration.
 - Configuration rejects authentication: all three password hashes and a signing secret are
   mandatory when `AUTH_ENABLED=true`.
 - Cloud provider unavailable: leave Pinecone/LangSmith disabled and use `LLM_PROVIDER=fake` with
-  `GRAPH_OFFLINE_RETRIEVAL_MODE=sparse`.
+  `RETRIEVAL_MODE=sparse`.
 - Port already in use: stop the conflicting local process; do not expose Compose on a broader host
   interface as a workaround.
 

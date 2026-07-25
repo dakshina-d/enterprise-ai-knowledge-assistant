@@ -28,6 +28,13 @@ Recorder start, finish, and flush exceptions are isolated from graph state, outp
 
 Run `python -m enterprise_ai.graph.cli trace-demo --query "hello"` for an offline fake-recorder summary. It prints enabled state, configured project, root name, child count, and final status without content or credentials.
 
-For a real smoke test, supply (without committing) `LANGSMITH_TRACING=true`, `LANGSMITH_API_KEY=<user-provided-key>`, and `LANGSMITH_PROJECT=enterprise-ai-knowledge-assistant-dev`, then run an authorized request and an authorization-denied request. Real LangSmith verification was completed successfully: explicit run IDs matched, unbatched create/update ordering finalized all runs, end times were recorded, parent-child hierarchy was correct, inputs and outputs remained hidden, restricted content and secrets were absent, and denied outcomes appeared as `completion_status=denied` and `route=deny` on both the root and supervisor spans.
+For a current live smoke test, privately set
+`LANGSMITH_TRACING=true`, `LANGSMITH_API_KEY=<SET_LOCALLY>`, and
+`LANGSMITH_PROJECT=enterprise-ai-knowledge-assistant-dev`, then run the retrieval, analysis, MCP,
+research, and denial queries in the [demonstration runbook](demo-runbook.md). Verify explicit root
+and child run IDs, finalized end times, hidden inputs/outputs, route-specific hierarchy, safe
+metadata, and absence of restricted content or credentials. The repository has prior documented
+manual smoke evidence, but fresh live dashboard evidence is credential-dependent and must not be
+claimed for a submission run until the operator performs and records this check.
 
 Known limitations: the adapter reports safe structural summaries rather than prompt/token detail, and a real SaaS smoke test is not part of offline CI.

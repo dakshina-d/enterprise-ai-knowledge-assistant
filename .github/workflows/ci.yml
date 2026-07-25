@@ -30,7 +30,7 @@ jobs:
       RUN_OPENAI_LIVE_TESTS: "false"
       LLM_ENABLED: "true"
       LLM_PROVIDER: fake
-      GRAPH_OFFLINE_RETRIEVAL_MODE: sparse
+      RETRIEVAL_MODE: sparse
 
     steps:
       - name: Check out repository

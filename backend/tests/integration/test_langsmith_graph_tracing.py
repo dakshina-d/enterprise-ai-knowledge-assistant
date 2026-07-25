@@ -148,8 +148,11 @@ async def test_tracing_preserves_stream_order_and_denied_request_privacy(tmp_pat
         -1
     ].output.model_dump(exclude={"agent_status"})
     traced_root = next(item for item in recorder.records if item.parent_id is None)
+    retrieval = next(item for item in recorder.records if item.name == "enterprise_ai.retrieval")
     assert traced_root.metadata["completion_status"] == "completed"
     assert traced_root.metadata["route"] == "simple_retrieval"
+    assert traced_root.metadata["retrieval_mode"] == "sparse"
+    assert retrieval.metadata["retrieval_mode"] == "sparse"
     assert sum(item.event is not None for item in traced_items) == len(traced_events)
     assert sum(item.output is not None for item in traced_items) == 1
 

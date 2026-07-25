@@ -1,7 +1,7 @@
 """Concurrent dense and sparse retrieval with explicit partial results."""
 
 import asyncio
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
 from enterprise_ai.models.identity import AuthenticatedPrincipal
 from enterprise_ai.retrieval.config import RetrievalSettings
@@ -43,6 +43,11 @@ class SparseBranch(Protocol):
         request_id: str | None = None,
         trace_id: str | None = None,
     ) -> SparseRetrievalResult: ...
+
+
+@runtime_checkable
+class AsyncCloseable(Protocol):
+    async def close(self) -> None: ...
 
 
 class HybridRetrievalService:
@@ -131,3 +136,9 @@ class HybridRetrievalService:
             request_id=request_id,
             trace_id=trace_id,
         )
+
+    async def close(self) -> None:
+        """Close the provider-backed dense branch when the runtime shuts down."""
+
+        if isinstance(self.dense, AsyncCloseable):
+            await self.dense.close()

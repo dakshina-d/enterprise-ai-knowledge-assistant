@@ -75,7 +75,7 @@ def create_demo_environment(
             f"DEMO_ADMIN_PASSWORD_HASH={administrator_hash}",
             *provider_lines,
             "PINECONE_ENABLED=false",
-            "GRAPH_OFFLINE_RETRIEVAL_MODE=sparse",
+            "RETRIEVAL_MODE=sparse",
             "LANGSMITH_TRACING=false",
             "",
         )

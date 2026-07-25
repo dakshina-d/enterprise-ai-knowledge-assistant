@@ -33,6 +33,7 @@ class GraphRuntime:
         memory: ConversationMemoryService | None = None,
         responses: GroundedResponseService | None = None,
         tracer: SafeTracer | None = None,
+        retriever_resource: object | None = None,
     ) -> None:
         self._graph = graph
         self._settings = settings
@@ -41,6 +42,7 @@ class GraphRuntime:
         self._memory = memory
         self._responses = responses
         self._tracer = tracer or create_tracer(settings)
+        self._retriever_resource = retriever_resource
 
     def _trace_metadata(self, graph_input: GraphInput) -> dict[str, object]:
         return {
@@ -49,6 +51,7 @@ class GraphRuntime:
             "environment": self._settings.app_env,
             "user_role": graph_input.principal.identity.role,
             "permission_count": len(graph_input.principal.permissions),
+            "retrieval_mode": self._settings.retrieval_mode,
             "request_id": graph_input.request_id,
             "trace_id": graph_input.trace_id,
             "session_id": graph_input.session_id,
@@ -260,6 +263,9 @@ class GraphRuntime:
         return await self._memory.inspect(graph_input.session_id, graph_input.principal)
 
     async def aclose(self) -> None:
+        close = getattr(self._retriever_resource, "close", None)
+        if close is not None:
+            await close()
         if self._responses is not None:
             await self._responses.close()
         await self._tracer.flush()

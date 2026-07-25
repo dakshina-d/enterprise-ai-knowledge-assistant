@@ -180,6 +180,7 @@ def create_nodes(
                         "route": state.get("selected_route"),
                         "top_k": state.get("requested_top_k"),
                         "filter_present": bool(state.get("retrieval_filters")),
+                        "retrieval_mode": settings.retrieval_mode,
                         "exact_identifier_present": bool(
                             state.get("requested_enterprise_identifiers")
                         ),

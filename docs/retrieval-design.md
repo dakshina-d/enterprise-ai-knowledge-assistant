@@ -22,7 +22,11 @@ flowchart LR
     U --> V[Count and sample verification]
 ```
 
-The source dataset contains 51 Markdown documents with YAML front matter and SHA-256 body hashes. The manifest is provider neutral and contains no vectors or Pinecone fields. Security fixtures and the glossary are outside the allowlisted inputs. Implemented stages through content hashing emit deterministic JSONL records described in [ingestion design](ingestion-design.md); embedding and upsert remain proposed.
+The source dataset contains 51 Markdown documents with YAML front matter and SHA-256 body hashes.
+The manifest is provider neutral and contains no vectors or Pinecone fields. Security fixtures and
+the glossary are outside the allowlisted inputs. Deterministic ingestion emits 83 chunks. Optional
+credentialed `bootstrap-index`, `index`, and `check-index` commands embed and upsert those chunks;
+they are never run implicitly during application startup.
 
 Parsing rejects non-allowlisted, malformed, hash-mismatched, traversing, and symlinked inputs.
 Normalization preserves structure and source lines while removing unstable formatting.
@@ -55,9 +59,17 @@ All enumerated metadata is normalized against a controlled vocabulary. Raw confi
 
 ## Namespaces and authorization filters
 
-The PoC namespace strategy is one namespace per logical corpus/environment, for example `assessment-dev-org`. Tenant separation, if added, must use distinct namespaces or indexes rather than role-only filtering. Document type, department, access level, allowed roles, version, and dates remain metadata filters.
+The PoC namespace strategy is one namespace per logical corpus/environment; the configured
+assessment default is `lhcb-knowledge-dev-v1`. Tenant separation, if added, must use distinct
+namespaces or indexes rather than role-only filtering. Document type, department, access level,
+allowed roles, version, and dates remain metadata filters.
 
-The backend derives a mandatory authorization predicate from the authenticated principal. The client and LLM cannot supply or weaken it. The retrieval adapter combines it with validated user filters using logical AND, sends it to Pinecone on every dense/sparse query, and rechecks every returned record. Unauthorized records are discarded and raise a security audit signal. Only revalidated, authorized evidence can enter model context.
+The backend derives a mandatory authorization predicate from the authenticated principal. The
+client and LLM cannot supply or weaken it. The dense adapter combines it with validated user
+filters using logical AND, sends it on every Pinecone query, and rechecks every returned record.
+The local sparse branch independently applies the same principal and narrowing filters before
+scoring. Unauthorized records are discarded. Only revalidated, authorized evidence can enter
+model context.
 
 ## Deterministic sparse relevance and abstention
 
@@ -80,14 +92,16 @@ committed active Payment Queue Backlog Recovery Runbook question documented in t
 
 ## Query and ranking pipeline
 
-1. Normalize the query without changing its intent.
-2. Resolve immutable namespace and mandatory role/access filters.
-3. Produce dense query embedding and sparse query representation asynchronously.
-4. Retrieve an expanded candidate set with Pinecone hybrid scoring.
-5. Normalize scores, fuse rankings, deduplicate, and enforce per-document diversity.
-6. Optionally rerank the small authorized candidate set.
-7. validate untrusted content and attach evidence identifiers.
-8. Return a bounded evidence set to the graph.
+1. Select `RETRIEVAL_MODE=sparse` or `RETRIEVAL_MODE=pinecone_hybrid` at FastAPI runtime
+   construction.
+2. Normalize the query without changing intent and enforce exact enterprise identifiers.
+3. Resolve the fixed namespace and mandatory role/access/metadata filters.
+4. In sparse mode, query only validated local BM25 artifacts.
+5. In Pinecone hybrid mode, produce the dense query embedding and run Pinecone dense plus local
+   BM25 branches concurrently with bounded overfetch/timeouts.
+6. Normalize scores, fuse by chunk ID with configured weights, and reject attribution conflicts.
+7. Validate authorization, fingerprint, metadata and untrusted content; attach source attribution.
+8. Return a bounded evidence set or typed safe partial/failure to the graph.
 
 ### Hybrid-ranking decision
 
@@ -96,7 +110,10 @@ committed active Payment Queue Backlog Recovery Runbook question documented in t
 | Weighted score combination | Single tunable `alpha`; natural fit for Pinecone hybrid vectors; efficient one-query PoC; preserves magnitude. | Dense/sparse score calibration matters; tuning can be corpus-specific. |
 | Reciprocal Rank Fusion (RRF) | Robust to incomparable score scales; simple rank-based behavior. | Usually requires separate result lists, more requests/candidates, and discards score magnitude. |
 
-**Decision:** use weighted score combination for the PoC, with an evaluation-set-tuned but configuration-controlled `alpha`. Record dense, sparse, and fused scores internally. Production may adopt RRF if evaluation shows unstable calibration across corpora or embedding upgrades. Optional reranking is a later bonus and operates only after authorization.
+**Decision:** use application-owned weighted score combination with configuration-controlled dense
+and sparse weights. Record raw, normalized and fused scores internally. Production may adopt RRF
+if evaluation shows unstable calibration across corpora or embedding upgrades. Optional reranking
+is not implemented.
 
 ## Evidence, attribution, and defenses
 
@@ -108,4 +125,6 @@ Each evidence object carries `document_id`, `chunk_id`, safe title/source, secti
 - **Unused evidence citations:** response generation records claim-to-evidence use; final validation removes unsupported/unused references and requires regeneration when material.
 - **Malicious document instructions:** label and delimit evidence as untrusted data, scan for injection indicators, never permit retrieved text to alter policy/tools, and exclude or quarantine unsafe chunks while retaining an audit reason.
 
-Retrieval quality tests will measure authorization precision (required 100%), citation validity, recall at k, nDCG/MRR where appropriate, duplicate rate, latency, and regression against a versioned mock query set.
+Retrieval evaluation measures authorization violations, attribution, document-level recall@1/3/5
+and MRR against the versioned synthetic question set. Live Pinecone/hybrid evaluation remains
+credential-dependent; sparse evaluation is deterministic and used in CI.

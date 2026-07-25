@@ -67,6 +67,26 @@ name.
 | Streaming-client disconnect | Stop projection, release stream resources; continue/persist or cancel graph according to explicit request policy. | `cancelled` presentation or graph continues; internal trace records disconnect. |
 | Recursive-research budget exhaustion | Stop new workers, aggregate completed validated results, mark gaps and limitations. | Partial success if sufficient; otherwise failed. |
 
+### Submission failure evidence matrix
+
+| Condition | Internal handling | Public response | Completion | Route | Retryability | Fallback | Expected Agent Activity |
+|---|---|---|---|---|---|---|---|
+| Invalid request | Strict schema/graph validation before capability execution | Safe request error | failed | none/failure | No | Correct request | validation failed; no tool |
+| Unauthenticated or expired token | Bearer/JWT checks reject before graph use | Generic `401` | denied | none | Re-authenticate | None | No graph/tool activity |
+| Rate limit | Atomic per-user bucket returns bounded `Retry-After` | Generic `429` | denied | none | Client after delay | Wait | No graph/tool activity |
+| Session ownership conflict | Runtime and memory ownership fail closed | Safe conflict/denial | denied | failure | No | New conversation | No cross-user content |
+| LLM unavailable with fallback | Typed provider error; authorized evidence-only fallback | Useful grounded fallback | completed | original route | Provider retry only | Deterministic extractive | fallback, citations, response completed |
+| LLM unavailable without fallback | Typed error enters guarded failure handler | `The request failed safely.` | failed | failure | Provider-class dependent | None | generation failed, safe handler, response failed |
+| Malformed structured output | Typed validation, one same-context repair, then fallback/failure | Repaired/fallback answer or safe failure | completed/failed | original/failure | One repair | Deterministic extractive | repair/fallback or safe handler |
+| Retrieval unavailable | Typed retrieval failure; no unrelated substitution | Safe failed response | failed | failure | Dependency-specific | None when essential | retrieval failed, safe handler, response failed |
+| Corrupt sparse artifacts | Schema/hash/fingerprint/count check fails before use | Safe failed response | failed | failure | No | Rebuild artifacts | retrieval failed, safe handler, response failed |
+| Pinecone unavailable | Bounded dense timeout/retry; hybrid partial only when policy permits | Safe partial warning or failure | partial_success/failed | original/failure | Transient classes only | Authorized sparse branch | retrieval warning/completed or response failed |
+| MCP unavailable | Typed protocol failure; no unrestricted tool fallback | Safe failed response | failed | failure | No automatic replay | None | MCP started/selected/failed, safe handler, response failed |
+| Python-analysis failure | Typed aggregate boundary fails; no arbitrary execution | Safe failed response | failed | failure | No automatic replay | None | authorization, tool started/failed, safe handler, response failed |
+| Citation validation failure | One same-evidence repair; unsupported claims cannot complete | Repaired/fallback answer or failure | completed/failed | original/failure | One repair | Authorized-evidence fallback | validation/repair/fallback or response failed |
+| Tracing unavailable | Recorder errors isolated; bounded flush | Normal application response | unchanged | unchanged | Operational only | No-op recorder | Normal activity; no trace-error event |
+| SSE disconnect | Iterator closes and cancellation/disconnect is logged; no false terminal | Interrupted client turn | cancelled presentation | unchanged internally | New explicit request | None | Only events received before disconnect |
+
 Circuit breakers may be introduced after measurement; they must be per dependency and observable. Retries consume the original time/token/tool budget and use idempotency identifiers. One failed worker cannot mutate siblings or parent state; the reducer merges typed successful envelopes only.
 
 Research workers convert timeouts and dependency failures into typed safe results. With partial results enabled, authorized sibling evidence survives and coverage records missing dimensions. Authorization failures are never widened or retried without filters. Exhaustion prevents new dispatch and final synthesis reports partial or exhausted status.

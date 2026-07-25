@@ -1,6 +1,10 @@
 # Sparse and Hybrid Retrieval Design
 
-Status: **Implemented.** Local deterministic BM25 indexing and authorized sparse retrieval run fully offline. Hybrid retrieval concurrently combines the existing Pinecone dense branch with BM25. Pinecone credentials are required only for the dense branch. Reranking, graphs, and answer generation remain unimplemented.
+Status: **Implemented and connected to FastAPI runtime selection.** Local deterministic BM25
+indexing and authorized sparse retrieval run fully offline. Pinecone hybrid mode concurrently
+combines the Pinecone dense branch with BM25. Pinecone credentials are required only when
+`RETRIEVAL_MODE=pinecone_hybrid`. Reranking is not implemented; graph routing and grounded answer
+generation consume the shared retrieval result.
 
 ## Why local BM25
 

@@ -40,6 +40,7 @@ def test_demo_environment_writes_selected_provider_without_printing_secrets(
     content = destination.read_text(encoding="utf-8")
     output = capsys.readouterr().out
     assert f"LLM_PROVIDER={provider}" in content
+    assert "RETRIEVAL_MODE=sparse" in content
     assert "test-hash" in content
     assert "test-hash" not in output
     assert "AUTH_TOKEN_SECRET=" in content
@@ -92,6 +93,7 @@ def test_generated_ollama_environment_constructs_settings_and_application_runtim
 
     retrieval_settings = RetrievalSettings(_env_file=destination)
     assert retrieval_settings.llm_provider == "ollama"
+    assert retrieval_settings.retrieval_mode == "sparse"
     assert retrieval_settings.ollama_temperature == 0.0
     assert isinstance(retrieval_settings.ollama_temperature, float)
 

@@ -54,3 +54,6 @@ class OfflineSparseAdapter:
             request_id=request_id,
             trace_id=trace_id,
         )
+
+    async def close(self) -> None:
+        """Match provider-backed retriever lifecycle without owning resources."""

@@ -14,7 +14,7 @@ and recording.
 - [x] LangGraph and typed shared state exist.
 - [x] Supervisor, Retrieval, Research, and Response agents execute.
 - [x] Bounded recursive research executes.
-- [x] Local BM25/hybrid retrieval and optional Pinecone adapter exist.
+- [x] FastAPI selects local BM25 or real Pinecone dense+BM25 hybrid retrieval by configuration.
 - [x] Process-local session memory exists and is ownership-bound.
 - [x] Knowledge search, local read-only MCP, and restricted analysis exist.
 - [x] Privacy-safe LangSmith adapter and offline trace demonstration exist.
@@ -24,7 +24,7 @@ and recording.
 - [x] Dependency/API/tracing failure tests exist.
 - [x] Test and quality workflow exists.
 - [x] Dockerfile, Compose, health checks, smoke script, and secure defaults exist.
-- [x] Docker build/start/API health/UI health/down lifecycle passes for the final files.
+- [x] Docker build/start/API health/UI health/restart/down lifecycle passes for the final files.
 - [x] Assumptions/trade-offs and production gaps are documented.
 - [x] Documentation-link checker and focused tests exist.
 - [x] Final full local verification passes after all final-phase edits.
@@ -38,6 +38,9 @@ and recording.
 - [ ] Insert the real public video URL into [submission.md](submission.md).
 - [ ] Show successful LangSmith hierarchy in the recording.
 - [ ] Show a Viewer-denied trace with no unauthorized downstream tool span.
+- [ ] Run Pinecone bootstrap/index/check and record one hybrid, exact-ID and restricted-RBAC flow.
+- [ ] Confirm Pinecone index `lhcb-knowledge-dev`, namespace `lhcb-knowledge-dev-v1`, dimension
+  1024, cosine metric, 83 chunks and current build fingerprint.
 - [ ] Confirm no secrets, tokens, password input, private trace URLs, or notifications are visible.
 - [ ] Check audio quality, cursor visibility, and screen readability.
 - [ ] Test the repository URL in a signed-out/incognito browser.

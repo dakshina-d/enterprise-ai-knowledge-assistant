@@ -38,9 +38,10 @@ flowchart TB
     subgraph PROCESS["Application process — process-local PoC state"]
         GRAPH["LangGraph + typed graph state"]:::local
         SUP["Supervisor agent"]:::implemented
-        RET["Retrieval agent"]:::implemented
+        RET["Retrieval agent<br/>runtime mode selector"]:::implemented
         RES["Research agent<br/>bounded recursive planning"]:::implemented
         RESP["Response agent"]:::implemented
+        FAIL["Safe failure handler<br/>failed GraphOutput"]:::implemented
         MEMORY["Bounded session memory<br/>in-memory checkpoint"]:::local
         GUARD["Input/evidence/output guardrails"]:::implemented
         CITE["Citation validation"]:::implemented
@@ -50,19 +51,24 @@ flowchart TB
         RET --> RESP
         RES --> RESP
         RESP --> CITE
+        GRAPH --> FAIL
+        FAIL --> CITE
         GRAPH <--> MEMORY
         GRAPH --> GUARD
     end
     LIMIT --> GRAPH
 
     subgraph TOOLS["Tool authorization boundary"]
-        SEARCH["Knowledge search"]:::implemented
-        HYBRID["Application-owned hybrid fusion"]:::implemented
+        SEARCH["Knowledge search<br/>exact-ID + RBAC constraints"]:::implemented
+        MODE{"RETRIEVAL_MODE"}:::implemented
+        HYBRID["Pinecone hybrid mode<br/>application-owned fusion"]:::implemented
         DENSE["Pinecone dense adapter<br/>namespace + metadata filters"]:::optional
-        SPARSE["Local BM25 sparse retrieval"]:::implemented
+        SPARSE["Local BM25 sparse store"]:::implemented
         MCP["Three local read-only<br/>MCP enterprise-data tools"]:::local
         PY["Restricted typed<br/>Python analysis"]:::local
-        SEARCH --> HYBRID
+        SEARCH --> MODE
+        MODE -->|"sparse"| SPARSE
+        MODE -->|"pinecone_hybrid"| HYBRID
         HYBRID --> DENSE
         HYBRID --> SPARSE
     end
@@ -83,7 +89,7 @@ flowchart TB
     RESP --> OPENAI
     RESP --> FAKE
     DENSE --> PINECONE
-    GRAPH -. "allowlisted spans" .-> LANGSMITH
+    GRAPH -. "allowlisted root/node/tool/provider spans" .-> LANGSMITH
 
     subgraph INGEST["Offline pipeline"]
         CORPUS["Synthetic organizational corpus"]:::offline
@@ -113,7 +119,9 @@ flowchart TB
   reviewer explicitly selects them and supplies required runtime credentials.
 - Qwen is pretrained. Enterprise documents are indexed for RAG; updating them requires
   re-ingestion/re-indexing, not model retraining.
-- Pinecone remains an optional runtime dependency and the implemented mandatory assessment
-  integration; local BM25 provides credential-free retrieval.
+- `RETRIEVAL_MODE=sparse` constructs only the local BM25 adapter.
+  `RETRIEVAL_MODE=pinecone_hybrid` requires enabled Pinecone configuration and constructs the real
+  Pinecone dense branch plus local BM25 fusion in the FastAPI runtime. Live provider proof remains
+  credential-dependent.
 - Offline ingestion creates the committed artifacts used by local retrieval; it is not part of the
   interactive container request path.

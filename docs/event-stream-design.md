@@ -67,7 +67,12 @@ Retrieval, tool, validation, and agent-state events give the activity panel usef
 - **Internal diagnostics:** stack traces, provider request IDs, retry counts, score details, latency, policy rule IDs, full tool outcomes; these belong in access-controlled logs/traces with redaction.
 - **Never emitted:** raw prompts, system/developer instructions, private chain-of-thought or hidden reasoning, secrets, credentials/tokens, raw memory, unauthorized document text, confidential metadata, provider keys, connection strings, or unrestricted tool arguments/results.
 
-The event projector uses an allowlist schema per event type; it does not serialize graph state. Tokens pass output policy before emission or use buffered sentence-level validation when token-by-token validation is unsafe. Disconnect cancels optional presentation streaming but graph cancellation/persistence follows explicit policy; no endless retry loop is created.
+The event projector uses an allowlist schema per event type; it does not serialize graph state.
+Workflow and Agent Activity events stream in real time through SSE. Local Ollama uses a
+non-streaming schema-constrained generation call, so validated model output is attached only to the
+terminal response envelope; token-by-token model streaming is not claimed. Disconnect closes the
+presentation iterator while graph cancellation/persistence follows explicit policy; no endless
+retry loop is created.
 
 Research progress contains allowlisted plan/task identifiers, depth/round, counts, status, budget usage, and duration only. Evidence bodies, prompts, raw provider output, restricted titles, and hidden reasoning are excluded. Worker lifecycle events are currently synthesized from the deterministic post-fan-in result order; they do not claim to expose real-time parallel completion order. Final worker and evidence collections are separately sorted for deterministic output. Truthful live completion ordering is deferred until an application-owned event callback or transport boundary exists.
 
