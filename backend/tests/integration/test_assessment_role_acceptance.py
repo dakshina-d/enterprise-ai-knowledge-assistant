@@ -186,7 +186,8 @@ def test_exact_incident_is_entity_aligned_and_restricted_by_role() -> None:
                     GroundedClaim(
                         claim_id="C1",
                         text=(
-                            "The primary owner is Cybersecurity service owner; supporting "
+                            "The primary owner for INC-PAY-2025-12-6 is Cybersecurity service "
+                            "owner; supporting "
                             "owners are Technology Operations, Cybersecurity, and Risk and "
                             "Compliance; the follow-up status is partially complete."
                         ),
@@ -292,6 +293,7 @@ def test_exact_incident_is_entity_aligned_and_restricted_by_role() -> None:
     )
     answer = output["response_text"]
     for expected in (
+        "INC-PAY-2025-126",
         "Cybersecurity service owner",
         "Technology Operations",
         "Cybersecurity",
@@ -299,6 +301,7 @@ def test_exact_incident_is_entity_aligned_and_restricted_by_role() -> None:
         "partially complete",
     ):
         assert expected in answer
+    assert "INC-PAY-2025-12-6" not in answer
     assert "Payments service owner" not in answer
     assert output["deterministic_fallback_used"] is False
     assert any(

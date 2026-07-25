@@ -23,6 +23,7 @@ from enterprise_ai.llm.exceptions import (
 )
 from enterprise_ai.llm.extractive_fallback import build_extractive_fallback
 from enterprise_ai.llm.grounding import build_evidence_context
+from enterprise_ai.llm.identifier_validator import validate_and_repair_response_identifiers
 from enterprise_ai.llm.models import (
     CitationValidationResult,
     EvidenceContextItem,
@@ -239,13 +240,21 @@ class GroundedResponseService:
                         fallback_validation,
                         repairs,
                     )
-        draft = result.draft
+        identifier_text_validation = validate_and_repair_response_identifiers(
+            result.draft,
+            identifier_evidence_ids,
+        )
+        draft = identifier_text_validation.draft
         validation = validate_citations(
             draft,
             context,
             principal,
             maximum_citations=self.settings.llm_max_citations,
             manifest_path=self.settings.ingestion_manifest_path,
+        )
+        validation = _append_validation_errors(
+            validation,
+            identifier_text_validation.errors,
         )
         validation, missing_dimensions = _validate_comparison_draft(
             draft,
@@ -294,12 +303,21 @@ class GroundedResponseService:
                         identifier_evidence_ids,
                     )
                     return fallback, fallback_draft, fallback_validation, repairs
+            identifier_text_validation = validate_and_repair_response_identifiers(
+                draft,
+                identifier_evidence_ids,
+            )
+            draft = identifier_text_validation.draft
             validation = validate_citations(
                 draft,
                 context,
                 principal,
                 maximum_citations=self.settings.llm_max_citations,
                 manifest_path=self.settings.ingestion_manifest_path,
+            )
+            validation = _append_validation_errors(
+                validation,
+                identifier_text_validation.errors,
             )
             validation, missing_dimensions = _validate_comparison_draft(
                 draft,
@@ -462,13 +480,21 @@ class GroundedResponseService:
             maximum_passages=min(4, self.settings.llm_max_citations),
             maximum_answer_characters=self.settings.llm_max_answer_characters,
         )
-        draft = extracted.draft
+        identifier_text_validation = validate_and_repair_response_identifiers(
+            extracted.draft,
+            identifier_evidence_ids,
+        )
+        draft = identifier_text_validation.draft
         validation = validate_citations(
             draft,
             context,
             principal,
             maximum_citations=self.settings.llm_max_citations,
             manifest_path=self.settings.ingestion_manifest_path,
+        )
+        validation = _append_validation_errors(
+            validation,
+            identifier_text_validation.errors,
         )
         validation = validate_identifier_alignment(
             draft,
@@ -691,6 +717,16 @@ def _require_citations(
             ),
         }
     )
+
+
+def _append_validation_errors(
+    validation: CitationValidationResult,
+    errors: tuple[str, ...],
+) -> CitationValidationResult:
+    if not errors:
+        return validation
+    combined = tuple(dict.fromkeys((*validation.errors, *errors)))
+    return validation.model_copy(update={"valid": False, "errors": combined})
 
 
 def _validate_comparison_draft(
