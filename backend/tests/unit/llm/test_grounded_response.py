@@ -15,6 +15,7 @@ from enterprise_ai.llm.fake_provider import FakeLLMProvider
 from enterprise_ai.llm.grounding import build_evidence_context
 from enterprise_ai.llm.models import FallbackReason, GroundedAnswerDraft, GroundedClaim
 from enterprise_ai.llm.ollama_provider import OllamaChatProvider
+from enterprise_ai.llm.prompts import grounded_request
 from enterprise_ai.llm.response_service import GroundedResponseService
 from enterprise_ai.models.identity import AccessLevel, UserRole
 from enterprise_ai.models.retrieval import DocumentType
@@ -118,6 +119,21 @@ def test_evidence_context_is_bounded_deterministic_and_rejects_instructions(
     first = build_evidence_context((item,), configured)
     assert first == build_evidence_context((item,), configured)
     assert first == ()
+
+
+def test_root_cause_prompt_preserves_evidence_supplied_normalized_label(
+    tmp_path: object,
+) -> None:
+    configured = settings(tmp_path)
+    context = build_evidence_context(
+        (evidence("Root-cause category: generic_category_label."),),
+        configured,
+    )
+
+    request = grounded_request("What is the root cause?", context, configured)
+
+    assert "include that exact label" in request.instructions
+    assert "generic_category_label" in request.input_text
 
 
 @pytest.mark.asyncio

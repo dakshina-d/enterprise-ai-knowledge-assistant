@@ -50,6 +50,8 @@ def test_planner_is_typed_and_deterministic() -> None:
     assert first.filters.departments == ("payments",)
     with pytest.raises(AnalysisValidationError):
         plan_analysis("Run arbitrary code")
+    with pytest.raises(AnalysisValidationError):
+        plan_analysis("What is the root cause of INC-PAY-2025-126?")
 
 
 def test_viewer_denied_before_dataset_construction() -> None:

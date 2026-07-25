@@ -21,6 +21,7 @@ from enterprise_ai.models.tools import ToolRequest, ToolResult
 
 
 class Intent(StrEnum):
+    SECURITY_DENIAL = "security_denial"
     CONVERSATIONAL = "conversational"
     KNOWLEDGE_LOOKUP = "knowledge_lookup"
     CROSS_DOCUMENT_RESEARCH = "cross_document_research"

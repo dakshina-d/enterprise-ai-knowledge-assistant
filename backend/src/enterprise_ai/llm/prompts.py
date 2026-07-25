@@ -30,6 +30,12 @@ def grounded_request(
         f"{json.dumps(evidence, default=str)}"
     )
     instructions = SYSTEM_INSTRUCTIONS
+    if "root cause" in question.casefold():
+        instructions += (
+            " When the question asks for a root cause and evidence supplies a normalized "
+            "root-cause category label, include that exact label without changing its spelling "
+            "or separators."
+        )
     if settings.llm_provider == "ollama":
         instructions += (
             " The user payload explicitly labels the resolved question and allowed evidence IDs. "

@@ -1,28 +1,69 @@
 """Bounded deterministic input, evidence, and public-response safety checks."""
 
 import re
+from typing import Literal
 
-_DIRECT_ATTACKS = (
-    re.compile(r"\bignore (?:all |any )?(?:previous|prior|system) instructions?\b", re.I),
-    re.compile(r"\bact as (?:an? )?(?:administrator|admin|system)\b", re.I),
-    re.compile(
-        r"\b(?:reveal|show|print|return) (?:the )?(?:system prompt|hidden instructions)\b",
-        re.I,
+SecurityDenialCategory = Literal[
+    "credential_exfiltration",
+    "instruction_extraction",
+    "privilege_escalation",
+    "session_exfiltration",
+    "tool_abuse",
+]
+
+_SECURITY_DENIALS: tuple[tuple[SecurityDenialCategory, re.Pattern[str]], ...] = (
+    (
+        "instruction_extraction",
+        re.compile(r"\bignore (?:all |any )?(?:previous|prior|system) instructions?\b", re.I),
     ),
-    re.compile(r"\bcall (?:every|all) (?:available )?tools?\b", re.I),
-    re.compile(r"\b(?:all|every) access levels?\b", re.I),
-    re.compile(
-        r"\b(?:show|reveal|provide) (?:your )?(?:chain of thought|private reasoning)\b",
-        re.I,
+    (
+        "privilege_escalation",
+        re.compile(r"\bact as (?:an? )?(?:administrator|admin|system)\b", re.I),
     ),
-    re.compile(
-        r"\b(?:reveal|show|return|dump|print)\b.{0,40}"
-        r"\b(?:credentials?|api keys?|jwt claims?|environment variables?|secrets?)\b",
-        re.I,
+    (
+        "instruction_extraction",
+        re.compile(
+            r"\b(?:reveal|show|print|return|provide)\b.{0,120}"
+            r"\b(?:system prompt|developer instructions?|hidden instructions?|"
+            r"security policies|chain of thought|private reasoning)\b",
+            re.I,
+        ),
     ),
-    re.compile(r"\b(?:other|another) user(?:'s|s')? sessions?\b", re.I),
-    re.compile(r"\b(?:read|show|return)\b.{0,30}\b(?:filesystem|file path|\.env)\b", re.I),
+    (
+        "tool_abuse",
+        re.compile(r"\bcall (?:every|all) (?:available )?tools?\b", re.I),
+    ),
+    (
+        "privilege_escalation",
+        re.compile(
+            r"\b(?:all|every) access levels?\b|"
+            r"\b(?:upgrade|change|elevate) (?:my |the )?role\b|"
+            r"\b(?:bypass|override) (?:access|authorization|permissions?)\b|"
+            r"\bI am (?:the |an? )?(?:administrator|admin)\b.{0,100}"
+            r"\b(?:restricted|upgrade|elevate)\b",
+            re.I,
+        ),
+    ),
+    (
+        "credential_exfiltration",
+        re.compile(
+            r"\b(?:reveal|show|return|dump|print|expose|list|read)\b.{0,240}"
+            r"\b(?:credentials?|api keys?|environment variables?|secrets?|passwords?|"
+            r"access tokens?|jwt (?:claims?|secrets?|signing material)|connection strings?|"
+            r"private configuration|\.env(?:\.[a-z0-9_-]+)?|filesystem|file path)\b",
+            re.I,
+        ),
+    ),
+    (
+        "session_exfiltration",
+        re.compile(r"\b(?:other|another) user(?:'s|s')? sessions?\b", re.I),
+    ),
+    (
+        "credential_exfiltration",
+        re.compile(r"\b(?:hack|steal credentials?)\b", re.I),
+    ),
 )
+_DIRECT_ATTACKS = tuple(pattern for _, pattern in _SECURITY_DENIALS)
 
 _UNTRUSTED_INSTRUCTIONS = (
     *_DIRECT_ATTACKS,
@@ -79,6 +120,15 @@ _PUBLIC_RESPONSE_VIOLATIONS: tuple[tuple[str, re.Pattern[str]], ...] = (
 def is_direct_prompt_attack(text: str) -> bool:
     """Return whether caller text explicitly attempts to override a trust boundary."""
     return any(pattern.search(text) for pattern in _DIRECT_ATTACKS)
+
+
+def security_denial_category(text: str) -> SecurityDenialCategory | None:
+    """Return a stable safe category without retaining or echoing the request."""
+    bounded = text[:4_000]
+    return next(
+        (category for category, pattern in _SECURITY_DENIALS if pattern.search(bounded)),
+        None,
+    )
 
 
 def contains_untrusted_instruction(text: str) -> bool:

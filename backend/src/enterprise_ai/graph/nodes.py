@@ -54,7 +54,11 @@ from enterprise_ai.retrieval.identifiers import (
 )
 from enterprise_ai.retrieval.indexer import load_current_chunks
 from enterprise_ai.security.authorization import AuthorizationService
-from enterprise_ai.security.guardrails import contains_untrusted_instruction
+from enterprise_ai.security.guardrails import (
+    contains_untrusted_instruction,
+    security_denial_category,
+)
+from enterprise_ai.tools.python_analysis.intent import has_explicit_aggregate_intent
 from enterprise_ai.tools.python_analysis.service import PythonAnalysisTool, plan_analysis
 
 
@@ -127,6 +131,13 @@ def create_nodes(
                     "route": state.get("selected_route"),
                     "top_k": state.get("requested_top_k"),
                     "filter_present": bool(state.get("retrieval_filters")),
+                    "exact_identifier_present": bool(state.get("requested_enterprise_identifiers")),
+                    "aggregate_intent_present": state.get("aggregate_intent_present", False),
+                    "security_denial_category": state.get("security_denial_category"),
+                    "identifier_constraint_active": bool(
+                        state.get("requested_enterprise_identifiers")
+                        and state.get("selected_route") is Route.SIMPLE_RETRIEVAL
+                    ),
                 }
                 if name:
                     async with traces.span(name, run_type, metadata) as span:
@@ -230,9 +241,13 @@ def create_nodes(
 
     async def classify_intent(state: GraphState) -> dict[str, object]:
         intent, complexity = classify(state["normalized_query"])
+        denial_category = security_denial_category(state["normalized_query"])
+        aggregate_intent = has_explicit_aggregate_intent(state["normalized_query"])
         return {
             "detected_intent": intent,
             "task_complexity": complexity,
+            "aggregate_intent_present": aggregate_intent,
+            "security_denial_category": denial_category,
             "visited_nodes": ("classify_intent",),
             "activity_events": _node_events(
                 state, "classify_intent", f"Classified as {intent.value}."
@@ -309,11 +324,15 @@ def create_nodes(
         }
 
     async def supervisor(state: GraphState) -> dict[str, object]:
+        denial_category = security_denial_category(state["resolved_query"]) or state.get(
+            "security_denial_category"
+        )
+        inaccessible = requests_inaccessible_access(
+            state["resolved_query"], state["principal"], authorization
+        )
         route = (
             Route.DENY
-            if requests_inaccessible_access(
-                state["resolved_query"], state["principal"], authorization
-            )
+            if denial_category is not None or inaccessible
             else supervise(state["detected_intent"], state["principal"], authorization)
         )
         route_event = event(
@@ -322,10 +341,20 @@ def create_nodes(
             AgentEventStatus.COMPLETED,
             f"Selected {route.value} route.",
             node="supervisor",
-            payload=PublicAgentEventPayload(route=route),
+            payload=PublicAgentEventPayload(
+                route=route,
+                exact_identifier_present=bool(state.get("requested_enterprise_identifiers")),
+                aggregate_intent_present=state.get("aggregate_intent_present", False),
+                security_denial_category=denial_category,
+                identifier_constraint_active=bool(
+                    state.get("requested_enterprise_identifiers")
+                    and route is Route.SIMPLE_RETRIEVAL
+                ),
+            ),
         )
         return {
             "selected_route": route,
+            "security_denial_category": denial_category,
             "visited_nodes": ("supervisor",),
             "activity_events": (route_event,),
             "execution_step_count": state.get("execution_step_count", 0) + 1,
@@ -497,9 +526,15 @@ def create_nodes(
         }
 
     async def deny_request(state: GraphState) -> dict[str, object]:
+        security_denial = state.get("security_denial_category") is not None
         return {
             "processing_status": ProcessingStatus.DENIED,
-            "response_text": "Your role does not permit this operation.",
+            "response_text": (
+                "Secrets, credentials, private configuration, and protected instructions "
+                "cannot be disclosed."
+                if security_denial
+                else "Your role does not permit this operation."
+            ),
             "retrieved_evidence": (),
             "visited_nodes": ("deny_request",),
             "activity_events": _node_events(state, "deny_request", "Request denied safely."),

@@ -116,3 +116,32 @@ def test_answer_citations_provenance_activity_and_error_render_safely() -> None:
     assert "A safe retryable error." in visible_text
     assert "private/path" not in visible_text
     assert "in-memory-test-token" not in visible_text
+
+
+def test_denied_security_response_renders_status_without_private_detail() -> None:
+    denied = ChatMessage(
+        message_id=uuid4(),
+        role="assistant",
+        content=(
+            "Secrets, credentials, private configuration, and protected instructions "
+            "cannot be disclosed."
+        ),
+        completion_status=ProcessingStatus.DENIED,
+        request_id=uuid4(),
+    )
+    app = AppTest.from_file(str(APP_PATH))
+    app.session_state[ACCESS_TOKEN] = "in-memory-test-token"
+    app.session_state[USER] = FrontendUser(
+        username="demo-analyst",
+        display_name="Demo Analyst",
+        role=UserRole.ANALYST,
+    )
+    app.session_state[MESSAGES] = [denied]
+    app.run()
+
+    visible = "\n".join(
+        str(element.value) for collection in (app.markdown, app.caption) for element in collection
+    )
+    assert "Completion: denied" in visible
+    assert "cannot be disclosed" in visible
+    assert "in-memory-test-token" not in visible

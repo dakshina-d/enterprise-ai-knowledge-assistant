@@ -11,6 +11,7 @@ from enterprise_ai.research.models import (
     ResearchTaskType,
 )
 from enterprise_ai.retrieval.filters import DenseQueryFilters
+from enterprise_ai.tools.python_analysis.intent import has_explicit_aggregate_intent
 
 
 class FakeResearchPlanner:
@@ -140,14 +141,4 @@ def _domain_terms(question: str) -> tuple[str, ...]:
 
 
 def analysis_requested(question: str) -> bool:
-    return any(
-        phrase in question
-        for phrase in (
-            "count",
-            "distribution",
-            "frequency",
-            "recurring root cause",
-            "statistics",
-            "aggregate trend",
-        )
-    )
+    return has_explicit_aggregate_intent(question)

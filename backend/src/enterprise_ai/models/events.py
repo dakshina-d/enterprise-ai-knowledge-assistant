@@ -18,6 +18,7 @@ from enterprise_ai.models.common import (
 from enterprise_ai.models.graph import Route
 from enterprise_ai.models.tools import ToolName
 from enterprise_ai.models.validation import ensure_utc_aware, validate_text_length
+from enterprise_ai.security.guardrails import SecurityDenialCategory
 
 EVENT_VERSION = "1.0"
 
@@ -112,6 +113,10 @@ class PublicAgentEventPayload(ContractModel):
     turn_count: Annotated[int | None, Field(ge=0)] = None
     evidence_reference_count: Annotated[int | None, Field(ge=0)] = None
     context_used: bool | None = None
+    exact_identifier_present: bool | None = None
+    aggregate_intent_present: bool | None = None
+    identifier_constraint_active: bool | None = None
+    security_denial_category: SecurityDenialCategory | None = None
     evicted_turn_count: Annotated[int | None, Field(ge=0)] = None
     plan_id: Annotated[str | None, Field(max_length=100)] = None
     task_id: Annotated[str | None, Field(max_length=100)] = None

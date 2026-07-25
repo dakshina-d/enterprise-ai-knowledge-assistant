@@ -23,6 +23,7 @@ from enterprise_ai.research.models import ResearchResult
 from enterprise_ai.retrieval.filters import DenseQueryFilters
 from enterprise_ai.retrieval.hybrid.models import HybridEvidence
 from enterprise_ai.retrieval.identifiers import EnterpriseIdentifier
+from enterprise_ai.security.guardrails import SecurityDenialCategory
 from enterprise_ai.tools.python_analysis.models import AnalysisRequest, AnalysisResult
 
 
@@ -36,6 +37,8 @@ class GraphState(TypedDict, total=False):
     resolved_query: str
     normalized_query: str
     requested_enterprise_identifiers: tuple[EnterpriseIdentifier, ...]
+    aggregate_intent_present: bool
+    security_denial_category: SecurityDenialCategory | None
     detected_intent: Intent
     task_complexity: str
     selected_route: Route

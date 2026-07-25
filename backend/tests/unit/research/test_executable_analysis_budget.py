@@ -51,7 +51,7 @@ async def test_analysis_calls_start_only_with_atomic_budget(role: UserRole) -> N
     )
     items = []
     for index in range(3):
-        item = _input("root cause", f"T{index}")
+        item = _input("Which recurring root causes appear most often?", f"T{index}")
         task = item.task.model_copy(
             update={
                 "task_type": ResearchTaskType.ROOT_CAUSE_ANALYSIS,

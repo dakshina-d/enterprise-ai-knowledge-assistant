@@ -14,6 +14,7 @@ from enterprise_ai.tools.python_analysis.exceptions import (
     AnalysisLimitError,
     AnalysisValidationError,
 )
+from enterprise_ai.tools.python_analysis.intent import has_explicit_aggregate_intent
 from enterprise_ai.tools.python_analysis.models import (
     AnalysisFilters,
     AnalysisOperation,
@@ -24,6 +25,8 @@ from enterprise_ai.tools.python_analysis.models import (
 
 def plan_analysis(query: str) -> AnalysisRequest:
     value = query.casefold()
+    if not has_explicit_aggregate_intent(query):
+        raise AnalysisValidationError("structured analysis requires explicit aggregate intent")
     filters = AnalysisFilters(
         departments=("payments",) if "payment" in value else (),
         start_date=date(2025, 7, 1) if "last year" in value else None,
