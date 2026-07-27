@@ -45,7 +45,7 @@ docker compose down --remove-orphans
 
 Always run `docker compose down --remove-orphans` after the check, including after a failure.
 
-## Mode 2: authenticated assessment demo
+## Mode 2: authenticated local runtime
 
 Create an ignored local `.env.demo`. The script prompts securely for three passwords, generates a
 random signing secret and Argon2id hashes, refuses to overwrite by default, and never prints the
@@ -59,7 +59,7 @@ Use `--force` only when intentionally replacing the local file. On platforms tha
 permissions the script applies mode `0600`; Windows users should also verify the file ACL. The
 file is excluded by both `.gitignore` and `.dockerignore`.
 
-`--force` prompts for and replaces all three demo passwords, their hashes, and the JWT signing
+`--force` prompts for and replaces all three configured passwords, their hashes, and the JWT signing
 secret; it never reads or migrates the existing file.
 
 Start the authenticated stack:
@@ -108,8 +108,8 @@ $env:FRONTEND_API_BASE_URL='http://127.0.0.1:8000'
 streamlit run frontend/streamlit_app.py --server.address=127.0.0.1 --server.port=8501
 ```
 
-Do not use Uvicorn reload mode during the recorded assessment. Remove the process environment or
-close the terminals after the demo, then delete `.env.demo`.
+Do not use Uvicorn reload mode during repeatable verification. Remove the process environment or
+close the terminals after the session, then delete `.env.demo`.
 
 Native startup uses `OLLAMA_BASE_URL=http://127.0.0.1:11434`. When the API runs in Compose, its
 documented default is `http://host.docker.internal:11434`; the Linux host-gateway alias is declared
@@ -118,7 +118,7 @@ image and Compose stack do not install Ollama, start it, pull a model, or copy m
 
 ## Provider modes
 
-Local Qwen/Ollama is the primary authenticated manual-assessment mode. Fake is the CI and
+Local Qwen/Ollama is the primary authenticated local mode. Fake is the CI and
 infrastructure-smoke default. `RETRIEVAL_MODE=sparse` is the credential-free retrieval default.
 Pinecone-backed FastAPI chat requires `PINECONE_ENABLED=true`,
 `RETRIEVAL_MODE=pinecone_hybrid`, a private key, and a verified index/namespace. OpenAI and
@@ -140,6 +140,16 @@ configuration.
   `RETRIEVAL_MODE=sparse`.
 - Port already in use: stop the conflicting local process; do not expose Compose on a broader host
   interface as a workaround.
+
+## Session reset and cleanup
+
+- Use **New conversation** to clear the current chat and activity state; a browser refresh preserves
+  the active server-side session.
+- Log out before changing roles so the next request receives a freshly issued role-bound token.
+- Stop native API/UI processes or run the matching Compose teardown command after verification.
+- Close terminals that loaded `.env.demo`, then delete the ignored file when it is no longer needed.
+- Remove temporary `PINECONE_*`, `LANGSMITH_*`, `OPENAI_*`, and provider-selection variables from
+  the process environment, and revoke temporary cloud credentials.
 
 Process-local memory, checkpoints, rate limits, and MCP state reset on container restart. No
 durable replay, distributed state, enterprise IdP, remote MCP OAuth, or production secrets

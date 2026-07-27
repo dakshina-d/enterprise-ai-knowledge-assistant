@@ -1,6 +1,6 @@
 # Assessment Compliance Audit
 
-Audit date: 2026-07-24. Runtime code and executable tests are the evidence authority. “Implemented
+Audit date: 2026-07-27. Runtime code and executable tests are the evidence authority. “Implemented
 for bounded PoC” is not a production-readiness claim. All automated evidence is offline and
 credential-free unless explicitly identified as manual.
 
@@ -13,7 +13,7 @@ Abbreviations used below: `role acceptance` =
 
 ### Frontend
 
-| Assignment requirement | Status | Implementation evidence | Test evidence | Demo step | Limitation |
+| Assignment requirement | Status | Implementation evidence | Test evidence | Verification procedure | Limitation |
 |---|---|---|---|---|---|
 | Streamlit chat interface | Implemented for bounded PoC | `frontend/streamlit_app.py`, `frontend/enterprise_ai_frontend/app.py` | `frontend/tests/test_app.py` | Run Streamlit and log in | No production deployment/TLS |
 | Multi-turn conversation | Implemented for bounded PoC | `frontend/enterprise_ai_frontend/state.py`, backend memory | frontend state tests; role acceptance | Ask two turns in one session | Process-local backend memory |
@@ -29,7 +29,7 @@ Abbreviations used below: `role acceptance` =
 
 ### Backend and agent architecture
 
-| Assignment requirement | Status | Implementation evidence | Test evidence | Demo step | Limitation |
+| Assignment requirement | Status | Implementation evidence | Test evidence | Verification procedure | Limitation |
 |---|---|---|---|---|---|
 | Python | Implemented | Python 3.12 package in `backend/src` | full Pytest/Ruff/MyPy | Run local quality gates | Python-only PoC |
 | FastAPI | Implemented | `enterprise_ai.main`, `enterprise_ai.api` | API integration suites | Run Uvicorn `/docs` | Local process by default |
@@ -50,7 +50,7 @@ Abbreviations used below: `role acceptance` =
 
 ### Recursive Language Model concept
 
-| Assignment requirement | Status | Implementation evidence | Test evidence | Demo step | Limitation |
+| Assignment requirement | Status | Implementation evidence | Test evidence | Verification procedure | Limitation |
 |---|---|---|---|---|---|
 | Collection exploration | Implemented | research catalog | catalog/research suites | research evaluation | Authorized manifest only |
 | Structured search planning | Implemented | typed planner/compiler | planner/compiler suites | complex research request | Fake planner offline |
@@ -63,12 +63,12 @@ Abbreviations used below: `role acceptance` =
 
 ### Retrieval
 
-| Assignment requirement | Status | Implementation evidence | Test evidence | Demo step | Limitation |
+| Assignment requirement | Status | Implementation evidence | Test evidence | Verification procedure | Limitation |
 |---|---|---|---|---|---|
 | Dense retrieval | Implemented for bounded PoC | dense retriever and Pinecone gateway | dense/provider suites | opt-in retrieval CLI | Live provider needs credentials |
 | Sparse/BM25 retrieval | Implemented | sparse artifacts/retriever | sparse suites and CLI checks | `check-sparse` | Local corpus only |
 | Hybrid ranking | Implemented | hybrid service/normalization/fusion | sparse-hybrid/failure suites | graph in hybrid mode | No reranker |
-| Pinecone integration | Implemented for bounded PoC | FastAPI `create_api_retriever` runtime selection plus gateway/bootstrap/index/query CLIs | runtime selection/failure, dense/filter, hybrid/fusion fake-provider contracts | opt-in bootstrap/index/check and authenticated hybrid query | Live proof requires a temporary credential |
+| Pinecone integration | Implemented for bounded PoC; manual live verification completed | FastAPI `create_api_retriever` runtime selection plus gateway/bootstrap/index/query CLIs | runtime selection/failure, dense/filter, hybrid/fusion fake-provider contracts remain reproducible CI evidence | `check-index` and authenticated hybrid/RBAC queries | Future re-verification requires a temporary credential and service availability |
 | Namespace use | Implemented | configured namespace gateway | filter/gateway tests | inspect CLI config | Single corpus namespace |
 | Metadata filtering | Implemented | server-built filter models | filter/provider tests | role retrieval scenarios | Provider syntax is adapter-specific |
 | Document attribution | Implemented | evidence/citation models and rendering | attribution/citation/frontend tests | inspect response sources | Structural source attribution |
@@ -77,7 +77,7 @@ Abbreviations used below: `role acceptance` =
 
 ### Memory and tools
 
-| Assignment requirement | Status | Implementation evidence | Test evidence | Demo step | Limitation |
+| Assignment requirement | Status | Implementation evidence | Test evidence | Verification procedure | Limitation |
 |---|---|---|---|---|---|
 | Session conversational memory | Implemented for bounded PoC | `enterprise_ai.memory` | memory and role acceptance suites | two-turn chat | Process-local |
 | Previous questions | Implemented | sanitized turn store/context | memory context tests | ask follow-up | Bounded retained turns |
@@ -95,7 +95,7 @@ Abbreviations used below: `role acceptance` =
 
 ### LLM and LangSmith
 
-| Assignment requirement | Status | Implementation evidence | Test evidence | Demo step | Limitation |
+| Assignment requirement | Status | Implementation evidence | Test evidence | Verification procedure | Limitation |
 |---|---|---|---|---|---|
 | Modern LLM provider abstraction | Implemented | `llm/provider.py` | provider/grounding suites | graph query | Application-owned protocol |
 | Model selection rationale | Implemented | `docs/model-selection.md` | documentation review | Read rationale | Requires periodic manual review |
@@ -107,16 +107,16 @@ Abbreviations used below: `role acceptance` =
 | Deterministic fallback | Implemented | response service fallback | grounding and failure matrix | unavailable-provider test | Evidence-title summary only |
 | Conversation root trace | Implemented | `GraphRuntime` root span | LangSmith graph tracing tests | `trace-demo` | Offline fake by default |
 | Agent transition spans | Implemented | traced graph nodes | tracing hierarchy suites | `trace-demo` | Allowlisted metadata only |
-| Retrieval spans | Implemented | graph/research retriever spans | tracing suites | retrieval trace demo | No raw content |
+| Retrieval spans | Implemented | graph/research retriever spans | tracing suites | inspect retrieval trace | No raw content |
 | Tool-call spans | Implemented | MCP/Python spans | MCP/Python tracing tests | tool route test | No raw results |
-| Response/citation spans | Implemented | response and validation spans | tracing hierarchy/failure suites | retrieval trace demo | No prompt/draft |
+| Response/citation spans | Implemented | response and validation spans | tracing hierarchy/failure suites | inspect retrieval trace | No prompt/draft |
 | Privacy-safe metadata | Implemented | `SafeTracer` allowlist/sanitizer | tracing privacy suites | inspect fake records | Operational scalars only |
 | Trace failure isolation | Implemented | safe recorder wrappers | start/finish/flush failure tests | injected recorder failure | Warnings only |
 | Real remote verification documented | Implemented as manual evidence | tracing/research-evaluation docs | prior documented smoke; no CI secret | temporary credential smoke | Not independently re-run in this audit |
 
 ### Security and identity
 
-| Assignment requirement | Status | Implementation evidence | Test evidence | Demo step | Limitation |
+| Assignment requirement | Status | Implementation evidence | Test evidence | Verification procedure | Limitation |
 |---|---|---|---|---|---|
 | Direct prompt-injection protection | Implemented for bounded PoC | `security/guardrails.py`, routing | security acceptance; role acceptance | submit attack examples | Deterministic pattern coverage |
 | Indirect/retrieved injection protection | Implemented for bounded PoC | evidence/aggregation/grounding rejection | committed-fixture security acceptance | inject fixture through fake evidence | Bounded instruction patterns |
@@ -126,12 +126,12 @@ Abbreviations used below: `role acceptance` =
 | User-input validation | Implemented | strict API and graph schemas/bounds | API schema/security tests | unknown/oversized field | Bounded length |
 | Tool-argument validation | Implemented | strict MCP/Python models | tool validation suites | malformed arguments | Closed operation catalog |
 | Retrieved-content validation | Implemented | authorization/integrity/instruction checks | retrieval/security suites | malicious fixture | Conservative rejection |
-| Unauthorized-access guardrails | Implemented | centralized RBAC/rechecks | role/retrieval/citation suites | restricted viewer request | Demo identity system |
+| Unauthorized-access guardrails | Implemented | centralized RBAC/rechecks | role/retrieval/citation suites | restricted viewer request | Local identity system |
 | Hallucinated-citation protection | Implemented | current-context citation validator | citation suites | fake unknown citation | Structural claim mapping |
 | Invalid-response protection | Implemented | typed provider parse and policy validation | malformed provider/security tests | malformed fake provider | Deterministic fallback |
 | Brand-safety controls | Implemented for bounded PoC | response policy violations | security acceptance | false guarantee/identity/fact/legal cases | Bounded bank-policy rules |
 | No private chain-of-thought exposure | Implemented | public contracts omit reasoning | security/event/trace/frontend tests | chain-of-thought attack | Summaries/activity only |
-| Authentication | Implemented for bounded PoC | Argon2/JWT API security | auth/token/API suites | configured demo login | No IdP/MFA/revocation |
+| Authentication | Implemented for bounded PoC | Argon2/JWT API security | auth/token/API suites | configured local login | No IdP/MFA/revocation |
 | Viewer role | Implemented | central role policy | authorization/role acceptance | viewer scenarios | Defined permissions only |
 | Analyst role | Implemented | central role policy | authorization/role acceptance | analyst scenarios | Defined permissions only |
 | Administrator role | Implemented | central role policy | authorization/role acceptance | admin scenario | Not unrestricted superuser |
@@ -143,7 +143,7 @@ Abbreviations used below: `role acceptance` =
 
 ### Rate limiting and graceful failures
 
-| Assignment requirement | Status | Implementation evidence | Test evidence | Demo step | Limitation |
+| Assignment requirement | Status | Implementation evidence | Test evidence | Verification procedure | Limitation |
 |---|---|---|---|---|---|
 | Token Bucket | Implemented | `rate_limit/token_bucket.py` | rate-limit suites | exhaust configured bucket | Process-local |
 | Per-user limits | Implemented | token-derived user bucket | API isolation tests | alternate users | Login uses network fingerprint |
@@ -178,17 +178,15 @@ Bonus status does not affect mandatory compliance.
 | Persistent feedback loop | Bonus/not required; not implemented | No feedback persistence | Deliberately excluded |
 | Docker Compose | Implemented for bounded PoC | Secure Dockerfile/Compose, Python health checks, smoke and demo-env scripts; local build/start/API health/UI health/down passed | Local two-service proof only; no production orchestration or CI runtime gate |
 
-## External and manual deliverables
+## External integration verification
 
 | Deliverable | Current evidence | Audit status | Limitation |
 |---|---|---|---|
-| GitHub Actions hardening run | Workflow exists in `.github/workflows/ci.yml`; assignment owner manually confirmed commit `575768d` green | Confirmed by owner; final deployment commit still requires its own run | CI remains external evidence |
-| Live Pinecone | Optional adapter/CLI implemented | Not run; automated fake contracts used | Requires user-provided credential/index |
+| GitHub Actions hardening run | Workflow exists in `.github/workflows/ci.yml`; implementation commit `42a3e35` was manually confirmed green | Confirmed for that implementation commit; every later commit requires its own CI run | The uncommitted documentation cleanup has not run in CI |
+| Live Pinecone | Optional adapter/CLI and FastAPI hybrid runtime implemented | Manual live verification completed against `lhcb-knowledge-dev` / `lhcb-knowledge-dev-v1`: dimension 1024, cosine metric, 83 indexed chunks, expected fingerprint `65e99b826c8160d59b068035ee4d4b7b663f9c4d93a46b98f4ef5d8e98b38ba5`, Viewer retrieval/attribution, Administrator exact `INC-PAY-2025-126`, Viewer denial, and unknown-ID no-substitution | Deterministic provider-contract tests remain reproducible CI evidence; future re-verification requires a temporary credential and service availability |
 | Live OpenAI | Optional Responses adapter implemented | Not run; automated fake contracts used | Requires user-provided credential |
-| Real LangSmith export | Prior credentialed smoke is documented | Not re-run; offline hierarchy/failure tests are authoritative for CI | Requires temporary runtime credential |
+| Real LangSmith export | Privacy-safe recorder and route-specific hierarchy implemented | Manual live verification completed for Viewer retrieval, Analyst structured analysis, Analyst MCP, bounded research, security denial, and controlled Ollama fallback; no prompts, raw evidence, credentials, private reasoning, or raw provider exceptions were exported | Offline fake-recorder tests remain reproducible CI evidence; future re-verification requires a temporary credential and LangSmith availability |
 | Production deployment/security review | Architecture and gaps documented | Not delivered | PoC is not production-ready |
-| Public demonstration video | Script, runbook, and evidence checklist implemented | Not recorded/uploaded | URL remains `TO BE ADDED AFTER RECORDING` |
-| Final submission commit | Submission document implemented | Not created by Codex | SHA placeholder must be populated after the owner commits |
 
 ## Overall conclusion
 

@@ -4,21 +4,19 @@
 
 - The committed corpus is entirely synthetic and describes the fictional Lanka Horizon Commercial
   Bank. No real customer, employee, bank, or production data is required or present.
-- The source repository and demonstration are intended to be public, so credentials, private trace
-  URLs, and screenshots containing tokens remain external.
+- The source repository is intended to be public, so credentials and private trace URLs remain
+  external.
 - Local Argon2id/JWT authentication is sufficient to demonstrate the three assessment roles. It is
   not an enterprise identity system.
 - Optional OpenAI, Pinecone, and LangSmith credentials are supplied only at runtime by the
   evaluator and are never required by CI.
 - The deterministic fake provider is the authority for repeatable CI and infrastructure smoke.
-  The primary manual-assessment provider is local Ollama with `qwen3:4b-instruct`; OpenAI is an
+  The primary local provider is Ollama with `qwen3:4b-instruct`; OpenAI is an
   optional cloud adapter.
 - Live Pinecone execution is optional because it requires a provisioned index and credential. The
   local BM25 path and fake dense-provider tests demonstrate mandatory retrieval controls offline.
-- LangSmith live tracing is demonstrated separately with a temporary runtime credential. Offline
+- LangSmith live tracing is verified separately with a temporary runtime credential. Offline
   fake-recorder tests remain the reproducible privacy/hierarchy evidence.
-- The approximately 45-minute public recording and its public URL are manual deliverables created
-  after repository changes are finalized.
 
 ## Architectural trade-offs
 
@@ -28,7 +26,7 @@
 | FastAPI as non-bypassable policy boundary | Browser/model inputs cannot grant identity, route, tool, or data scope | All interactive traffic depends on one API boundary |
 | LangGraph state machine over free-form autonomy | Typed routes, bounded transitions, and singular terminals are auditable | Less open-ended agent behavior |
 | Native POST SSE over WebSocket | One-way activity/results fit HTTP auth, proxies, and simple clients | No bidirectional session channel or replay |
-| Local BM25 plus optional Pinecone dense retrieval | Credential-free baseline with a realistic dense adapter | Main offline demo is sparse-first |
+| Local BM25 plus optional Pinecone dense retrieval | Credential-free baseline with a realistic dense adapter | The offline runtime is sparse-first |
 | Application-owned hybrid fusion | Scores, authorization, attribution, and partial failure remain inspectable | No learned reranker |
 | Bounded recursive research | Demonstrates decomposition and fan-out under depth/task/time/call budgets | Not unrestricted recursive model execution |
 | Typed restricted analysis | Deterministic aggregates without arbitrary host code | Fixed operation taxonomy |
@@ -37,7 +35,7 @@
 | Process-local Token Bucket | Concurrent atomicity is demonstrable without infrastructure | No cross-process/user-cluster coordination |
 | Deterministic guardrails plus validation | LLM text cannot own policy, evidence authorization, tools, or citations | Pattern rules are bounded, not universal moderation |
 | Fake provider in CI | Fast, offline, deterministic, and free of secret/network dependency | Does not measure live model quality |
-| Local Qwen3-4B-Instruct through native Ollama | Fits the observed assessment hardware, keeps evidence local, has no per-request fee, and supports schema-constrained output | CPU inference is slower and recursive multi-call research may take several minutes |
+| Local Qwen3-4B-Instruct through native Ollama | Fits the target CPU-only local hardware, keeps evidence local, has no per-request fee, and supports schema-constrained output | CPU inference is slower and recursive multi-call research may take several minutes |
 | Privacy-safe trace metadata | Preserves hierarchy and outcomes without exporting prompts/evidence | Less content is available for trace debugging |
 
 The Qwen model is pretrained, not fine-tuned on the synthetic enterprise corpus. Corpus updates

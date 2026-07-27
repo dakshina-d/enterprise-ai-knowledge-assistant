@@ -60,7 +60,7 @@ See the [renderable Mermaid source and trust-boundary notes](docs/final-architec
 - Logs, traces, events, UI activity, and safe errors exclude raw prompts, evidence, credentials,
   private reasoning, provider errors, and internal paths.
 
-This authentication model is for local demonstration only. Production requires organizational
+This authentication model is for local evaluation only. Production requires organizational
 OIDC, MFA, revocation, managed keys, distributed authorization context, and operational controls.
 See [security design](docs/security-design.md).
 
@@ -109,14 +109,14 @@ Open:
 - Liveness: `http://127.0.0.1:8000/health/live`
 - Readiness: `http://127.0.0.1:8000/health/ready`
 
-Do not use reload mode for the recorded assessment. Detailed native environment and shutdown
+Do not use reload mode for repeatable local verification. Detailed native environment and shutdown
 instructions are in [local and container deployment](docs/local-container-deployment.md).
 
 ### Optional Pinecone hybrid startup
 
 Sparse mode is the credential-free default: `RETRIEVAL_MODE=sparse`. To use Pinecone for actual
-FastAPI chat, bootstrap and verify the existing configured index first, then start the API with both
-Pinecone and hybrid runtime selection enabled:
+FastAPI chat, verify the configured index, then start the API with both Pinecone and hybrid runtime
+selection enabled:
 
 ```powershell
 $env:PINECONE_API_KEY='<SET_LOCALLY>'
@@ -125,15 +125,16 @@ $env:RETRIEVAL_MODE='pinecone_hybrid'
 $env:PINECONE_INDEX_NAME='lhcb-knowledge-dev'
 $env:PINECONE_NAMESPACE='lhcb-knowledge-dev-v1'
 
-python -m enterprise_ai.retrieval.cli bootstrap-index
-python -m enterprise_ai.retrieval.cli index
 python -m enterprise_ai.retrieval.cli check-index
 uvicorn enterprise_ai.main:app --factory --host 127.0.0.1 --port 8000
 ```
 
-Do not place a real key in source, `.env.example`, terminal output, screenshots, or the recording.
-The complete Viewer/Admin/RBAC live-check and restoration procedure is in the
-[demonstration runbook](docs/demo-runbook.md).
+Run `bootstrap-index` and `index` only for initial provisioning, a missing index, or an ingestion
+fingerprint change; routine startup must not re-index the current build.
+
+Do not place a real key in source, `.env.example`, or terminal output. The complete
+Viewer/Admin/RBAC live-check and restoration procedure is in the
+[dense retrieval design](docs/dense-retrieval-design.md).
 
 ## Docker Compose startup
 
@@ -153,7 +154,7 @@ docker compose ps
 docker compose down --remove-orphans
 ```
 
-Authenticated demo mode:
+Authenticated local mode:
 
 ```powershell
 python scripts/create_demo_env.py --llm-provider ollama
@@ -174,7 +175,7 @@ unless explicitly configured. Pinecone chat also requires `RETRIEVAL_MODE=pineco
 The implemented MCP path remains local/in-process; Compose does not
 invent a remote MCP service.
 
-## Demo users and example questions
+## Local test users and example queries
 
 Usernames default to `demo-viewer`, `demo-analyst`, and `demo-admin`; passwords are the private
 values entered into `create_demo_env.py`.
@@ -191,7 +192,7 @@ values entered into `create_demo_env.py`.
 | Analyst | `Compare pending payment status in September and delayed settlement in February.` | `recursive_research`, bounded fan-out and citations |
 | Administrator | `What does INC-PAY-2025-126 say about certificate lifecycle ownership?` | authorized restricted retrieval |
 
-The main local recording uses Ollama with `qwen3:4b-instruct` and local sparse retrieval. Fake
+The primary local runtime uses Ollama with `qwen3:4b-instruct` and local sparse retrieval. Fake
 remains the deterministic CI/infrastructure-smoke provider; OpenAI remains an optional adapter.
 
 | Environment | LLM |
@@ -241,28 +242,20 @@ Offline verification:
 python -m enterprise_ai.graph.cli trace-demo --query hello
 ```
 
-For the manual trace demonstration, privately set
+For live integration verification, privately set
 `LANGSMITH_API_KEY='<SET_LOCALLY>'`, `LANGSMITH_TRACING=true`, and
-`LANGSMITH_PROJECT=enterprise-ai-knowledge-assistant-dev`. Hide private
-trace URLs/identifiers during recording and revoke the key afterward. See
-[LangSmith tracing design](docs/langsmith-tracing-design.md) and the
-[demo runbook](docs/demo-runbook.md).
+`LANGSMITH_PROJECT=enterprise-ai-knowledge-assistant-dev`. Keep private trace URLs and identifiers
+private, and revoke the key afterward. See
+[LangSmith tracing design](docs/langsmith-tracing-design.md).
 
-## Assignment evidence
+## Technical documentation
 
 - [Final architecture](docs/final-architecture.md)
 - [Assessment compliance audit](docs/assessment-compliance-audit.md)
 - [Requirements traceability](docs/requirements-traceability.md)
 - [Model selection rationale](docs/model-selection.md)
 - [Assumptions and trade-offs](docs/assumptions-and-tradeoffs.md)
-- [45-minute demonstration script](docs/demo-script-45-minutes.md)
-- [Demonstration runbook](docs/demo-runbook.md)
-- [Demonstration evidence checklist](docs/demo-evidence-checklist.md)
-- [Final submission checklist](docs/final-submission-checklist.md)
-- [Submission document](docs/submission.md)
 - [Local/container deployment](docs/local-container-deployment.md)
-
-The public video URL and final commit SHA remain manual post-commit fields and are never invented.
 
 ## Assumptions and limitations
 
@@ -287,7 +280,7 @@ frontend/       Streamlit presentation, SSE client, state, rendering, activity, 
 ingestion/      Offline deterministic parsing/chunking and artifact validation
 mcp_server/     MCP protocol tests and package boundary
 data/           Synthetic corpus, committed retrieval artifacts, evaluation, security fixtures
-docs/           Architecture, design, audit, demo, deployment, and submission evidence
+docs/           Architecture, design, audit, deployment, and verification guidance
 scripts/        Corpus, password/demo-env, smoke, and documentation-link utilities
 Dockerfile      Shared non-root Python application image
 compose.yaml    Local API/UI proof-of-concept stack

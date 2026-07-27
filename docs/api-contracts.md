@@ -26,7 +26,7 @@ Never include stack traces, secrets, raw prompts, authorization-policy internals
 |---|---|---|---|---|
 | `GET /health/live` | Process liveness. | None | Public | Safe GET; no streaming. Implemented. |
 | `GET /health/ready` | Dependency readiness. | None | Public | Safe GET; currently placeholder readiness. |
-| `POST /api/v1/auth/login` | Verify a configured PoC identity and issue a bearer token. | None | Valid configured demo identity | Anonymous-fingerprint login bucket; no streaming. Implemented when auth is enabled. |
+| `POST /api/v1/auth/login` | Verify a configured PoC identity and issue a bearer token. | None | Valid configured local identity | Anonymous-fingerprint login bucket; no streaming. Implemented when auth is enabled. |
 | `GET /api/v1/auth/me` | Return the safe current principal profile. | Bearer token | All roles | Safe GET; no streaming. Implemented when auth is enabled. |
 | `POST /api/v1/chat` | Execute one graph turn and return validated output. | Required; session owner on reuse | All roles, with graph/tool restrictions | Implemented JSON response; process-local request idempotency is graph/memory scoped. |
 | `POST /api/v1/chat/stream` | Execute one graph turn and stream safe activity plus one final output. | Required; session owner on reuse | All roles, with graph/tool restrictions | Implemented native SSE over POST; durable replay is not implemented. |
@@ -58,7 +58,7 @@ validates every SSE envelope and the final `GraphOutput`; see
 
 ### `POST /api/v1/auth/login`
 
-- Request: `{"username":"demo-viewer","password":"<secret>"}`. Demonstration-only credentials must come from configuration, not source code.
+- Request: `{"username":"demo-viewer","password":"<secret>"}`. Local test credentials must come from configuration, not source code.
 - `200`: `{"access_token":"<JWT>","token_type":"Bearer","expires_in":1800,"user":{...},"permissions":[...],"expires_at":"..."}`. Passwords, hashes, and secrets are never returned.
 - Errors: `400` malformed, `401` invalid credentials, `429` rate limited, `503` identity service unavailable.
 - Security: generic authentication failure messages, Argon2id password verification, strict JWT issuer/audience/algorithm/claim validation, and no refresh token. Production uses an enterprise IdP/OIDC rather than this endpoint.

@@ -20,7 +20,7 @@ FastAPI/backend policy code is the sole authorization boundary. It derives ident
 
 ## Consequences
 
-Policy is centralized, testable, and consistently auditable. Every adapter must accept policy-derived scope, and missing policy context fails closed. Demonstration authentication remains explicitly non-production.
+Policy is centralized, testable, and consistently auditable. Every adapter must accept policy-derived scope, and missing policy context fails closed. Local authentication remains explicitly non-production.
 
 ## Security implications
 

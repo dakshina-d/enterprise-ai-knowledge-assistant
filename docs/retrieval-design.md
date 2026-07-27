@@ -87,8 +87,8 @@ when mapping to the shared dense evidence contract.
 
 The corpus contains no password-policy source; incidental security boilerplate mentioning
 passwords is not equivalent policy evidence. Therefore `Summarize the password policy.` now
-returns insufficient evidence instead of citing unrelated policies. The demonstration uses the
-committed active Payment Queue Backlog Recovery Runbook question documented in the README.
+returns insufficient evidence instead of citing unrelated policies. The supported local check uses
+the committed active Payment Queue Backlog Recovery Runbook question documented in the README.
 
 ## Query and ranking pipeline
 

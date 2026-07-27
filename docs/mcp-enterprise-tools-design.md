@@ -2,7 +2,7 @@
 
 ## Purpose and scope
 
-The application uses the official MCP Python SDK to access structured enterprise-system records that do not belong in the document corpus. It exposes exactly three read-only tools over a genuine MCP client/server protocol path. All records represent the fictional Lanka Horizon Commercial Bank demonstration environment and contain no personal data, credentials, or real-company information.
+The application uses the official MCP Python SDK to access structured enterprise-system records that do not belong in the document corpus. It exposes exactly three read-only tools over a genuine MCP client/server protocol path. All records represent the fictional Lanka Horizon Commercial Bank test environment and contain no personal data, credentials, or real-company information.
 
 The dependency is bounded to `mcp>=1.28,<2`: v1.x is the stable SDK line used here, while v2 is prerelease and API-incompatible. No external network or key is required.
 

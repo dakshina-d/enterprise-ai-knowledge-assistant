@@ -44,7 +44,7 @@ behavior on every operating system.
 | Unit | Models, validators, policy functions, token bucket, reducers, fusion, citation checks, event projection. | Every commit; deterministic and no network. |
 | Integration | FastAPI with memory/rate-limit adapters, Pinecone test index, MCP test server, restricted-runtime adapter. | Feature branch/CI with isolated resources. |
 | Contract | OpenAPI schemas, error envelope, SSE envelope/version compatibility, MCP/tool schemas, provider adapters. | Consumer/provider fixtures in CI. |
-| Security | RBAC matrix, IDOR, injection corpus, filter enforcement, secret/log/event redaction, sandbox escape attempts. | Required before each trust boundary is demoed. |
+| Security | RBAC matrix, IDOR, injection corpus, filter enforcement, secret/log/event redaction, sandbox escape attempts. | Required before each trust boundary is accepted. |
 | Retrieval quality | Golden queries, access labels, recall@k, nDCG/MRR, citation precision, duplicate rate, latency. | Versioned evaluation with regression thresholds. |
 | Graph routing | State invariants, route table, retries, budgets, fan-out reducers, terminal states. | Property/table-driven tests in CI. |
 | Failure injection | LLM/Pinecone/MCP/memory timeouts, malformed results, partial workers, disconnects. | Deterministic fake adapters plus selected integration faults. |
@@ -58,7 +58,7 @@ malicious selectors, timeout, cancellation, concurrency, graph events/provenance
 and deterministic shutdown.
 
 Observability tests inject the application recorder rather than mocking graph business logic. They verify disabled mode, allowlisted metadata, parent relationships, concurrent context isolation, cancellation propagation, transport failure isolation, and normalized graph-output equivalence. Network access and credentials are never required in CI.
-| Manual demo | Positive role flows, denied actions, malicious document, partial dependency failure, bounded research. | Scripted checklist with saved non-sensitive evidence. |
+| Manual acceptance | Positive role flows, denied actions, malicious document, partial dependency failure, bounded research. | Operator-run checks with non-sensitive results. |
 
 Use fakes for LLM behavior rather than asserting exact generated prose. Freeze clocks/randomness for token-bucket/backoff tests. Integration resources use unique namespaces and cleanup. Evaluation thresholds and corpus versions are committed alongside results.
 
@@ -105,7 +105,7 @@ Final-pipeline evaluation tests execute all 12 questions twice through the compi
 
 Required local gates are `ruff format --check .`, `ruff check .`,
 `mypy backend/src frontend ingestion/src scripts`, and `pytest`. Future CI may add coverage
-thresholds only where meaningful, dependency/security scanning, and Mermaid rendering. Demo
+thresholds only where meaningful, dependency/security scanning, and Mermaid rendering. Verification
 evidence references test names, sanitized event captures, trace IDs, and evaluation reports—never
 claims a designed feature is operational before its tests pass.
 

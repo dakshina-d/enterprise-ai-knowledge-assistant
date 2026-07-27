@@ -25,7 +25,7 @@ citation validation; model-generated filenames, line numbers, URLs, and policy c
 
 ## Implemented PoC identity boundary
 
-- Demonstration usernames and Argon2id password hashes are environment configuration; no plaintext password is stored.
+- Local test usernames and Argon2id password hashes are environment configuration; no plaintext password is stored.
 - Login failures are indistinguishable and never log usernames, passwords, hashes, or tokens.
 - HS256 JWTs require `sub`, username, role, permissions, issuer, audience, issued/expiry times, and JWT ID. The decoder pins the algorithm and rejects invalid types, roles, permissions, signatures, issuer, audience, and expiry.
 - JWT permission claims must exactly equal the centralized server policy for the validated role. Extra, missing, unknown, or incorrectly typed permissions invalidate the token; the JWT is never the final authorization authority.

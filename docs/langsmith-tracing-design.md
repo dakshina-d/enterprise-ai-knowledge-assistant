@@ -28,13 +28,40 @@ Recorder start, finish, and flush exceptions are isolated from graph state, outp
 
 Run `python -m enterprise_ai.graph.cli trace-demo --query "hello"` for an offline fake-recorder summary. It prints enabled state, configured project, root name, child count, and final status without content or credentials.
 
-For a current live smoke test, privately set
-`LANGSMITH_TRACING=true`, `LANGSMITH_API_KEY=<SET_LOCALLY>`, and
-`LANGSMITH_PROJECT=enterprise-ai-knowledge-assistant-dev`, then run the retrieval, analysis, MCP,
-research, and denial queries in the [demonstration runbook](demo-runbook.md). Verify explicit root
-and child run IDs, finalized end times, hidden inputs/outputs, route-specific hierarchy, safe
-metadata, and absence of restricted content or credentials. The repository has prior documented
-manual smoke evidence, but fresh live dashboard evidence is credential-dependent and must not be
-claimed for a submission run until the operator performs and records this check.
+For a current live integration check, privately configure:
 
-Known limitations: the adapter reports safe structural summaries rather than prompt/token detail, and a real SaaS smoke test is not part of offline CI.
+```powershell
+$env:LANGSMITH_TRACING='true'
+$env:LANGSMITH_API_KEY='<SET_LOCALLY>'
+$env:LANGSMITH_PROJECT='enterprise-ai-knowledge-assistant-dev'
+python -c "import os; print('configured' if bool(os.getenv('LANGSMITH_API_KEY')) else 'missing')"
+```
+
+Start the authenticated local runtime and issue representative requests:
+
+- Viewer retrieval: ask what the active Payment Queue Backlog Recovery Runbook requires.
+- Analyst analysis: ask to count payment incidents by root cause.
+- Analyst MCP: ask who owns the `payment-gateway` service.
+- Analyst research: compare pending payment status in September with delayed settlement in
+  February.
+- Viewer denial: request the restricted disaster-recovery topology.
+
+In the private LangSmith project, verify one finalized `enterprise_ai_assistant` root per request,
+explicit parent/child relationships, route-specific spans, finalized end times, and allowlisted
+metadata containing only roles, routes, counts, safe identifiers, and outcome flags. Inputs and
+outputs must remain hidden; prompts, evidence, private reasoning, credentials, raw exceptions, and
+restricted content must be absent. A denial should be a technically successful trace with
+`completion_status=denied` and `route=deny`.
+
+Stop the runtime after verification, remove `LANGSMITH_API_KEY` and related tracing variables from
+the process environment, and revoke the temporary credential.
+
+Manual live verification completed on 2026-07-27 for Viewer retrieval, Analyst structured Python
+analysis, Analyst MCP execution, bounded recursive research, prompt-injection/security denial, and
+controlled Ollama unavailability with deterministic fallback. The verified traces contained
+route-specific hierarchy and privacy-safe metadata without prompts, raw evidence, credentials,
+private reasoning, or raw provider exceptions. Offline fake-recorder tests remain the reproducible
+CI evidence. Future re-verification depends on a temporary credential and LangSmith availability.
+
+Known limitations: the adapter reports safe structural summaries rather than prompt/token detail,
+and a real SaaS integration check is not part of offline CI.

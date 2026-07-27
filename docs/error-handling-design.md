@@ -67,7 +67,7 @@ name.
 | Streaming-client disconnect | Stop projection, release stream resources; continue/persist or cancel graph according to explicit request policy. | `cancelled` presentation or graph continues; internal trace records disconnect. |
 | Recursive-research budget exhaustion | Stop new workers, aggregate completed validated results, mark gaps and limitations. | Partial success if sufficient; otherwise failed. |
 
-### Submission failure evidence matrix
+### Acceptance failure matrix
 
 | Condition | Internal handling | Public response | Completion | Route | Retryability | Fallback | Expected Agent Activity |
 |---|---|---|---|---|---|---|---|

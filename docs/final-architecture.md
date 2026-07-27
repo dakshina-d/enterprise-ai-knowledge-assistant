@@ -106,7 +106,7 @@ flowchart TB
 
 - The Streamlit browser session is presentation-only. It cannot supply roles, permissions, routes,
   namespaces, filters, tools, or policy.
-- FastAPI derives identity from the validated bearer token in authenticated demo mode and applies
+- FastAPI derives identity from the validated bearer token in authenticated local mode and applies
   RBAC again at retrieval and tool boundaries.
 - Retrieved text is untrusted data. Authorization, integrity, instruction-content, and citation
   checks occur before final response completion.
