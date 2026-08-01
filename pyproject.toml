@@ -15,7 +15,7 @@ dependencies = [
   "langgraph>=1.2,<2.0",
   "langsmith>=0.10,<1.0",
   # MCP v2 is prerelease and introduces an incompatible API; remain on stable v1.
-  "mcp>=1.28,<2",
+  "mcp>=1.28,<3",
   "openai>=2.45,<3.0",
   "PyJWT>=2.10,<3.0",
   "pydantic-settings>=2.7,<3.0",
